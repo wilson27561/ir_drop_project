@@ -36,11 +36,6 @@ struct Node
     string y_location;
     string net;
 };
-struct Stripe
-{
-    // key : y_location , value : node
-    map<string, vector<Node>> y_node_map;
-};
 // the bottom loaction
 struct Location
 {
@@ -48,6 +43,16 @@ struct Location
     string y_location;
 };
 
+struct Stripe
+{
+   Location start_location;
+   Location end_location;
+};
+struct StripeGroup
+{
+    Stripe start_stripe;
+    Stripe end_stripe;
+};
 vector<string> splitByPattern(string content, string pattern);
 void create_ir_drop_plot(vector<string> *report_content_array, unordered_map<string, Stripe> *x_ir_drop_map);
 void create_add_stripe(vector<Location> *stripe_vector, set<string> *add_stripe, string x_drop_location, string y_drop_location);
@@ -55,14 +60,20 @@ void ir_drop_plot(string report,set<string> *add_stripe,vector<Location> *stripe
 string &trim(string &str);
 bool isInRange(string range_max,string range_min,string ir_drop);
 void getBoudary(vector<string> report_content_array,Boundary *boundary);
+void getStripeLocation( vector<string> *def_content_array,Stripe *stripe);
+
+
+
 
 int main()
 {
 
     ifstream def_file(DEF_FILE);
     string def_content;
-    vector<Location> vdd_stripe_vector;
-    vector<Location> vss_stripe_vector;
+    vector<Stripe> vdd_stripe_vector;
+    vector<Stripe> vss_stripe_vector;
+    map<string,StripeGroup> vdd_Stripe_map;
+    map<string,StripeGroup> vss_Stripe_map;
 
     if (def_file)
     {
@@ -83,29 +94,31 @@ int main()
                         if (def_content_array[4] == "SHAPE" && def_content_array[5] == "STRIPE" && def_content_array.size() == 14)
                         {
                             cout << "VDDX :" << def_content << " " << def_content_array.size() << endl;
-                            Location location;
-                            location.x_location = def_content_array[7];
-                            location.y_location = def_content_array[8];
-                            vdd_stripe_vector.push_back(location);
+                            Stripe stripe;
+                            getStripeLocation(&def_content_array,&stripe);
+
+                            
+
+                          
                         }
                     }
                 }
                 //VSSX stripe
-                while (getline(def_file, def_content))
-                {
-                    if (def_content.find("NEW") != string::npos)
-                    {
-                        vector<string> def_content_array = splitByPattern(def_content, " ");
-                        if (def_content_array[4] == "SHAPE" && def_content_array[5] == "STRIPE" && def_content_array.size() == 14)
-                        {
-                            cout << "VSSX :" << def_content << " " << def_content_array.size() << endl;
-                            Location location;
-                            location.x_location = def_content_array[7];
-                            location.y_location = def_content_array[8];
-                            vss_stripe_vector.push_back(location);
-                        }
-                    }
-                }
+                // while (getline(def_file, def_content))
+                // {
+                //     if (def_content.find("NEW") != string::npos)
+                //     {
+                //         vector<string> def_content_array = splitByPattern(def_content, " ");
+                //         if (def_content_array[4] == "SHAPE" && def_content_array[5] == "STRIPE" && def_content_array.size() == 14)
+                //         {
+                //             cout << "VSSX :" << def_content << " " << def_content_array.size() << endl;
+                //             Location location;
+                //             location.x_location = def_content_array[7];
+                //             location.y_location = def_content_array[8];
+                      
+                //         }
+                //     }
+                // }
             }
         }
     }
@@ -116,27 +129,50 @@ int main()
 
     def_file.close();
 
-    set<string> vss_add_stripe;
-    set<string> vdd_add_stripe;
-    cout << "vdd_stripe_vector size : " << vdd_stripe_vector.size() <<endl;
-    cout << "vss_stripe_vector size : " << vss_stripe_vector.size() <<endl;
-    ir_drop_plot(REPORT_VDD_FILE,&vdd_add_stripe, &vdd_stripe_vector,VDD_RANGE_MIN,VDD_RANGE_MAX);
-    ir_drop_plot(REPORT_VSS_FILE,&vss_add_stripe, &vss_stripe_vector,VSS_RANGE_MIN,VSS_RANGE_MAX);
 
-    ofstream myfile;
-    myfile.open(ADD_STRIPE_FILE);
 
-    for (set<string>::iterator it = vdd_add_stripe.begin(); it != vdd_add_stripe.end(); ++it) {
-          myfile << "addStripe -nets { VDDX } -layer "<< STRIPE_METAL << " -direction horizontal -width 0.216 -set_to_set_distance 12.88 -number_of_sets 1  -area {" << *it << "}" << endl;
+
+    // set<string> vss_add_stripe;
+    // set<string> vdd_add_stripe;
+    // cout << "vdd_stripe_vector size : " << vdd_stripe_vector.size() <<endl;
+    // cout << "vss_stripe_vector size : " << vss_stripe_vector.size() <<endl;
+    // ir_drop_plot(REPORT_VDD_FILE,&vdd_add_stripe, &vdd_stripe_vector,VDD_RANGE_MIN,VDD_RANGE_MAX);
+    // ir_drop_plot(REPORT_VSS_FILE,&vss_add_stripe, &vss_stripe_vector,VSS_RANGE_MIN,VSS_RANGE_MAX);
+
+    // ofstream myfile;
+    // myfile.open(ADD_STRIPE_FILE);
+
+    // for (set<string>::iterator it = vdd_add_stripe.begin(); it != vdd_add_stripe.end(); ++it) {
+    //       myfile << "addStripe -nets { VDDX } -layer "<< STRIPE_METAL << " -direction horizontal -width 0.216 -set_to_set_distance 12.88 -number_of_sets 1  -area {" << *it << "}" << endl;
           
-    }
-    for (set<string>::iterator it = vss_add_stripe.begin(); it != vss_add_stripe.end(); ++it) {
-          myfile << "addStripe -nets { VSSX } -layer "<< STRIPE_METAL << " -direction horizontal -width 0.216 -set_to_set_distance 12.88 -number_of_sets 1  -area {" << *it << "}" << endl;
-    }
-    myfile.close();
+    // }
+    // for (set<string>::iterator it = vss_add_stripe.begin(); it != vss_add_stripe.end(); ++it) {
+    //       myfile << "addStripe -nets { VSSX } -layer "<< STRIPE_METAL << " -direction horizontal -width 0.216 -set_to_set_distance 12.88 -number_of_sets 1  -area {" << *it << "}" << endl;
+    // }
+    // myfile.close();
 
 
     return 0;
+}
+
+void getStripeLocation( vector<string> *def_content_array,Stripe *stripe){
+    Location start_location;
+    Location end_location;
+    start_location.x_location = (*def_content_array)[7];
+    start_location.y_location = (*def_content_array)[8];
+
+    if((*def_content_array)[11] == "*"){
+        end_location.x_location =  (*def_content_array)[7];
+        end_location.y_location = (*def_content_array)[12];
+    }else if((*def_content_array)[12] == "*"){
+           end_location.x_location =  (*def_content_array)[11];
+           end_location.y_location = (*def_content_array)[8];
+    }else{
+        cout << "read def file shape stripe exception" <<endl;
+    }
+    (*stripe).start_location =start_location;
+    (*stripe).end_location = end_location;
+
 }
 
 
@@ -234,30 +270,30 @@ void create_add_stripe(vector<Location> *stripe_vector, set<string> *add_stripe,
     }
 }
 
-void create_ir_drop_plot(vector<string> *report_content_array, unordered_map<string, Stripe> *x_ir_drop_map)
-{
-    Node node;
-    node.ir = (*report_content_array)[0];
-    node.layer = (*report_content_array)[1];
-    node.x_location = (*report_content_array)[2];
-    node.y_location = (*report_content_array)[3];
-    node.net = (*report_content_array)[4];
-    node.node_id = (*report_content_array)[5];
+// void create_ir_drop_plot(vector<string> *report_content_array, unordered_map<string, Stripe> *x_ir_drop_map)
+// {
+//     Node node;
+//     node.ir = (*report_content_array)[0];
+//     node.layer = (*report_content_array)[1];
+//     node.x_location = (*report_content_array)[2];
+//     node.y_location = (*report_content_array)[3];
+//     node.net = (*report_content_array)[4];
+//     node.node_id = (*report_content_array)[5];
 
-    if ((*x_ir_drop_map).count(node.x_location))
-    {
-        (*x_ir_drop_map)[node.x_location].y_node_map[node.y_location].push_back(node);
-    }
-    else
-    {
-        Stripe stripe;
-        map<string, vector<Node>> y_node_map;
-        vector<Node> node_vector;
-        y_node_map.insert(pair<string, vector<Node>>(node.y_location, node_vector));
-        (*x_ir_drop_map).insert(pair<string, Stripe>(node.x_location, stripe));
-        (*x_ir_drop_map)[node.x_location].y_node_map[node.y_location].push_back(node);
-    }
-}
+//     if ((*x_ir_drop_map).count(node.x_location))
+//     {
+//         (*x_ir_drop_map)[node.x_location].y_node_map[node.y_location].push_back(node);
+//     }
+//     else
+//     {
+//         Stripe stripe;
+//         map<string, vector<Node>> y_node_map;
+//         vector<Node> node_vector;
+//         y_node_map.insert(pair<string, vector<Node>>(node.y_location, node_vector));
+//         (*x_ir_drop_map).insert(pair<string, Stripe>(node.x_location, stripe));
+//         (*x_ir_drop_map)[node.x_location].y_node_map[node.y_location].push_back(node);
+//     }
+// }
 
 vector<string> splitByPattern(string content, string pattern)
 {
@@ -295,16 +331,3 @@ string &trim(string &str)
 
     return str;
 }
-
-//   int i=0;
-//    for (const auto &item1 :  x_ir_drop_map)
-// {
-//     for (const auto &item2 : item1.second.y_node_map)
-//     {
-//         for (const auto &item3 : item2.second)
-//         {
-//           cout << "id : " << item3.node_id << endl;
-//           i++;
-//         }
-//     }
-// }
