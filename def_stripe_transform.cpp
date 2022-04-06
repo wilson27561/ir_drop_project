@@ -21,7 +21,6 @@ vector<string> splitByPattern(string content, string pattern);
 void transfer_Postion(unordered_map<string, Position> *position_map, vector<string> *congest_content_array);
 string replacePosition(string congest_content, unordered_map<string, Position> *position_map);
 string &trim(string &str);
-void transfer_Postion(unordered_map<string, Position> *position_map, vector<string> *congest_content_array);
 void caculate(unordered_map<string, Position> *position_map, string congest_content);
 void trimAllBlanket(string &s);
 string eraseBrackets(string content);
@@ -48,6 +47,7 @@ int main()
                 {
                     vector<string> def_content_array = splitByPattern(def_content, " ");
                     transfer_Postion(&position_map, &def_content_array);
+                    
                     def_content = replacePosition(def_content, &position_map);
                     myfile << def_content << endl;
                      i++;
@@ -98,9 +98,8 @@ void transfer_Postion(unordered_map<string, Position> *position_map, vector<stri
     for (int i = 0; i < (*def_content_array).size(); i++)
     {
         string def_content = (*def_content_array)[i];
-        if (AllisNum(def_content) && def_content.length()>0 && (def_content != "0"))
+        if (AllisNum(def_content) && def_content.length()>0 && (def_content != "0") && (def_content != "1"))
         {
-        //   cout << "def_content : " << def_content << "def_content size : " << def_content.length()  << endl;; 
           caculate(&(*position_map), def_content);
         }
     }
@@ -112,6 +111,9 @@ string replacePosition(string def_content,unordered_map<string, Position> *posit
         string ori_position = position_map_it->first;
         string new_position = position_map_it->second.new_position;
         // cout << "ori_position : " << ori_position << "new_position : " << new_position << endl;
+        // if(def_content.find(ori_position)!=string::npos){
+        //   subreplace(def_content,ori_position,new_position);
+        // }
         if(def_content.find(ori_position)!=string::npos){
           subreplace(def_content,ori_position,new_position);
         }
