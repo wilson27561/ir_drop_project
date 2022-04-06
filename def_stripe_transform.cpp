@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "6t32_Asap7_tg_design_placed_floorplan.def";
-const string DEF_TRANSFER_FILE = "6t32_Asap7_tg_design_placed_floorplan_transfer.txt";
+const string DEF_FILE = "6t49_b19_routing_88_9_floorplan.def";
+const string DEF_TRANSFER_FILE = "6t49_b19_routing_88_9_floorplan_transfer.def";
 
 struct Position
 {
@@ -35,7 +35,7 @@ int main()
     string def_content;
     ofstream myfile;
     myfile.open(DEF_TRANSFER_FILE);
-
+    int i;
     if (def_file)
     {
         while (getline(def_file, def_content))
@@ -43,17 +43,45 @@ int main()
             unordered_map<string, Position> position_map;
             if (def_content.find("SPECIALNETS") != string::npos)
             {
+                myfile << def_content << endl;
                 while (getline(def_file, def_content))
                 {
                     vector<string> def_content_array = splitByPattern(def_content, " ");
                     transfer_Postion(&position_map, &def_content_array);
                     def_content = replacePosition(def_content, &position_map);
                     myfile << def_content << endl;
+                     i++;
+                       if(i%1000 == 0){
+                            cout << "data : " << i << endl;
+                        }
+                }
+            }
+             else if (def_content.find("COMPONENT") != string::npos and ((def_content.find("COMPONENTPIN") != string::npos) == false))
+            { 
+               
+                 myfile << def_content << endl;
+                 while (getline(def_file, def_content))
+                {
+                    vector<string> def_content_array = splitByPattern(def_content, " ");
+                    transfer_Postion(&position_map, &def_content_array);
+                    def_content = replacePosition(def_content, &position_map);
+                    myfile << def_content << endl;
+                    if(def_content.find("END COMPONENTS") != string::npos){
+                        break;
+                    }
+                     i++;
+                       if(i%1000 == 0){
+                            cout << "data : " << i << endl;
+                        }
                 }
             }
             else
             {
                 myfile << def_content << endl;
+                i++;
+                if(i%1000 == 0){
+                cout << "data : " << i << endl;
+                }
             }
         }
     }else{

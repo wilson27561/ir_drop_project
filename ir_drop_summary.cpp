@@ -228,7 +228,7 @@ void create_add_stripe(vector<Location> *stripe_vector, set<string> *add_stripe,
         {
             string stripe_location = x_stripe_start_location+ " " + y_drop_location + " " + x_stripe_end_location + " " + y_drop_end_location;
             cout << stripe_location << endl;
-            (*add_stripe).insert(stripe_location);
+  
             break;
         }
     }

@@ -1,0 +1,28 @@
+######################################################################
+# File Info    : Effective Resistance Report
+# Date Created : 2022-Mar-31 20:50:30 (2022-Mar-31 12:50:30 GMT)
+# User login   : wilson27561
+# Created on   : cloud
+######################################################################
+
+
+# Layer Representation: LEF
+#      Coordinate Unit: um
+#      Resistance Unit: Ohm
+
+NET: VDDX
+
+# Threshold: N/A
+
+# Effective resistance for instances sorted from high to low
+# *Note:"D/C" means the instance is disconnected from the net.
+# PASS/FAIL    REFF  INSTANCE  PIN   CELL   X   Y   LAYER   PIN_NODES(FLOAT/TOTAL)
+  -      84.904  U79195 VDD INVxp33_ASAP7_6t_fix 170.676  29.088 M1  0/2
+  -      84.243  U62707 VDD AND2x1_ASAP7_6t_fix 170.676 269.280 M1  0/2
+  -      76.202  U33387 VDD OAI22xp33_ASAP7_6t_fix 170.676 255.456 M1  0/2
+  -      75.852  FE_RC_2297_0 VDD INVxp67_ASAP7_6t_fix 170.676 274.464 M1  0/2
+  -      70.943  U79597 VDD INVxp33_ASAP7_6t_fix 170.676 290.016 M1  0/2
+  -      70.379  U60134 VDD OA211x1_ASAP7_6t_fix 160.308 276.192 M1  0/2
+  -      70.379  U57898 VDD OA211x1_ASAP7_6t_fix 160.308 276.192 M1  0/2
+  -      69.694  U79281 VDD AND2x1_ASAP7_6t_fix 160.308  41.184 M1  0/2
+  -      69.787  P1\/P2\/P1\/PhyAddrPointer_reg\[27\] VDD ASYNC_DFFHx1_ASAP7_6t_fix 160.308 106.848 M1  0/2
