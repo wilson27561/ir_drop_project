@@ -13,7 +13,7 @@ const string DEF_FILE = "6t49_b19_routing_88_9_floorplan_transfer.def";
 const string EFFR_FILE_VDD = "VDDX.effr";
 const string ADD_STRIPE_FILE = "add_stripe_PD9_6t49_b19_routing_88_9_stripe_change_range.tcl";
 const string LEF_FILE = "characterization_6T_ALL_20200610area_4x.lef";
-const string IP_REPORT_FILE = "VDDX_ip_drop_test.report";
+const string IP_REPORT_FILE = "VDDX_ip_drop.report";
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string STRIPE_METAL = "M3";
@@ -133,7 +133,12 @@ int main()
     getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
     // TODO boundary 之後可以寫在裡面
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
+    // TODO 會有 FILLER 隔開logic gate
     getIpBoudary(&cell_ip_map, &cell_boundary_vector, &cell_placed_map);
+
+    
+    
+
 
 
 
@@ -602,3 +607,15 @@ bool AllisNum(string str)
     } 
     return true;
 }
+
+    // for (auto item :cell_ip_map )
+    // {
+    //    cout << item.second.cell_id << " : " << cell_placed_map[item.second.cell_id].left_x_location << " " << cell_placed_map[item.second.cell_id].right_x_location << endl;
+    // }
+    
+
+    // for (int i = 0; i < cell_boundary_vector.size(); i++)
+    // {
+    //     cout << cell_boundary_vector[i].lef_x_location << "   " << cell_boundary_vector[i].right_x_location << endl;
+    // }
+    
