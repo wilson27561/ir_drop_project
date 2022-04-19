@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "6t49_b19_routing_88_9_floorplan.def";
-const string DEF_TRANSFER_FILE = "6t49_b19_routing_88_9_floorplan_transfer.def";
+const string DEF_FILE = "6t32_run0_b19_test.def";
+const string DEF_TRANSFER_FILE = "6t32_run0_b19_test_transfer.def";
 
 struct Position
 {
@@ -27,7 +27,7 @@ string eraseBrackets(string content);
 string erasePattern(string content, char pattern);
 bool AllisNum(string str); 
 void subreplace(string &resource_str, string &sub_str, string &new_str);
-
+ string floatToString(const float value);
 int main()
 {
     ifstream def_file(DEF_FILE);
@@ -137,8 +137,9 @@ void caculate(unordered_map<string, Position> *position_map, string def_content)
     // cout << "first : " << position_content;
     float number = atoi(position_content.c_str());
     number = number / 4000;
+
     // cout << "number : " << number << endl;
-    string new_position = to_string(number);
+    string new_position =  floatToString(number);
     position.new_position = new_position;
 
     // cout << "ori_position: " << position.ori_position << endl;
@@ -233,3 +234,13 @@ bool AllisNum(string str)
     } 
     return true;
 }
+
+
+ string floatToString(const float value)                                                                                                                                                                                                          
+  {
+     std::ostringstream out;
+     out.precision(6);
+  
+      out << value;
+     return out.str();
+  }
