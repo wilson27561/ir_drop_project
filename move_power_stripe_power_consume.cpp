@@ -99,6 +99,7 @@ struct CellBoundary
     vector<string> cell_id_vector;
 };
 
+
 vector<string> splitByPattern(string content, string pattern);
 vector<string> splitByPatternEffrReport(string content, string pattern);
 string &trim(string &str);

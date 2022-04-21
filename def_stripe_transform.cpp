@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "6t32_run0_b19_test.def";
-const string DEF_TRANSFER_FILE = "6t32_run0_b19_test_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original.def";
+const string DEF_TRANSFER_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
 
 struct Position
 {
@@ -27,7 +27,7 @@ string eraseBrackets(string content);
 string erasePattern(string content, char pattern);
 bool AllisNum(string str); 
 void subreplace(string &resource_str, string &sub_str, string &new_str);
- string floatToString(const float value);
+string floatToString(const float value);
 int main()
 {
     ifstream def_file(DEF_FILE);
@@ -67,6 +67,25 @@ int main()
                     def_content = replacePosition(def_content, &position_map);
                     myfile << def_content << endl;
                     if(def_content.find("END COMPONENTS") != string::npos){
+                        break;
+                    }
+                     i++;
+                       if(i%1000 == 0){
+                            cout << "data : " << i << endl;
+                        }
+                }
+            }
+            else if (def_content.find("TRACKS") != string::npos)
+            { 
+               
+                 myfile << def_content << endl;
+                 while (getline(def_file, def_content))
+                {
+                    vector<string> def_content_array = splitByPattern(def_content, " ");
+                    transfer_Postion(&position_map, &def_content_array);
+                    def_content = replacePosition(def_content, &position_map);
+                    myfile << def_content << endl;
+                    if((def_content.find("TRACKS") != string::npos) == false){
                         break;
                     }
                      i++;
