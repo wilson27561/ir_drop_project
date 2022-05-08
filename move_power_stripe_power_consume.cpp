@@ -9,10 +9,10 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "6t49_b19_routing_88_9_floorplan_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
 const string EFFR_FILE_VDD = "VDDX.effr";
 const string ADD_STRIPE_FILE = "add_stripe_PD9_6t49_b19_routing_88_9_stripe_power_consume.tcl";
-const string LEF_FILE = "characterization_6T_ALL_20200610area_4x.lef";
+const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
 const string IP_REPORT_FILE = "VDDX_ip_drop.report";
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
@@ -99,12 +99,20 @@ struct CellBoundary
     vector<string> cell_id_vector;
 };
 
+struct Track
+{
+    string direction;
+    string step;
+    string layer;
+    string start_step;
+    vector<float> location_vector;
+};
 
 vector<string> splitByPattern(string content, string pattern);
 vector<string> splitByPatternEffrReport(string content, string pattern);
 string &trim(string &str);
 void getCoreSite(string def_file_name, CoreSite *core_site);
-void getStripeMovingRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site);
+void getStripeMovingRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector);
 void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, vector<Range> *vdd_range_vector, vector<Range> *vss_range_vector);
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_map);
 void getDefPlacedImformation(string DEF_FILE, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
@@ -119,9 +127,12 @@ void setIpPowerInStripe(vector<Stripe> *vdd_stripe_vector, unordered_map<string,
 bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void setIpPowerRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void changeRange(Stripe *vdd_stripe);
-void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<string>  *add_stripe_vector);
+void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<string> *add_stripe_vector, Track *track);
 bool isInStripeRange(float stripe_x_left_location_float, float stripe_x_right_location_float, float cell_x_left_location_float, float cell_x_right_location_float);
-
+void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite);
+void setTrackInfo(vector<string> def_content_array, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite);
+void setTrackLocation(Track *track, CoreSite *coreSite);
+void getCoreSite(string def_file_name, CoreSite *core_site);
 int main()
 {
     vector<Stripe> vdd_stripe_vector;
@@ -135,14 +146,16 @@ int main()
     unordered_map<string, CellPlacedInfo> cell_placed_map;
     unordered_map<string, CellInstancePowerInfo> cell_ip_map;
     vector<CellBoundary> cell_boundary_vector;
-    vector<string>  add_stripe_vector;
-    
+    vector<string> add_stripe_vector;
+    // key:layer value track key:direction
+    unordered_map<string, unordered_map<string, Track>> layer_track_map;
 
     //   //算出middle line
     //   //將它分成區段
     getStripeLocation(DEF_FILE, &vdd_stripe_vector, &vss_stripe_vector, &vdd_range_vector, &vss_range_vector);
-    // getCoreSite( DEF_FILE, &core_site);
-    getStripeMovingRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site);
+
+    //範圍不使用core site
+    getStripeMovingRange(&vdd_stripe_vector, &vss_stripe_vector);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
     // TODO boundary 之後可以寫在裡面
@@ -150,21 +163,28 @@ int main()
     // TODO 會有 FILLER 隔開logic gate
     // getIpBoudary(&cell_ip_map, &cell_boundary_vector, &cell_placed_map);
     setIpPowerInStripe(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
-    getaddStripeLocation(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map,&add_stripe_vector);
+    getCoreSite(DEF_FILE, &core_site);
+    getTrack(DEF_FILE, &layer_track_map, &core_site);
 
-    ofstream myfile;
-    myfile.open(ADD_STRIPE_FILE);
-    for (int i = 0; i < add_stripe_vector.size(); i++)
-    {
-         myfile << "addStripe -nets { VDDX } -layer "<< STRIPE_METAL << " -direction vertical -width " << STRIPE_WIDTH << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << add_stripe_vector[i] << " }" << endl;
-    }
-    myfile.close();
-    
+    Track track = layer_track_map["M3"]["X"];
+
+    getaddStripeLocation(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map, &add_stripe_vector, &track);
+    // ofstream myfile;
+    // myfile.open(ADD_STRIPE_FILE);
+    // for (int i = 0; i < add_stripe_vector.size(); i++)
+    // {
+    //      myfile << "addStripe -nets { VDDX } -layer "<< STRIPE_METAL << " -direction vertical -width " << STRIPE_WIDTH << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << add_stripe_vector[i] << " }" << endl;
+    // }
+    // myfile.close();
 
     return 0;
 }
-void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<string>  *add_stripe_vector)
+
+void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<string> *add_stripe_vector, Track *track)
 {
+    float start_step = stof(track->start_step);
+    float step = stof(track->step);
+
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
         Stripe vdd_stripe = (*vdd_stripe_vector)[i];
@@ -203,16 +223,136 @@ void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<strin
             temp_left_location = temp_left_location + stripe_width;
             temp_right_location = temp_right_location + stripe_width;
         }
-        cout << "moving range : " << range_x_left_location << " " << range_x_right_location  << endl;
+        cout << "moving range : " << range_x_left_location << " " << range_x_right_location << endl;
         cout << "large_x_left_location : " << large_x_left_location << endl;
         cout << "large_power           : " << large_power << endl;
 
-        string stripe_location = to_string(large_x_left_location) + " " + vdd_stripe.start_y_location + " " + to_string(large_x_left_location+2)+" " + vdd_stripe.end_y_location; 
-       
+        string stripe_location = to_string(large_x_left_location) + " " + vdd_stripe.start_y_location + " " + to_string(large_x_left_location + 2) + " " + vdd_stripe.end_y_location;
+
         (*add_stripe_vector).push_back(stripe_location);
     }
 }
+// void getaddStripeLocation(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<string>  *add_stripe_vector)
+// {
+//     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+//     {
+//         Stripe vdd_stripe = (*vdd_stripe_vector)[i];
+//         vector<string> ip_cell_id_vector = vdd_stripe.ip_power_vector;
+//         string range_x_left_location = (*vdd_stripe_vector)[i].move_range_x_left;
+//         string range_x_right_location = (*vdd_stripe_vector)[i].move_range_x_right;
+//         float range_x_left_location_float = stof(range_x_left_location);
+//         float range_x_right_location_float = stof(range_x_right_location);
 
+//         float stripe_width = stof(STRIPE_WIDTH);
+//         float temp_right_location = stof(range_x_left_location) + stripe_width;
+//         float temp_left_location = stof(range_x_left_location);
+//         float large_power = 0;
+//         float large_x_left_location = 0;
+
+//         while (temp_right_location <= range_x_right_location_float)
+//         {
+//             float temp_total_power = 0;
+//             for (int i = 0; i < ip_cell_id_vector.size(); i++)
+//             {
+//                 string cell_id = ip_cell_id_vector[i];
+//                 float cell_x_left_location_float = stof((*cell_placed_map)[cell_id].left_x_location);
+//                 float cell_x_right_location_float = stof((*cell_placed_map)[cell_id].right_x_location);
+
+//                 if (isInStripeRange(temp_left_location, temp_right_location, cell_x_left_location_float, cell_x_right_location_float))
+//                 {
+//                     float power = stof(((*cell_ip_map)[cell_id].instance_power));
+//                     temp_total_power += power;
+//                 }
+//             }
+//             if (temp_total_power > large_power)
+//             {
+//                 large_power = temp_total_power;
+//                 large_x_left_location = temp_left_location;
+//             }
+//             temp_left_location = temp_left_location + stripe_width;
+//             temp_right_location = temp_right_location + stripe_width;
+//         }
+//         cout << "moving range : " << range_x_left_location << " " << range_x_right_location  << endl;
+//         cout << "large_x_left_location : " << large_x_left_location << endl;
+//         cout << "large_power           : " << large_power << endl;
+
+//         string stripe_location = to_string(large_x_left_location) + " " + vdd_stripe.start_y_location + " " + to_string(large_x_left_location+2)+" " + vdd_stripe.end_y_location;
+
+//         (*add_stripe_vector).push_back(stripe_location);
+//     }
+// }
+void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite)
+{
+    ifstream def_file(def_file_name);
+    string def_content;
+    bool track_content_end = false;
+
+    if (def_file)
+    {
+        while (getline(def_file, def_content))
+        {
+            if (def_content.find("TRACKS") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
+                while (getline(def_file, def_content))
+                {
+                    if (def_content.find("TRACKS") != string::npos == false)
+                    {
+                        track_content_end = true;
+                        break;
+                    }
+                    vector<string> def_content_array = splitByPattern(def_content, " ");
+                    setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
+                }
+                if (track_content_end)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void setTrackInfo(vector<string> def_content_array, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite)
+{
+    Track track;
+    track.direction = def_content_array[1];
+    track.layer = def_content_array[8];
+    track.step = def_content_array[6];
+    track.start_step = def_content_array[2];
+    setTrackLocation(&track, &(*corsite));
+
+    if ((*layer_track_map).count(track.layer))
+    {
+        (*layer_track_map)[track.layer].insert(pair<string, Track>(track.direction, track));
+    }
+    else
+    {
+        unordered_map<string, Track> track_map;
+        track_map.insert(pair<string, Track>(track.direction, track));
+        (*layer_track_map).insert(pair<string, unordered_map<string, Track>>(track.layer, track_map));
+    }
+}
+
+void setTrackLocation(Track *track, CoreSite *coreSite)
+{
+    float index = stof((*track).start_step);
+    float boundary_left = stof(coreSite->left_x_location);
+    float boundary_right = stof(coreSite->right_x_location);
+    float step = stof(track->step);
+    vector<float> loacation_vector;
+
+    while (index < boundary_right)
+    {
+        if (index > boundary_left && index < boundary_right)
+        {
+            loacation_vector.push_back(index);
+        }
+        index += step;
+    }
+    track->location_vector = loacation_vector;
+};
 bool isInStripeRange(float stripe_x_left_location_float, float stripe_x_right_location_float, float cell_x_left_location_float, float cell_x_right_location_float)
 {
 
@@ -496,7 +636,7 @@ void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cel
     lef_file.close();
 }
 
-void getStripeMovingRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site)
+void getStripeMovingRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector)
 {
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
@@ -526,13 +666,13 @@ void getStripeMovingRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss
         if (i == 0)
         {
             double distance = (((stof((*vss_stripe_vector)[i + 1].start_x_location) - stof((*vss_stripe_vector)[i].end_x_location)) / 2) + stof((*vss_stripe_vector)[i].start_x_location));
-            (*vss_stripe_vector)[i].move_range_x_left = (*core_site).left_x_location;
+            (*vss_stripe_vector)[i].move_range_x_left = (*vss_stripe_vector)[i].start_x_location;
             (*vss_stripe_vector)[i].move_range_x_right = to_string(distance);
         }
         else if (i == ((*vss_stripe_vector).size() - 1))
         {
             int front_index = i - 1;
-            (*vss_stripe_vector)[i].move_range_x_right = (*core_site).right_x_location;
+            (*vss_stripe_vector)[i].move_range_x_right = (*vss_stripe_vector)[i].start_x_location;
             (*vss_stripe_vector)[i].move_range_x_left = (*vss_stripe_vector)[front_index].move_range_x_right;
         }
         else
