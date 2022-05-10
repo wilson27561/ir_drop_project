@@ -37,7 +37,7 @@ const string RIGHT = "right";
 const string MIDDLE = "middle";
 const string M3_M2_VIA = "M3_M2_3";
 const string M2_M1_VIA = "M2_M1_2";
-const float RESIZE_IR_RANGE = 1;
+const float RESIZE_IR_RANGE = 0.8;
 
 struct Via
 {
@@ -189,33 +189,38 @@ int main()
     return 0;
 };
 
-void generateAddStripeTcl(vector<Stripe> *vdd_stripe_vector){
+void generateAddStripeTcl(vector<Stripe> *vdd_stripe_vector)
+{
     ofstream myfile;
     myfile.open(ADD_SRIPE_FILE);
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
-        string start_x_location =  (*vdd_stripe_vector)[i].start_x_location;
-        string start_y_location =  (*vdd_stripe_vector)[i].start_y_location;
-        float half_width = POWER_STRIPE_WIDTH/2;
-        float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location)-half_width;
+        string start_x_location = (*vdd_stripe_vector)[i].start_x_location;
+        string start_y_location = (*vdd_stripe_vector)[i].start_y_location;
+        float half_width = POWER_STRIPE_WIDTH / 2;
+        float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location) - half_width;
 
-        float end_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location)+half_width;
+        float end_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location) + half_width;
 
-        end_x_location_float = SPACING+POWER_STRIPE_WIDTH+end_x_location_float;
-        
+        end_x_location_float = SPACING + POWER_STRIPE_WIDTH + end_x_location_float;
+
         string end_x_location = to_string(end_x_location_float);
         string end_y_location = (*vdd_stripe_vector)[i].end_y_location;
         start_x_location = floatToString(start_x_location_float);
         end_x_location = floatToString(end_x_location_float);
 
+        float start_x_location_float_vss = end_x_location_float + SPACING;
+        float start_y_location_float_vss = 4.608;
+        float end_x_location_float_vss = end_x_location_float + SPACING + POWER_STRIPE_WIDTH;
+        float end_y_location_float_vss = 322.272;
 
-        string add_stripe_tcl = "addStripe -nets { VDDX VSSX } -layer M3 -direction vertical -width 0.288 -spacing 0.072 -number_of_sets 1  -area { " + start_x_location + " " + start_y_location + " " + end_x_location  + " " + end_y_location + " }";
-        myfile << add_stripe_tcl << endl;
-
+        string add_stripe_vdd_tcl = "addStripe -nets { VDDX } -layer M3 -direction vertical -width " + to_string(POWER_STRIPE_WIDTH) + " -number_of_sets 1  -area { " + start_x_location + " " + start_y_location + " " + end_x_location + " " + end_y_location + " }";
+        string add_stripe_vss_tcl = "addStripe -nets { VSSX } -layer M3 -direction vertical -width " + to_string(POWER_STRIPE_WIDTH) + " -number_of_sets 1  -area { " + to_string(start_x_location_float_vss) + " " + to_string(start_y_location_float_vss) + " " + to_string(end_x_location_float_vss) + " " + to_string(end_y_location_float_vss) + " }";
+        myfile << add_stripe_vdd_tcl << endl;
+        myfile << add_stripe_vss_tcl << endl;
     }
     myfile.close();
-
 }
 
 int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number, float v1_resistance, float v2_resistance, map<string, FollowPin> *follow_pin_vdd_map, map<string, FollowPin> *follow_pin_vss_map, map<string, Stripe> *vdd_stripe_map, map<string, Stripe> *vss_stripe_map)
@@ -502,7 +507,6 @@ string floatToString(const float value)
     return out.str();
 }
 
-
 // case 2 : 所有平均加起來 將平均以下的拿掉
 // void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector, float height, float width, float vdd_pad, float sheet_resistance)
 // {
@@ -603,11 +607,16 @@ string floatToString(const float value)
 void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector, float height, float width, float vdd_pad, float sheet_resistance, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
 {
     cout << "before size : " << (*vdd_stripe_vector).size() << endl;
+    int j = 0;
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
+        ofstream myfile;
+        string power_file = "power_file/range_power_" + to_string(i) + "_" + to_string(j);
+        myfile.open(power_file);
+
         float square = height / width;
         float resistance = sheet_resistance * square;
-        cout << "power stripe index : " <<i << endl;
+        cout << "power stripe index : " << i << endl;
         if (i == 0)
         {
             float total_power = (*vdd_stripe_vector)[i].range_total_power * 0.001;
@@ -618,11 +627,28 @@ void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_v
             float current_next = total_power_next / vdd_pad;
             float ir_drop_next = current_next * resistance;
             // RESIZE_IR_RANGE
+            cout << "ir_drop :      " << ir_drop << endl;
+            cout << "ir_drop_next : " << ir_drop_next << endl;
+            cout << "ir_drop_next RESIZE_IR_RANGE : " << ir_drop_next * RESIZE_IR_RANGE << endl;
+            cout << "total_power : " << total_power << endl;
+            cout << "total_power_next : " << total_power_next << endl;
             if (ir_drop_next * RESIZE_IR_RANGE > ir_drop)
             {
+                cout << "erase this power stripe" << endl;
+                std::cout << "" << std::endl;
                 (*vdd_stripe_vector).erase((*vdd_stripe_vector).begin() + i);
                 setIpPowerInStripe(&(*vdd_stripe_vector), &(*cell_ip_map), &(*cell_placed_map));
+                for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
+
                 i = i - 1;
+            }else{
+                  for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
             }
         }
         else if (i == ((*vdd_stripe_vector).size() - 1))
@@ -635,11 +661,27 @@ void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_v
             float current_prevent = total_power_prevent / vdd_pad;
             float ir_drop_prevent = current_prevent * resistance;
 
+            cout << "ir_drop :      " << ir_drop << endl;
+            cout << "ir_drop_prevent : " << ir_drop_prevent << endl;
+            cout << "ir_drop_prevent RESIZE_IR_RANGE : " << ir_drop_prevent * RESIZE_IR_RANGE << endl;
+            cout << "total_power : " << total_power << endl;
+            cout << "total_power_prevent : " << total_power_prevent << endl;
             if (ir_drop_prevent * RESIZE_IR_RANGE > ir_drop)
             {
+                cout << "erase this power stripe" << endl;
+                std::cout << "" << std::endl;
                 (*vdd_stripe_vector).erase((*vdd_stripe_vector).begin() + i);
                 setIpPowerInStripe(&(*vdd_stripe_vector), &(*cell_ip_map), &(*cell_placed_map));
+                for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
                 i = i - 1;
+            }else{
+                  for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
             }
         }
         else
@@ -656,15 +698,43 @@ void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_v
             float current_next = total_power_next / vdd_pad;
             float ir_drop_next = current_next * resistance;
             // 3 條線平均
-            float averange_ir_drop = (ir_drop_next + ir_drop_prevent + ir_drop) / 3;
+            // float averange_ir_drop = (ir_drop_next + ir_drop_prevent + ir_drop) / 3;
 
-            if ((averange_ir_drop * RESIZE_IR_RANGE > ir_drop) == false)
+            // if ((averange_ir_drop * RESIZE_IR_RANGE > ir_drop) == false)
+            // {
+            //     (*vdd_stripe_vector).erase((*vdd_stripe_vector).begin() + i);
+            //     setIpPowerInStripe(&(*vdd_stripe_vector), &(*cell_ip_map), &(*cell_placed_map));
+            //     i = i - 1;
+            // }
+            cout << "ir_drop :      " << ir_drop << endl;
+            cout << "ir_drop_prevent : " << ir_drop_prevent << endl;
+            cout << "ir_drop_prevent RESIZE_IR_RANGE : " << ir_drop_prevent * RESIZE_IR_RANGE << endl;
+            cout << "ir_drop_next : " << ir_drop_next << endl;
+            cout << "ir_drop_next RESIZE_IR_RANGE : " << ir_drop_next * RESIZE_IR_RANGE << endl;
+            cout << "total_power : " << total_power << endl;
+            cout << "total_power_next : " << total_power_next << endl;
+            cout << "total_power_prevent : " << total_power_prevent << endl;
+            if ((ir_drop_next * RESIZE_IR_RANGE) > ir_drop || (ir_drop_prevent * RESIZE_IR_RANGE) > ir_drop)
             {
+                cout << "erase this power stripe" << endl;
+                std::cout << "" << std::endl;
                 (*vdd_stripe_vector).erase((*vdd_stripe_vector).begin() + i);
                 setIpPowerInStripe(&(*vdd_stripe_vector), &(*cell_ip_map), &(*cell_placed_map));
+                for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
                 i = i - 1;
+            }else{
+                  for (int m = 0; m < (*vdd_stripe_vector).size(); m++)
+                {
+                    myfile << "index : " << m << " " << to_string((*vdd_stripe_vector)[m].range_total_power) << endl;
+                }
             }
+            cout << "" << endl;
         }
+        j++;
+        myfile.close();
     }
     cout << "after size : " << (*vdd_stripe_vector).size() << endl;
 }
