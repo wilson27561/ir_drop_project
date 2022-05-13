@@ -138,9 +138,6 @@ void getPowerStripeVia(string def_file_name,  map<string,vector<Via> > *m3_m2_vi
     ifstream def_file(def_file_name);
     string def_content;
     int log = 0;
-
-    if (def_file)
-    {
         if (def_file)
         {
             while (getline(def_file, def_content))
@@ -250,7 +247,7 @@ void getPowerStripeVia(string def_file_name,  map<string,vector<Via> > *m3_m2_vi
         {
             cout << "can't found file" << endl;
         }
-    }
+    
     def_file.close();
 }
 

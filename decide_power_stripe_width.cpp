@@ -14,7 +14,7 @@ const float M3_SHEET_RESISTANCE = 3.1445326;
 const float M1_SHEET_RESISTANCE = 3.1445326;
 const float V1_SHEET_RESISTANCE = 8.7348129;
 const float V2_SHEET_RESISTANCE = 8.7348129;
-const float VDD_PAD = 0.693;
+const float VDD_PAD = 0.65;
 const float IR_DROP = 0.07;
 // const float POWER_STRIPE_HEIGHT = 313.92;
 const float POWER_STRIPE_HEIGHT = 156.96;
@@ -28,6 +28,7 @@ const string DEF_FILE = "def_file/b19/6t32_run0_b19_floor_plan_check_transfer.de
 const string DEF_FILE_ORI = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
 const string IP_REPORT_FILE = "ip_report/print_ip_39.report";
+const string IR_COUNT_REPORT_FILE = "ir_drop_report/ir_report_count_report.txt";
 const string ADD_SRIPE_FILE = "stripe_tcl/add_Stripe_tcl_39.tcl";
 const string ADD_STRIPE_ORI_FILE = "";
 const string NET_NAME_VDD = "VDDX";
@@ -183,8 +184,8 @@ int main()
     resizeVddStripe(&vdd_stripe_vector, &resize_vdd_stripe_vector, POWER_STRIPE_HEIGHT, POWER_STRIPE_HEIGHT, VDD_PAD, M3_SHEET_RESISTANCE);
     // resizeVddStripe(&vdd_stripe_vector, &resize_vdd_stripe_vector, POWER_STRIPE_HEIGHT, POWER_STRIPE_HEIGHT, VDD_PAD, M3_SHEET_RESISTANCE, &cell_ip_map, &cell_placed_map);
     generateAddStripeTcl(&vdd_stripe_vector);
-    // float resize_interval = getInterval(&core_site, vdd_stripe_vector.size());
-    // cout << "resize_interval : " << resize_interval << endl;
+    float resize_interval = getInterval(&core_site, vdd_stripe_vector.size());
+    cout << "resize_interval : " << resize_interval << endl;
 
     return 0;
 };
@@ -511,21 +512,25 @@ string floatToString(const float value)
 void resizeVddStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector, float height, float width, float vdd_pad, float sheet_resistance)
 {
     ofstream myfile;
-    myfile.open("ir_report_0693_39_53.txt");
+    myfile.open(IR_COUNT_REPORT_FILE);
     float square = height / width;
     float resistance = sheet_resistance * square;
     float total_ir_drop = 0;
+    float total_power_add = 0;
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
-        float total_power = (*vdd_stripe_vector)[i].range_total_power * 0.001;
+        float total_power = (*vdd_stripe_vector)[i].range_total_power*0.001;
+        total_power_add+=total_power;
         float current = total_power / vdd_pad;
         float ir_drop = current * resistance;
         (*vdd_stripe_vector)[i].ir_drop = ir_drop;
-      
-        myfile << "x_location : " <<  (*vdd_stripe_vector)[i].start_x_location << "  " << ir_drop << endl;
+
+        myfile << ir_drop << endl;
+
         total_ir_drop += ir_drop;
     }
+    cout << total_power_add << endl;
     float average_ir_drop = total_ir_drop / (*vdd_stripe_vector).size();
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
@@ -1222,5 +1227,5 @@ void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerI
             }
         }
     }
-    // cout << "total : " << power << endl;
+    cout << "total : " << power << endl;
 }

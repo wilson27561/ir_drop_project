@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_39.def";
-const string DEF_TRANSFER_FILE = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original.def";
+const string DEF_TRANSFER_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
 
 struct Position
 {
@@ -93,6 +93,31 @@ int main()
                     def_content = replacePosition(def_content, &position_map);
                     myfile << def_content << endl;
                     if ((def_content.find("TRACKS") != string::npos) == false)
+                    {
+                        break;
+                    }
+                    i++;
+                    if (i % 1000 == 0)
+                    {
+                        cout << "data : " << i << endl;
+                    }
+                }
+            }
+            else if (def_content.find("PINS") != string::npos)
+            {
+                myfile << def_content << endl;
+                while (getline(def_file, def_content))
+                {
+                    if(def_content.find("LAYER") != string::npos || def_content.find("PLACED") != string::npos){
+                       
+                        vector<string> def_content_array = splitByPattern(def_content, " ");
+                        transfer_Postion(&position_map, &def_content_array);
+                        def_content = replacePosition(def_content, &position_map);
+                        myfile << def_content << endl;
+                    }else{
+                        myfile << def_content << endl;
+                    }
+                    if (def_content.find("END PINS") != string::npos)
                     {
                         break;
                     }
@@ -365,7 +390,7 @@ bool AllisNum(string str)
     for (int i = 0; i < str.size(); i++)
     {
         int tmp = (int)str[i];
-        if (tmp >= 48 && tmp <= 57)
+        if ((tmp >= 48 && tmp <= 57)||tmp == 45)
         {
             continue;
         }

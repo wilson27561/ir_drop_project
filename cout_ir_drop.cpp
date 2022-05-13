@@ -12,8 +12,8 @@ const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string IR_DROP_LAYER = "LISD";
 const string DEF_FILE_ORI = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
-const string IR_DROP_FILE = "ir_drop_report/print_irdrop_PD1_25C_avg_1_6t49_b19_routing_88_2_M3.enc_VDDX.report";
-const string IR_DROP_COMPARE_FILE = "ir_report_39_53_M3_voltus.txt";
+const string IR_DROP_FILE = "ir_drop_report/print_irdrop_PD1_25C_avg_1_6t49_b19_routing_88_2_LISD.enc_VDDX.report";
+const string IR_COUNT_REPORT_FILE = "ir_drop_report/ir_report_all.txt";
 const float POWER_STRIPE_WIDTH = 0.224;
 struct Via
 {
@@ -82,13 +82,15 @@ int main()
 }
 void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map,vector<Stripe> *vdd_stripe_vector){
     ofstream myfile;
-    myfile.open(IR_DROP_COMPARE_FILE);
+    myfile.open(IR_COUNT_REPORT_FILE);
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
         string start_x_location = (*vdd_stripe_vector)[i].start_x_location;
         if((*vdd_stripe_map).count((*vdd_stripe_vector)[i].start_x_location)){
-            myfile<< "x_location : " << (*vdd_stripe_vector)[i].start_x_location << " " << (*vdd_stripe_map)[(*vdd_stripe_vector)[i].start_x_location].ir_drop_voltus << endl;
+            float ir_drop_voltus_float = (*vdd_stripe_map)[(*vdd_stripe_vector)[i].start_x_location].ir_drop_voltus;
+            ir_drop_voltus_float = ir_drop_voltus_float*0.001;
+            myfile<<  0.7 - ir_drop_voltus_float << endl;
         }
     }
     myfile.close();
