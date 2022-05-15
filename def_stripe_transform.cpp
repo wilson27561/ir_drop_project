@@ -108,13 +108,16 @@ int main()
                 myfile << def_content << endl;
                 while (getline(def_file, def_content))
                 {
-                    if(def_content.find("LAYER") != string::npos || def_content.find("PLACED") != string::npos){
-                       
+                    if (def_content.find("LAYER") != string::npos || def_content.find("PLACED") != string::npos)
+                    {
+
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         transfer_Postion(&position_map, &def_content_array);
                         def_content = replacePosition(def_content, &position_map);
                         myfile << def_content << endl;
-                    }else{
+                    }
+                    else
+                    {
                         myfile << def_content << endl;
                     }
                     if (def_content.find("END PINS") != string::npos)
@@ -126,6 +129,20 @@ int main()
                     {
                         cout << "data : " << i << endl;
                     }
+                }
+            }
+            else if (def_content.find("DIEAREA") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                if (stoi(def_content_array[6]) > 1000)
+                {
+                    transfer_Postion(&position_map, &def_content_array);
+                    def_content = replacePosition(def_content, &position_map);
+                    myfile << def_content << endl;
+                }
+                else
+                {
+                     myfile << def_content << endl;
                 }
             }
             else
@@ -390,7 +407,7 @@ bool AllisNum(string str)
     for (int i = 0; i < str.size(); i++)
     {
         int tmp = (int)str[i];
-        if ((tmp >= 48 && tmp <= 57)||tmp == 45)
+        if ((tmp >= 48 && tmp <= 57) || tmp == 45)
         {
             continue;
         }

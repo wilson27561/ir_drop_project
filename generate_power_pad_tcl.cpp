@@ -10,6 +10,10 @@ using namespace std;
 #include <algorithm>
 
 const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
+const string LEFT = "LEFT";
+const string RIGHT = "RIGHT";
+const string UP = "UP";
+const string DOWN = "DOWN";
 
 struct PowerPad
 {
@@ -20,24 +24,110 @@ struct PowerPad
     float width = 0;
     string x_location;
     string y_location;
+    string side;
+};
+struct DieArea
+{
+    string lower_left_x_location;
+    string lower_left_y_location;
+    string top_right_x_location;
+    string top_right_y_location;
 };
 
 string &trim(string &str);
 vector<string> splitByPattern(string content, string pattern);
-void getPowerPadLocation(string def_file_name);
+void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
 void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_pad);
 void setPowerPadLocation(vector<string> *def_content_array, PowerPad *power_pad);
 void setPowerPadInfo(ifstream *def_file, string def_content, PowerPad *power_pad);
+void getDieArea(string def_file_name, DieArea *die_area);
+string setSide(PowerPad *power_pad, DieArea *die_area);
+void setPowerPadSide(vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector, DieArea *die_area);
 int main()
 {
-    
+    vector<PowerPad> vdd_power_pad_vector;
+    vector<PowerPad> vss_power_pad_vector;
+    DieArea die_area;
 
-    getPowerPadLocation(DEF_FILE);
+    getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
+    getDieArea(DEF_FILE, &die_area);
+    setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &die_area);
+
+    
 
     return 0;
 }
+// VDDA 177.732 326.88
+// VDDB 361.044 326.88
+// VDDC 405.648 205.344
+// VDDD 405.648 52.128
+// VDDE 272.484 0
+// VDDF 80.82 0
+// VDDG 0 93.6
+// VDDH 0 246.96
 
-void getPowerPadLocation(string def_file_name)
+// RIGHT :VDDC
+// RIGHT :VDDD
+// DOWN :VDDE
+// DOWN :VDDF
+// LEFT :VDDG
+// LEFT :VDDH
+
+void setPowerPadSide(vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector, DieArea *die_area)
+{
+    for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
+    {
+        setSide(&(*vdd_power_pad_vector)[i], &(*die_area));
+    }
+     for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
+    {
+        setSide(&(*vss_power_pad_vector)[i], &(*die_area));
+    }
+}
+
+string setSide(PowerPad *power_pad, DieArea *die_area)
+{
+    if (stof(power_pad->x_location) == stof(die_area->lower_left_x_location))
+    {
+        power_pad->side = LEFT;
+    }
+    else if (stof((power_pad->y_location)) == stof(die_area->lower_left_y_location))
+    {
+         power_pad->side = DOWN;
+    }
+    else if (stof(power_pad->x_location) == stof(die_area->top_right_x_location))
+    {
+          power_pad->side = RIGHT;
+
+    }
+    else if (stof(power_pad->y_location) == stof(die_area->top_right_y_location))
+    {
+         power_pad->side = UP;
+    }
+}
+
+void getDieArea(string def_file_name, DieArea *die_area)
+{
+    ifstream def_file(def_file_name);
+    string def_content;
+    if (def_file)
+    {
+        while (getline(def_file, def_content))
+        {
+            if (def_content.find("DIEAREA") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                die_area->lower_left_x_location = def_content_array[2];
+                die_area->lower_left_y_location = def_content_array[3];
+                die_area->top_right_x_location = def_content_array[6];
+                die_area->top_right_y_location = def_content_array[7];
+            }
+        }
+    }
+}
+
+
+void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
 {
 
     ifstream def_file(def_file_name);
@@ -54,6 +144,14 @@ void getPowerPadLocation(string def_file_name)
                     {
                         PowerPad power_pad;
                         setPowerPadInfo(&def_file, def_content, &power_pad);
+                        if (def_content.find("VDD") != string::npos)
+                        {
+                            (*vdd_power_pad_vector).push_back(power_pad);
+                        }
+                        else
+                        {
+                            (*vss_power_pad_vector).push_back(power_pad);
+                        }
                     }
                     if (def_content.find("END PINS") != string::npos)
                     {
@@ -98,7 +196,6 @@ void setPowerPadLocation(vector<string> *def_content_array, PowerPad *power_pad)
     string y_location = (*def_content_array)[4];
     (*power_pad).x_location = x_location;
     (*power_pad).y_location = y_location;
-    cout << (*power_pad).x_location << endl;
 }
 
 void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_pad)
