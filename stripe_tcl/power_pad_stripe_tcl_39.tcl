@@ -1,0 +1,16 @@
+addStripe -nets { VDDX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 176.868 318.6 178.596 326.16 }
+addStripe -nets { VDDX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 360.18 318.6 361.908 326.16 }
+addStripe -nets { VDDX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 404.928 206.208 397.224 204.48 }
+addStripe -nets { VDDX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 404.928 52.992 397.224 51.264 }
+addStripe -nets { VDDX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 271.62 0.72 273.348 8.28 }
+addStripe -nets { VDDX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 79.956 0.72 81.684 8.28 }
+addStripe -nets { VDDX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 0.72 94.464 8.28 92.736 }
+addStripe -nets { VDDX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 0.72 247.824 8.28 246.096 }
+addStripe -nets { VSSX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 160.164 320.472 161.892 326.16 }
+addStripe -nets { VSSX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 343.476 320.472 345.204 326.16 }
+addStripe -nets { VSSX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 404.928 220.176 399.096 218.448 }
+addStripe -nets { VSSX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 404.928 66.96 399.096 65.232 }
+addStripe -nets { VSSX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 289.044 0.72 290.772 6.408 }
+addStripe -nets { VSSX } -layer M3 -direction vertical -width 1.728 -number_of_sets 1 -area { 97.38 0.72 99.108 6.408 }
+addStripe -nets { VSSX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 0.72 80.496 6.408 78.768 }
+addStripe -nets { VSSX } -layer M3 -direction horizontal -width 1.728 -number_of_sets 1 -area { 0.72 233.856 6.408 232.128 }

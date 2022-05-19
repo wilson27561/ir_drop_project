@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original.def";
-const string DEF_TRANSFER_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
+const string DEF_FILE = "def_file/b19/6t32_powerpad_design_placed_52.def";
+const string DEF_TRANSFER_FILE = "def_file/b19/6t32_powerpad_design_placed_52_transfer.def";
 
 struct Position
 {

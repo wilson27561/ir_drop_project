@@ -9,17 +9,18 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
-const string POWER_PAD_SRIPE_FILE = "stripe_tcl/power_pad_stripe_tcl_39.tcl";
+const string DEF_FILE = "def_file/b19/6t32_powerpad_design_placed_52_transfer.def";
+const string POWER_PAD_SRIPE_FILE = "stripe_tcl/power_pad_stripe_tcl_52.tcl";
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
 const string UP = "UP";
 const string DOWN = "DOWN";
-const float POWER_RING_WIDTH = 1.8;
+
 const string M3_LAYER = "M3";
-const string VERTICAL= "vertical";
-const string VDD= "VDDX";
-const string VSS= "VSSX";
+const string VERTICAL = "vertical";
+const string HORIZONTAL = "horizontal";
+const string VDD = "VDDX";
+const string VSS = "VSSX";
 struct PowerPad
 {
     string pad_name;
@@ -60,7 +61,6 @@ struct StripeTcl
     string voltage;
 };
 
-
 string &trim(string &str);
 vector<string> splitByPattern(string content, string pattern);
 void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
@@ -94,6 +94,7 @@ int main()
     setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &die_area);
     getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
+
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
     generatePowerPadTcl(&vdd_shape_map, &vss_shape_map, &vdd_power_pad_vector, &vss_power_pad_vector);
 
@@ -116,50 +117,157 @@ void generatePowerPadTcl(map<string, ShapeRing> *vdd_shape_map, map<string, Shap
         {
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
+            cout << " : "<< power_pad_x_loction << endl;
+            cout << "x : "<< power_pad_x_loction << endl;
+            cout << "y : "<< power_pad_y_location << endl;
             stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
-            stripe_y_start_location_float = stof(shape_ring.start_y_location) - (shape_ring.width/2);
+            stripe_y_start_location_float = stof(shape_ring.start_y_location) - (shape_ring.width / 2);
             stripe_x_end_location_float = power_pad_x_loction + (power_pad.width / 2);
             stripe_y_end_location_float = power_pad_y_location - power_pad.length / 2;
-            StripeTcl stripe_tcl;
-            stripe_tcl.start_x_location =  floatToString(stripe_x_start_location_float);
-            stripe_tcl.start_y_location =  floatToString(stripe_y_start_location_float);
-            stripe_tcl.end_x_location = floatToString(stripe_x_end_location_float);
-            stripe_tcl.end_y_location = floatToString(stripe_y_end_location_float);
-            stripe_tcl.layer = M3_LAYER;
-            stripe_tcl.direction = VERTICAL;
-            stripe_tcl.width = power_pad.width;
-            stripe_tcl.voltage = VDD;
-            string add_stripe_vdd_tcl = generateTcl(stripe_tcl);
-            cout << add_stripe_vdd_tcl << endl;
         }
         else if (power_pad.side == DOWN)
         {
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
-            
+            stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
+            stripe_y_start_location_float = power_pad_y_location + (power_pad.length / 2);
+            stripe_x_end_location_float = power_pad_x_loction + power_pad.width / 2;
+            stripe_y_end_location_float = stof(shape_ring.start_y_location) + shape_ring.width / 2;
 
+            //  cout << add_stripe_vdd_tcl << endl;
         }
         else if (power_pad.side == LEFT)
         {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = power_pad_x_loction + power_pad.length / 2;
+            stripe_y_start_location_float = power_pad_y_location + power_pad.width / 2;
+            stripe_x_end_location_float = stof(shape_ring.start_x_location) + shape_ring.width / 2;
+            stripe_y_end_location_float = power_pad_y_location - power_pad.width / 2;
+
+            // cout << add_stripe_vdd_tcl << endl;
         }
         else if (power_pad.side == RIGHT)
         {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = stof(power_pad.x_location) - power_pad.length / 2;
+            stripe_y_start_location_float = stof(power_pad.y_location) + power_pad.width / 2;
+            stripe_x_end_location_float = stof(shape_ring.start_x_location) - shape_ring.width / 2;
+            stripe_y_end_location_float = stof(power_pad.y_location) - power_pad.width / 2;
         }
         else
         {
+            cout << "power_pad has error" << endl;
         }
+
+        StripeTcl stripe_tcl;
+        stripe_tcl.start_x_location = floatToString(stripe_x_start_location_float);
+        stripe_tcl.start_y_location = floatToString(stripe_y_start_location_float);
+        stripe_tcl.end_x_location = floatToString(stripe_x_end_location_float);
+        stripe_tcl.end_y_location = floatToString(stripe_y_end_location_float);
+        stripe_tcl.layer = M3_LAYER;
+        if (power_pad.side == LEFT || power_pad.side == RIGHT)
+        {
+            stripe_tcl.direction = HORIZONTAL;
+        }
+        else
+        {
+            stripe_tcl.direction = VERTICAL;
+        }
+        stripe_tcl.width = floatToString(power_pad.width);
+        stripe_tcl.voltage = VDD;
+        string add_stripe_vdd_tcl = generateTcl(stripe_tcl);
+
+        myfile << add_stripe_vdd_tcl << endl;
+    }
+
+    for (int i = 0; i < (*vss_power_pad_vector).size(); i++)
+    {
+        PowerPad power_pad = (*vss_power_pad_vector)[i];
+        ShapeRing shape_ring = (*vss_shape_map)[power_pad.side];
+        float stripe_x_start_location_float = 0;
+        float stripe_y_start_location_float = 0;
+        float stripe_x_end_location_float = 0;
+        float stripe_y_end_location_float = 0;
+        if (power_pad.side == UP)
+        {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
+            stripe_y_start_location_float = stof(shape_ring.start_y_location) - (shape_ring.width / 2);
+            stripe_x_end_location_float = power_pad_x_loction + (power_pad.width / 2);
+            stripe_y_end_location_float = power_pad_y_location - power_pad.length / 2;
+        }
+        else if (power_pad.side == DOWN)
+        {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
+            stripe_y_start_location_float = power_pad_y_location + (power_pad.length / 2);
+            stripe_x_end_location_float = power_pad_x_loction + power_pad.width / 2;
+            stripe_y_end_location_float = stof(shape_ring.start_y_location) + shape_ring.width / 2;
+
+            //  cout << add_stripe_vdd_tcl << endl;
+        }
+        else if (power_pad.side == LEFT)
+        {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = power_pad_x_loction + power_pad.length / 2;
+            stripe_y_start_location_float = power_pad_y_location + power_pad.width / 2;
+            stripe_x_end_location_float = stof(shape_ring.start_x_location) + shape_ring.width / 2;
+            stripe_y_end_location_float = power_pad_y_location - power_pad.width / 2;
+
+            // cout << add_stripe_vdd_tcl << endl;
+        }
+        else if (power_pad.side == RIGHT)
+        {
+            float power_pad_x_loction = stof(power_pad.x_location);
+            float power_pad_y_location = stof(power_pad.y_location);
+            stripe_x_start_location_float = stof(power_pad.x_location) - power_pad.length / 2;
+            stripe_y_start_location_float = stof(power_pad.y_location) + power_pad.width / 2;
+            stripe_x_end_location_float = stof(shape_ring.start_x_location) - shape_ring.width / 2;
+            stripe_y_end_location_float = stof(power_pad.y_location) - power_pad.width / 2;
+        }
+        else
+        {
+            cout << "power_pad has error" << endl;
+        }
+
+        StripeTcl stripe_tcl;
+        stripe_tcl.start_x_location = floatToString(stripe_x_start_location_float);
+        stripe_tcl.start_y_location = floatToString(stripe_y_start_location_float);
+        stripe_tcl.end_x_location = floatToString(stripe_x_end_location_float);
+        stripe_tcl.end_y_location = floatToString(stripe_y_end_location_float);
+        stripe_tcl.layer = M3_LAYER;
+        if (power_pad.side == LEFT || power_pad.side == RIGHT)
+        {
+            stripe_tcl.direction = HORIZONTAL;
+        }
+        else
+        {
+            stripe_tcl.direction = VERTICAL;
+        }
+        stripe_tcl.width = floatToString(power_pad.width);
+        stripe_tcl.voltage = VSS;
+        string add_stripe_vdd_tcl = generateTcl(stripe_tcl);
+
+        myfile << add_stripe_vdd_tcl << endl;
     }
 
     myfile.close();
 }
 
-string generateTcl(StripeTcl stripe_tcl){
-     string add_stripe_vdd_tcl = "addStripe -nets { " +stripe_tcl.voltage+ " } -layer "+stripe_tcl.voltage+" -direction "+stripe_tcl.direction+" -width " + stripe_tcl.width + " -number_of_sets 1 -area { " + stripe_tcl.start_x_location + " " + stripe_tcl.start_y_location + " " + stripe_tcl.end_x_location + " " + stripe_tcl.end_y_location + " }";
-     return add_stripe_vdd_tcl;
+string generateTcl(StripeTcl stripe_tcl)
+{
+    string add_stripe_vdd_tcl = "addStripe -nets { " + stripe_tcl.voltage + " } -layer " + stripe_tcl.layer + " -direction " + stripe_tcl.direction + " -width " + stripe_tcl.width + " -number_of_sets 1 -area { " + stripe_tcl.start_x_location + " " + stripe_tcl.start_y_location + " " + stripe_tcl.end_x_location + " " + stripe_tcl.end_y_location + " }";
+    return add_stripe_vdd_tcl;
 }
 
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map)
 {
+    
     for (int i = 0; i < (*vdd_shape_ring_vector).size(); i++)
     {
         if ((*vdd_shape_map).count((*vdd_shape_ring_vector)[i].side) != true)
@@ -168,7 +276,7 @@ void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing
         }
         else
         {
-            cout << "power ring side has error" << endl;
+            cout << "power ring side has error "  << endl;
         }
     }
     for (int i = 0; i < (*vss_shape_ring_vector).size(); i++)
@@ -241,8 +349,9 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         ShapeRing shape_ring;
                         setShapeRingLocation(&shape_ring, &def_content_array, &(*vdd_shape_ring_vector));
+                        
                     }
-                    if (def_content.find("SHAPE STRIPE") != string::npos)
+                    if (def_content.find("SHAPE STRIPE") != string::npos || def_content.find("+ USE POWER") != string::npos)
                     {
                         break;
                     }
@@ -254,12 +363,11 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
                 {
                     if (def_content.find("SHAPE RING") != string::npos)
                     {
-
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         ShapeRing shape_ring;
                         setShapeRingLocation(&shape_ring, &def_content_array, &(*vss_shape_ring_vector));
                     }
-                    if (def_content.find("SHAPE STRIPE") != string::npos)
+                    if (def_content.find("SHAPE STRIPE") != string::npos ||  def_content.find("+ USE GROUND") != string::npos )
                     {
                         break;
                     }
@@ -273,7 +381,6 @@ void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_arr
 {
     if ((*def_content_array).size() == 15)
     {
-
         (*shape_ring).layer = (*def_content_array)[2];
         (*shape_ring).width = stof((*def_content_array)[3]);
         (*shape_ring).start_x_location = (*def_content_array)[8];
@@ -459,9 +566,6 @@ void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_
     (*power_pad).length = power_pad_up_float + power_pad_down_float;
 }
 
-void setPowerPad(ifstream def_file)
-{
-}
 
 //根據pattern切字串
 vector<string> splitByPattern(string content, string pattern)
