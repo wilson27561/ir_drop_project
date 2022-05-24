@@ -117,9 +117,7 @@ void generatePowerPadTcl(map<string, ShapeRing> *vdd_shape_map, map<string, Shap
         {
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
-            cout << " : "<< power_pad_x_loction << endl;
-            cout << "x : "<< power_pad_x_loction << endl;
-            cout << "y : "<< power_pad_y_location << endl;
+     
             stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
             stripe_y_start_location_float = stof(shape_ring.start_y_location) - (shape_ring.width / 2);
             stripe_x_end_location_float = power_pad_x_loction + (power_pad.width / 2);

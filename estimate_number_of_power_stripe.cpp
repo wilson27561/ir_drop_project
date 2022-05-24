@@ -35,7 +35,7 @@ const string HORIZONTAL = "horizontal";
 const string VDD = "VDDX";
 const string VSS = "VSSX";
 
-const string DEF_FILE = "def_file/b19/6t49_powerstripe_design_floorplan_original_transfer.def";
+const string DEF_FILE = "def_file/b19/6t32_powerpad_design_placed_52_transfer.def";
 
 struct ResistLine
 {
@@ -131,7 +131,10 @@ void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_arr
 void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
 void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line);
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
-void caculatePowerPad(vector<PowerPad> *power_pad_vector, vector<ShapeRing> *follow_pin_vector, CoreSite *core_site);
+void caculatePowerPad(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site);
+void countPadToStripeDistance(vector<float> *pad_x_location_vector, string side, CoreSite *core_site, map<string, float> *distance_pad_to_stripe_map, map<string, ShapeRing> *shape_map);
+float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_pad_vector);
+float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side);
 int main()
 {
     CoreSite core_site;
@@ -149,10 +152,12 @@ int main()
     getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
-
-    caculatePowerPad(&vdd_power_pad_vector, &vdd_shape_ring_vector, &core_site);
-    float power_stripes_number = caculate_power_stripe(TOTAL_POWER, IR_DROP, M3_SHEET_RESISTANCE, M1_SHEET_RESISTANCE, VDD_PAD, POWER_STRIPE_HEIGHT, POWER_STRIPE_WIDTH, POWER_RAIL_HEIGHT, POWER_RAIL_WIDTH, POWER_RAIL_NUMBER);
     getCoreSite(DEF_FILE, &core_site);
+
+    caculatePowerPad(&vdd_power_pad_vector, &vdd_shape_map, &core_site);
+
+    float power_stripes_number = caculate_power_stripe(TOTAL_POWER, IR_DROP, M3_SHEET_RESISTANCE, M1_SHEET_RESISTANCE, VDD_PAD, POWER_STRIPE_HEIGHT, POWER_STRIPE_WIDTH, POWER_RAIL_HEIGHT, POWER_RAIL_WIDTH, POWER_RAIL_NUMBER);
+
     float interval = getInterval(&core_site, power_stripes_number);
 
     cout << "before power stripe number : " << power_stripes_number << endl;
@@ -161,13 +166,15 @@ int main()
     return 0;
 };
 
-void caculatePowerPad(vector<PowerPad> *power_pad_vector, vector<ShapeRing> *follow_pin_vector, CoreSite *core_site)
+void caculatePowerPad(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site)
 {
+
+    float pad_to_ring_distance = countPadToRing(&(*shape_map), &(*power_pad_vector));
+
     vector<float> up_pad_vector;
     vector<float> down_pad_vector;
     vector<float> left_pad_vector;
     vector<float> right_pad_vector;
-    map<string,float> distance_vector;
 
     for (int i = 0; i < (*power_pad_vector).size(); i++)
     {
@@ -177,7 +184,7 @@ void caculatePowerPad(vector<PowerPad> *power_pad_vector, vector<ShapeRing> *fol
         }
         else if ((*power_pad_vector)[i].side == DOWN)
         {
-           down_pad_vector.push_back(stof((*power_pad_vector)[i].x_location));
+            down_pad_vector.push_back(stof((*power_pad_vector)[i].x_location));
         }
         else if ((*power_pad_vector)[i].side == LEFT)
         {
@@ -192,27 +199,136 @@ void caculatePowerPad(vector<PowerPad> *power_pad_vector, vector<ShapeRing> *fol
             cout << "power_pad_side has error" << endl;
         }
     }
+    //由小到大
     sort(up_pad_vector.begin(), up_pad_vector.end());
     sort(down_pad_vector.begin(), down_pad_vector.end());
     sort(left_pad_vector.begin(), left_pad_vector.end());
     sort(right_pad_vector.begin(), right_pad_vector.end());
 
-
+    map<string, vector<float>> power_pad_map;
+    power_pad_map.insert(pair<string, vector<float>>(UP, up_pad_vector));
+    power_pad_map.insert(pair<string, vector<float>>(DOWN, down_pad_vector));
+    power_pad_map.insert(pair<string, vector<float>>(RIGHT, right_pad_vector));
+    power_pad_map.insert(pair<string, vector<float>>(LEFT, left_pad_vector));
 }
 
-float countPadToStripeDistance(vector<float> pad_vector,CoreSite *coreSite)
+float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string side, CoreSite *core_site)
 {
-    if(pad_vector.size() == 1)
+    vector<float> pad_vector = (*power_pad_map)[side];
+    float temp_power_stripe_distance = 0;
+    float temp_distance = 0;
+    if (side == UP)
     {
+        for (int i = 0; i < pad_vector.size(); i++)
+        {
+            if (i == 0)
+            {
+                int last_index = (*power_pad_map)[LEFT].size() - 1;
+                float lef_side = abs(stof(core_site->up_y_location) - (*power_pad_map)[LEFT][last_index]);
+                float temp_pad_distance = abs(stof(core_site->left_x_location) - pad_vector[i]);
+                temp_pad_distance = temp_pad_distance + lef_side;
 
+                if (temp_distance < temp_pad_distance)
+                {
+                    temp_distance = temp_pad_distance;
+                    temp_power_stripe_distance = temp_pad_distance;
+                }
 
+                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]) / 2;
 
-    }else if (pad_vector.size() == 2)
-    {
-        
+                if (temp_distance < temp_pad_distance_next)
+                {
+                    temp_distance = temp_pad_distance_next;
+                    temp_power_stripe_distance = temp_pad_distance_next;
+                }
+            }
+            else if (i == pad_vector.size() - 1)
+            {
+                int last_index = (*power_pad_map)[RIGHT].size() - 1;
+                float right_side = abs(stof(core_site->up_y_location) - (*power_pad_map)[RIGHT][last_index]);
+                float temp_pad_distance = abs(stof(core_site->right_x_location) - pad_vector[i]);
+                temp_pad_distance = temp_pad_distance + right_side;
+
+                if (temp_distance < temp_pad_distance)
+                {
+                    temp_distance = temp_pad_distance;
+                }
+                break;
+            }
+            else
+            {
+                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]) / 2;
+
+                if (temp_distance < temp_pad_distance_next)
+                {
+                    temp_distance = temp_pad_distance_next;
+                    temp_power_stripe_distance = temp_pad_distance_next;
+                }
+            }
+        }
     }
+    else if (side == DOWN)
+    {
+        for (int i = 0; i < pad_vector.size(); i++)
+        {
+            if (i == 0)
+            {
+                float lef_side = abs(stof(core_site->down_y_location) - (*power_pad_map)[LEFT][0]);
+                float temp_pad_distance = abs(stof(core_site->left_x_location) - pad_vector[i]);
+                temp_pad_distance = temp_pad_distance + lef_side;
+                if (temp_down_distance < temp_pad_distance)
+                {
+                    temp_down_distance = temp_pad_distance;
+                }
 
+                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]);
+                if (temp_down_distance < temp_pad_distance_next)
+                {
+                    temp_down_distance = temp_pad_distance_next;
+                }
+            }
+            else if (i == pad_vector.size() - 1)
+            {
+                float right_side = abs(stof(core_site->down_y_location) - (*power_pad_map)[RIGHT][0]);
+                float temp_pad_distance = abs(stof(core_site->right_x_location) - pad_vector[i]);
+                temp_pad_distance = temp_pad_distance + right_side;
+                if (temp_down_distance < temp_pad_distance)
+                {
+                    temp_down_distance = temp_pad_distance;
+                }
+            }
+            else
+            {
+                float temp_pad_distance = abs(pad_vector[i] - pad_vector[i + 1]);
+                if (temp_down_distance < temp_pad_distance)
+                {
+                    temp_down_distance = temp_pad_distance;
+                }
+            }
+        }
+    }
+    // cout <<   index  << endl;
+    // cout << temp_up_distance << endl;
+    // cout << temp_down_distance << endl;
 
+    return 0;
+}
+
+float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_pad_vector)
+{
+    PowerPad power_pad;
+    for (int i = 0; i < (*power_pad_vector).size(); i++)
+    {
+        if ((*power_pad_vector)[i].side == UP)
+        {
+            power_pad = (*power_pad_vector)[i];
+            break;
+        }
+    }
+    float power_pad_length = stof(power_pad.y_location) - (power_pad.length / 2);
+    float y_location = abs(stof((*shape_map)[UP].start_y_location) - power_pad_length);
+
+    return power_pad_length;
 }
 
 void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
@@ -622,3 +738,48 @@ string &trim(string &str)
 
     return str;
 }
+
+// float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side)
+// {
+//     float y_location = 0;
+//     //距離與voltus 有些許落差 有時間再改
+//     for (int i = 0; i < (*power_pad_vector).size(); i++)
+//     {
+//         if ((*power_pad_vector)[i].side == side)
+//         {
+//             if (side == UP)
+//             {
+//                 y_location = stof((*power_pad_vector)[i].y_location) - ((*power_pad_vector)[i].length / 2);
+//                 if ((*shape_map).count(side))
+//                 {
+//                     y_location = abs(stof((*shape_map)[side].start_y_location) - y_location);
+//                     cout << "UP : " << y_location << endl;
+//                 }
+//                 else
+//                 {
+//                     cout << "side error" << endl;
+//                 }
+//             }
+//             else if (side == DOWN)
+//             {
+//                 float y_location = stof((*power_pad_vector)[i].y_location) + ((*power_pad_vector)[i].length / 2);
+//                 if ((*shape_map).count(side))
+//                 {
+//                     y_location = abs(stof((*shape_map)[side].start_y_location) - y_location);
+//                     cout << "DOWN : " << y_location << endl;
+//                 }
+//                 else
+//                 {
+//                     cout << "side error" << endl;
+//                 }
+//             }
+//             else
+//             {
+//                 cout << " side error " << endl;
+//             }
+
+//             break;
+//         }
+//     }
+//     return y_location;
+// }
