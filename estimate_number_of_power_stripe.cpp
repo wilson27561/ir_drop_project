@@ -9,18 +9,25 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const float TOTAL_POWER = 4.4743;
-const float M3_SHEET_RESISTANCE = 3.1445326;
-const float M1_SHEET_RESISTANCE = 3.1445326;
-const float V1_SHEET_RESISTANCE = 8.7348129;
-const float V2_SHEET_RESISTANCE = 8.7348129;
+const float TOTAL_POWER = 4.743;
+// const float M3_SHEET_RESISTANCE = 3.1445326;
+// const float M1_SHEET_RESISTANCE = 3.1445326;
+// const float M1_SHEET_RESISTANCE = 3.1445326;
+const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
+const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
+const float M2_SHEET_RESISTANCE = 0.811738;
+const float M1_SHEET_RESISTANCE = 1.2;
+const float M3_PAD_WIDTH = 1.728;
+const float M2_WIDTH = 1.8;
+// const float V1_SHEET_RESISTANCE = 8.7348129;
+// const float V2_SHEET_RESISTANCE = 8.7348129;
 const float VDD_PAD = 0.7;
-const float IR_DROP = 0.07;
-// const float POWER_STRIPE_HEIGHT = 313.92;
-const float POWER_STRIPE_HEIGHT = 156.96;
+const float IR_DROP = 0.03;
+const float POWER_STRIPE_HEIGHT = 313.92;
+// const float POWER_STRIPE_HEIGHT = 156.96;
 const float POWER_STRIPE_WIDTH = 0.224;
-// const float POWER_RAIL_HEIGHT = 385.344;
-const float POWER_RAIL_HEIGHT = 192.672;
+const float POWER_RAIL_HEIGHT = 385.344;
+// const float POWER_RAIL_HEIGHT = 192.672;
 const float POWER_RAIL_WIDTH = 0.072;
 const int POWER_RAIL_NUMBER = 178;
 const float SPACING = 0.072;
@@ -118,7 +125,7 @@ vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
 float getInterval(CoreSite *core_site, int power_stripe_number);
 void getCoreSite(string def_file_name, CoreSite *core_site);
-int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number);
+int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number,float pad_to_stripe_resist);
 void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
 void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_pad);
 void setPowerPadLocation(vector<string> *def_content_array, PowerPad *power_pad);
@@ -131,9 +138,11 @@ void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_arr
 void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
 void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line);
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
-void caculatePowerPad(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site);
-void countPadToStripeDistance(vector<float> *pad_x_location_vector, string side, CoreSite *core_site, map<string, float> *distance_pad_to_stripe_map, map<string, ShapeRing> *shape_map);
+float caculatePowerPadToStripeResistance(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site);
+// void countPadToStripeDistance(vector<float> *pad_x_location_vector, string side, CoreSite *core_site, map<string, float> *distance_pad_to_stripe_map, map<string, ShapeRing> *shape_map);
+float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string side, CoreSite *core_site);
 float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_pad_vector);
+
 float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side);
 int main()
 {
@@ -154,19 +163,46 @@ int main()
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
     getCoreSite(DEF_FILE, &core_site);
 
-    caculatePowerPad(&vdd_power_pad_vector, &vdd_shape_map, &core_site);
-
-    float power_stripes_number = caculate_power_stripe(TOTAL_POWER, IR_DROP, M3_SHEET_RESISTANCE, M1_SHEET_RESISTANCE, VDD_PAD, POWER_STRIPE_HEIGHT, POWER_STRIPE_WIDTH, POWER_RAIL_HEIGHT, POWER_RAIL_WIDTH, POWER_RAIL_NUMBER);
+    float pad_to_stripe_resistance = caculatePowerPadToStripeResistance(&vdd_power_pad_vector, &vdd_shape_map, &core_site);
+    cout << pad_to_stripe_resistance << endl;
+    float power_stripes_number = caculate_power_stripe(TOTAL_POWER, IR_DROP, M3_SHEET_RESISTANCE_PAD, M1_SHEET_RESISTANCE, VDD_PAD, POWER_STRIPE_HEIGHT, POWER_STRIPE_WIDTH, POWER_RAIL_HEIGHT, POWER_RAIL_WIDTH, POWER_RAIL_NUMBER,pad_to_stripe_resistance);
 
     float interval = getInterval(&core_site, power_stripes_number);
-
+   
+    cout << "ir-drop : " << 0.7 - IR_DROP << " "  << IR_DROP << endl;
     cout << "before power stripe number : " << power_stripes_number << endl;
     cout << "before interval : " << interval << endl;
 
     return 0;
 };
+int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number,float pad_to_stripe_resist)
+{
+    float m3_square = (power_stripe_height/2) / power_stripe_width;
+    float m1_square = (power_rail_height/2) / power_rail_width;
+    float m3_resistance = m3_sheet_resistance * m3_square;
+    float m1_resistance = m1_sheet_resistance * m1_square;
 
-void caculatePowerPad(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site)
+    m3_resistance = m3_resistance+pad_to_stripe_resist; // pad to stripe resistance
+
+
+    total_power = total_power * 0.001;
+
+    float m3_current = ir_drop / (m3_resistance);
+    float m1_current = ir_drop / (m1_resistance);
+
+    float temp_total_current = (total_power / vdd_pad);
+
+    float temp_current = ((power_rail_number * 2  * m1_current));
+   
+
+    temp_total_current = temp_total_current - temp_current;
+
+    int m3_number = temp_total_current / m3_current;
+    m3_number = m3_number/2 ;
+    return m3_number;
+}
+
+float caculatePowerPadToStripeResistance(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site)
 {
 
     float pad_to_ring_distance = countPadToRing(&(*shape_map), &(*power_pad_vector));
@@ -210,6 +246,23 @@ void caculatePowerPad(vector<PowerPad> *power_pad_vector, map<string, ShapeRing>
     power_pad_map.insert(pair<string, vector<float>>(DOWN, down_pad_vector));
     power_pad_map.insert(pair<string, vector<float>>(RIGHT, right_pad_vector));
     power_pad_map.insert(pair<string, vector<float>>(LEFT, left_pad_vector));
+
+    float top_pad_distance = countPadToStripeDistance(&power_pad_map, UP, &(*core_site));
+    float down_pad_distance = countPadToStripeDistance(&power_pad_map, DOWN, &(*core_site));
+    float resistance = 0;
+    if (top_pad_distance >= down_pad_distance)
+    {
+         resistance = (top_pad_distance / M2_WIDTH) * M2_SHEET_RESISTANCE + (pad_to_ring_distance / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+       
+        
+    }
+    else
+    {
+         resistance = (down_pad_distance / M2_WIDTH) * M2_SHEET_RESISTANCE + (pad_to_ring_distance / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+   
+    }
+ 
+    return resistance;
 }
 
 float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string side, CoreSite *core_site)
@@ -231,7 +284,7 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
                 if (temp_distance < temp_pad_distance)
                 {
                     temp_distance = temp_pad_distance;
-                    temp_power_stripe_distance = temp_pad_distance;
+                    temp_power_stripe_distance = abs(stof(core_site->left_x_location) - pad_vector[i]);
                 }
 
                 float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]) / 2;
@@ -252,6 +305,7 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
                 if (temp_distance < temp_pad_distance)
                 {
                     temp_distance = temp_pad_distance;
+                    temp_power_stripe_distance = abs(stof(core_site->right_x_location) - pad_vector[i]);
                 }
                 break;
             }
@@ -269,6 +323,8 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
     }
     else if (side == DOWN)
     {
+        // float temp_power_stripe_distance = 0;
+        // float temp_distance = 0;
         for (int i = 0; i < pad_vector.size(); i++)
         {
             if (i == 0)
@@ -276,15 +332,17 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
                 float lef_side = abs(stof(core_site->down_y_location) - (*power_pad_map)[LEFT][0]);
                 float temp_pad_distance = abs(stof(core_site->left_x_location) - pad_vector[i]);
                 temp_pad_distance = temp_pad_distance + lef_side;
-                if (temp_down_distance < temp_pad_distance)
+                if (temp_distance < temp_pad_distance)
                 {
-                    temp_down_distance = temp_pad_distance;
+                    temp_distance = temp_pad_distance;
+                    temp_power_stripe_distance = abs(stof(core_site->left_x_location) - pad_vector[i]);
                 }
 
-                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]);
-                if (temp_down_distance < temp_pad_distance_next)
+                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]) / 2;
+                if (temp_distance < temp_pad_distance_next)
                 {
-                    temp_down_distance = temp_pad_distance_next;
+                    temp_distance = temp_pad_distance_next;
+                    temp_power_stripe_distance = temp_pad_distance_next;
                 }
             }
             else if (i == pad_vector.size() - 1)
@@ -292,26 +350,26 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
                 float right_side = abs(stof(core_site->down_y_location) - (*power_pad_map)[RIGHT][0]);
                 float temp_pad_distance = abs(stof(core_site->right_x_location) - pad_vector[i]);
                 temp_pad_distance = temp_pad_distance + right_side;
-                if (temp_down_distance < temp_pad_distance)
+                if (temp_distance < temp_pad_distance)
                 {
-                    temp_down_distance = temp_pad_distance;
+                    temp_distance = temp_pad_distance;
+                    temp_power_stripe_distance = abs(stof(core_site->right_x_location) - pad_vector[i]);
                 }
             }
             else
             {
-                float temp_pad_distance = abs(pad_vector[i] - pad_vector[i + 1]);
-                if (temp_down_distance < temp_pad_distance)
+                float temp_pad_distance_next = abs(pad_vector[i] - pad_vector[i + 1]) / 2;
+                if (temp_distance < temp_pad_distance_next)
                 {
-                    temp_down_distance = temp_pad_distance;
+                    temp_distance = temp_pad_distance_next;
+                    temp_power_stripe_distance = temp_pad_distance_next;
                 }
             }
         }
     }
-    // cout <<   index  << endl;
-    // cout << temp_up_distance << endl;
-    // cout << temp_down_distance << endl;
 
-    return 0;
+
+    return temp_power_stripe_distance;
 }
 
 float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_pad_vector)
@@ -328,7 +386,7 @@ float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_
     float power_pad_length = stof(power_pad.y_location) - (power_pad.length / 2);
     float y_location = abs(stof((*shape_map)[UP].start_y_location) - power_pad_length);
 
-    return power_pad_length;
+    return y_location;
 }
 
 void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
@@ -637,27 +695,7 @@ void setSide(PowerPad *power_pad, DieArea *die_area)
     }
 }
 
-// case 1 : Follow pin power stripe width /2
-int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number)
-{
-    float m3_square = power_stripe_height / power_stripe_width;
-    float m1_square = power_rail_height / power_rail_width;
-    float m3_resistance = m3_sheet_resistance * m3_square;
-    float m1_resistance = m1_sheet_resistance * m1_square;
 
-    total_power = total_power * 0.001;
-
-    float m3_current = ir_drop / m3_resistance;
-    float m1_current = ir_drop / m1_resistance;
-
-    float temp_power = (total_power / vdd_pad);
-
-    float temp_current = ((power_rail_number * 2 * m1_current));
-    temp_power = temp_power - temp_current;
-    int m3_number = temp_power / m3_current;
-    m3_number = m3_number / 2;
-    return m3_number;
-}
 
 void getCoreSite(string def_file_name, CoreSite *core_site)
 {

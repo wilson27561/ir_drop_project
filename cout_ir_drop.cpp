@@ -11,8 +11,8 @@ using namespace std;
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string IR_DROP_LAYER = "LISD";
-const string DEF_FILE_ORI = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
-const string IR_DROP_FILE = "ir_drop_report/print_irdrop_PD1_25C_avg_1_6t49_b19_routing_88_2_LISD.enc_VDDX.report";
+const string DEF_FILE_ORI = "def_file/b19/6t49_b19_routing_44_9_53_transfer.def";
+const string IR_DROP_FILE = "ir_drop_report/print_irdrop_VDDX_53.report";
 const string IR_COUNT_REPORT_FILE = "ir_drop_report/ir_report_all.txt";
 const float POWER_STRIPE_WIDTH = 0.224;
 struct Via
@@ -26,6 +26,14 @@ struct ResistLine
 {
     string x_location;
     string total_resistance;
+};
+struct CoreSite
+{
+
+    string left_x_location;
+    string right_x_location;
+    string up_y_location;
+    string down_y_location;
 };
 struct Stripe
 {
@@ -48,54 +56,96 @@ struct Stripe
     float total_via_resistance;
     float ir_drop_voltus = 0;
 };
-struct IrDropNode{
+struct IrDropNode
+{
     float ir_drop;
     string layer;
     string x_location;
     string y_loaction;
     string net;
     string node_id;
-
 };
-
-void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector);
+void getCoreSite(string def_file_name, CoreSite *core_site);
+void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector,CoreSite *core_site);
 void transferStripeVectorToMap(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, map<string, Stripe> *vdd_stripe_map, map<string, Stripe> *vss_stripe_map);
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
 void getIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map);
-void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map,vector<Stripe> *vdd_stripe_vector);
+void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map, vector<Stripe> *vdd_stripe_vector);
+bool isPowerStripe(Stripe *stripe, CoreSite *core_site);
+void setStripeLocation(Stripe *stripe, vector<string> *def_content_array);
 int main()
 {
     vector<Stripe> vdd_stripe_vector;
     vector<Stripe> vss_stripe_vector;
     map<string, Stripe> vdd_stripe_map;
     map<string, Stripe> vss_stripe_map;
-    getStripeLocation(DEF_FILE_ORI, &vdd_stripe_vector, &vss_stripe_vector);
+    CoreSite core_site;
+    getCoreSite(DEF_FILE_ORI, &core_site);
+    getStripeLocation(DEF_FILE_ORI, &vdd_stripe_vector, &vss_stripe_vector,&core_site);
     transferStripeVectorToMap(&vdd_stripe_vector, &vss_stripe_vector, &vdd_stripe_map, &vss_stripe_map);
-    getIrDropFromVoltus( &vdd_stripe_map);
+    getIrDropFromVoltus(&vdd_stripe_map);
     printPowerStripeIrDropFromVoltus(&vdd_stripe_map, &vdd_stripe_vector);
-
-   
-    
 
     return 0;
 }
-void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map,vector<Stripe> *vdd_stripe_vector){
+void getCoreSite(string def_file_name, CoreSite *core_site)
+{
+    ifstream def_file(def_file_name);
+    string def_content;
+
+    if (def_file)
+    {
+        while (getline(def_file, def_content))
+        {
+
+            if (def_content.find("FE_CORE_BOX_LL_X") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).left_x_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_UR_X") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).right_x_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_LL_Y") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).down_y_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_UR_Y") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).up_y_location = def_content_array[3];
+            }
+            if (def_content.find("END PROPERTYDEFINITIONS") != string::npos)
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        cout << "read " << def_file_name << " error " << endl;
+    }
+}
+void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map, vector<Stripe> *vdd_stripe_vector)
+{
     ofstream myfile;
     myfile.open(IR_COUNT_REPORT_FILE);
 
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
         string start_x_location = (*vdd_stripe_vector)[i].start_x_location;
-        if((*vdd_stripe_map).count((*vdd_stripe_vector)[i].start_x_location)){
+        if ((*vdd_stripe_map).count((*vdd_stripe_vector)[i].start_x_location))
+        {
             float ir_drop_voltus_float = (*vdd_stripe_map)[(*vdd_stripe_vector)[i].start_x_location].ir_drop_voltus;
-            ir_drop_voltus_float = ir_drop_voltus_float*0.001;
-            myfile<<  0.7 - ir_drop_voltus_float << endl;
+            ir_drop_voltus_float = ir_drop_voltus_float * 0.001;
+            myfile << 0.7 - ir_drop_voltus_float << endl;
         }
     }
     myfile.close();
-    
-
 }
 
 void getIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map)
@@ -108,35 +158,68 @@ void getIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map)
         while (getline(ir_drop_file, ir_drop_content))
         {
             vector<string> ir_drop_content_array = splitByPattern(ir_drop_content, " ");
-             if(ir_drop_content_array.size() == 6)
-             {
-          
-                  IrDropNode ir_drop_node;
-                  ir_drop_node.ir_drop = stof(ir_drop_content_array[0]);
-                  ir_drop_node.layer = ir_drop_content_array[1];
-                  ir_drop_node.x_location = ir_drop_content_array[2];
-                  ir_drop_node.y_loaction = ir_drop_content_array[3];
-                  ir_drop_node.net = ir_drop_content_array[4];
-                  ir_drop_node.node_id = ir_drop_content_array[5];
-                
-                  if((*vdd_stripe_map).count(ir_drop_node.x_location)){
-                      Stripe vdd_stripe = (*vdd_stripe_map)[ir_drop_node.x_location];
-                      if(vdd_stripe.ir_drop_voltus < ir_drop_node.ir_drop){
+            if (ir_drop_content_array.size() == 6)
+            {
+
+                IrDropNode ir_drop_node;
+                ir_drop_node.ir_drop = stof(ir_drop_content_array[0]);
+                ir_drop_node.layer = ir_drop_content_array[1];
+                ir_drop_node.x_location = ir_drop_content_array[2];
+                ir_drop_node.y_loaction = ir_drop_content_array[3];
+                ir_drop_node.net = ir_drop_content_array[4];
+                ir_drop_node.node_id = ir_drop_content_array[5];
+
+                if ((*vdd_stripe_map).count(ir_drop_node.x_location))
+                {
+                    Stripe vdd_stripe = (*vdd_stripe_map)[ir_drop_node.x_location];
+                    if (vdd_stripe.ir_drop_voltus < ir_drop_node.ir_drop)
+                    {
                         (*vdd_stripe_map)[ir_drop_node.x_location].ir_drop_voltus = ir_drop_node.ir_drop;
-                      }
-                  }
-             }
+                    }
+                }
+            }
         }
-        
     }
     else
     {
         cout << "can't found ir drop report" << endl;
     }
 }
+bool isPowerStripe(Stripe *stripe, CoreSite *core_site)
+{
+    float up_location = stof((*core_site).up_y_location);
+    float down_location = stof((*core_site).down_y_location);
+    float core_site_length = abs(up_location - down_location);
+    float stripe_length = abs(stof(stripe->start_y_location) - stof(stripe->end_y_location));
+
+    if (stripe_length > core_site_length)
+    {
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+void setStripeLocation(Stripe *stripe, vector<string> *def_content_array)
+{
+    (*stripe).start_x_location = (*def_content_array)[7];
+    (*stripe).start_y_location = (*def_content_array)[8];
+    (*stripe).end_x_location = (*def_content_array)[11];
+    (*stripe).end_y_location = (*def_content_array)[12];
+    if ((*def_content_array)[11] == "*")
+    {
+        (*stripe).end_x_location = (*def_content_array)[7];
+    }
+    else if ((*def_content_array)[12] == "*")
+    {
+        (*stripe).end_y_location = (*def_content_array)[8];
+    }
+}
 
 //只讀到Stripe 就 break
-void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector)
+void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector,CoreSite *core_site)
 {
 
     ifstream def_file(def_file_name);
@@ -162,15 +245,16 @@ void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, 
                         {
                             cout << "VDDX :" << def_content << " " << def_content_array.size() << endl;
                             Stripe stripe;
-                            stripe.start_x_location = def_content_array[7];
-                            stripe.start_y_location = def_content_array[8];
-                            stripe.end_x_location = def_content_array[7];
-                            stripe.end_y_location = def_content_array[12];
+                            setStripeLocation(&stripe, &def_content_array);
                             stripe.net_name = NET_NAME_VDD;
                             vector<Via> via_vector;
                             stripe.via_vector = via_vector;
 
-                            (*vdd_stripe_vector).push_back(stripe);
+                            if (isPowerStripe(&stripe, &(*core_site)))
+                            {
+
+                                (*vdd_stripe_vector).push_back(stripe);
+                            }
                         }
                     }
                 }
@@ -188,14 +272,14 @@ void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, 
                         {
                             cout << "VSSX :" << def_content << " " << def_content_array.size() << endl;
                             Stripe stripe;
-                            stripe.start_x_location = def_content_array[7];
-                            stripe.start_y_location = def_content_array[8];
-                            stripe.end_x_location = def_content_array[7];
-                            stripe.end_y_location = def_content_array[12];
+                            setStripeLocation(&stripe, &def_content_array);
                             stripe.net_name = NET_NAME_VSS;
                             vector<Via> via_vector;
                             stripe.via_vector = via_vector;
-                            (*vss_stripe_vector).push_back(stripe);
+                            if (isPowerStripe(&stripe, &(*core_site)))
+                            {
+                                (*vdd_stripe_vector).push_back(stripe);
+                            }
                         }
                     }
                 }
