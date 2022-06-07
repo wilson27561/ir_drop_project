@@ -42,11 +42,9 @@ int main()
     //   }
     // }
 
-    double temp_num =  10.26 / 0.18 ;
-  
+    double temp_num = 10.26 / 0.18;
 
-    cout <<  temp_num << endl;
-
+    // cout << temp_num << endl;
 
     vector<int> number_vector;
     number_vector.push_back(5);
@@ -62,20 +60,24 @@ int main()
     // {
     //     cout << number_vector[i] << endl;
     // }
-   
 
-    // for (int i = 1; i < number_vector.size(); i++)
-    // {
-    //     for (int j = 0; j < i; j++)
-    //     {
-    //         if (number_vector[j] > number_vector[i])
-    //         {
-    //             number_vector.insert(number_vector.begin()+j,number_vector[i]);
-    //             number_vector.erase(number_vector.begin() + i+1);
-    //             break;
-    //         }
-    //     }
-    // }
+    for (int i = 1; i < number_vector.size(); i++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            if (number_vector[j] > number_vector[i])
+            {
+                number_vector.insert(number_vector.begin() + j, number_vector[i]);
+                number_vector.erase(number_vector.begin() + i + 1);
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < number_vector.size(); i++)
+    {
+        cout << number_vector[i] << endl;
+    }
 
     //  for (int i = 1; i < number_vector.size(); i++)
     // {
@@ -83,20 +85,10 @@ int main()
     //     {
     //         if (number_vector[j] > number_vector[i])
     //         {
-               
+
     //         }
     //     }
     // }
-
-    // for (int i = 0; i < number_vector.size(); i++)
-    // {
-    //     cout << number_vector[i] << endl;
-    // }
-    
-
-    
-
-
 
     return 0;
 }

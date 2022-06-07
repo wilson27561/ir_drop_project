@@ -18,6 +18,7 @@ void InsertionSort(vector<int> *num_vec)
     for (int i = 1; i < (*num_vec).size(); i++)
     {
         int key = (*num_vec)[i];
+        cout << "key : "<< key << endl;
         int j = i - 1;
         while (key < (*num_vec)[j] && j >= 0)
         {

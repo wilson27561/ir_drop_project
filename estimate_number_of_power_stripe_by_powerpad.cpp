@@ -137,7 +137,8 @@ float countPadToStripeDistance(map<string, vector<float>> *power_pad_map, string
 float countPadToRing(map<string, ShapeRing> *shape_map, vector<PowerPad> *power_pad_vector);
 void setPowerPadDirection(map<string, vector<PowerPad>> *direction_power_pad);
 float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side);
-void sorPowerPad(map<string, vector<PowerPad>> *direction_power_pad);
+void sortPowerPad(map<string, vector<PowerPad>> *direction_power_pad);
+void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction);
 int main()
 {
     CoreSite core_site;
@@ -155,9 +156,7 @@ int main()
     getDieArea(DEF_FILE, &die_area);
     getCoreSite(DEF_FILE, &core_site);
     setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
-    sortPowerPad()
-    
-    
+    sortPowerPad(&direction_power_pad);
 
     // getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     // setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
@@ -176,23 +175,71 @@ int main()
     return 0;
 };
 
-void sorPowerPad(map<string, vector<PowerPad>> *direction_power_pad){
-
-}
-
-void InsertionSort(vector<int> *num_vec)
+void sortPowerPad(map<string, vector<PowerPad>> *direction_power_pad)
 {
 
-    for (int i = 1; i < (*num_vec).size(); i++)
+    for (auto &item : (*direction_power_pad))
     {
-        int key = (*num_vec)[i];
-        int j = i - 1;
-        while (key < (*num_vec)[j] && j >= 0)
+        string direction = item.first;
+        power_pad_loction_sort(&((*direction_power_pad)[direction]), direction);
+    }
+
+    // for (auto &item : (*direction_power_pad))
+    // {
+    //     string direction = item.first;
+    //     if (direction == UP || direction == DOWN)
+    //     {
+    //         for (int i = 0; i < item.second.size(); i++)
+    //         {
+    //             cout << direction << " " << item.second[i].x_location << " ";
+    //             cout << "" << endl;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         for (int i = 0; i < item.second.size(); i++)
+    //         {
+    //             cout << direction << " " << item.second[i].y_location << " ";
+    //             cout << "" << endl;
+    //         }
+    //     }
+    // }
+}
+
+void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction)
+{
+    for (int i = 1; i < (*power_pad_vec).size(); i++)
+    {
+        if (direction == UP || direction == DOWN)
         {
-            (*num_vec)[j + 1] = (*num_vec)[j];
-            j--;
+            for (int i = 1; i < (*power_pad_vec).size(); i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    if (stoi((*power_pad_vec)[j].x_location) > stoi((*power_pad_vec)[i].x_location))
+                    {
+                        (*power_pad_vec).insert((*power_pad_vec).begin() + j, (*power_pad_vec)[i]);
+                        (*power_pad_vec).erase((*power_pad_vec).begin() + i + 1);
+                        break;
+                    }
+                }
+            }
         }
-        (*num_vec)[j + 1] = key;
+        else
+        {
+            for (int i = 1; i < (*power_pad_vec).size(); i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    if (stoi((*power_pad_vec)[j].y_location) > stoi((*power_pad_vec)[i].y_location))
+                    {
+                        (*power_pad_vec).insert((*power_pad_vec).begin() + j, (*power_pad_vec)[i]);
+                        (*power_pad_vec).erase((*power_pad_vec).begin() + i + 1);
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -214,7 +261,6 @@ void setSide(PowerPad *power_pad, map<string, vector<PowerPad>> *direction_power
     {
         power_pad->side = LEFT;
         (*direction_power_pad)[LEFT].push_back((*power_pad));
-       
     }
     else if (stof((power_pad->y_location)) == stof(die_area->lower_left_y_location))
     {
