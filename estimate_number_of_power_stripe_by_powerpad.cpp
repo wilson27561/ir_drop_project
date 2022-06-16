@@ -17,7 +17,7 @@ const float M1_SHEET_RESISTANCE = 1.2;
 const float M3_PAD_WIDTH = 1.728;
 const float M2_WIDTH = 1.8;
 const float VDD_PAD = 0.7;
-const float IR_DROP = 0.03;
+const float IR_DROP = 0.07;
 const float POWER_STRIPE_HEIGHT = 313.92;
 const float POWER_STRIPE_WIDTH = 0.224;
 const float POWER_RAIL_HEIGHT = 385.344;
@@ -34,6 +34,8 @@ const string VERTICAL = "vertical";
 const string HORIZONTAL = "horizontal";
 const string VDD = "VDDX";
 const string VSS = "VSSX";
+const string POWERSTRIPEVALUE = "power_stripe_distance";
+const string POWERRAILVALUE = "power_rail_distance";
 
 const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_54_transfer.def";
 
@@ -122,6 +124,7 @@ int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resis
 void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
 void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_pad);
 void setPowerPadLocation(vector<string> *def_content_array, PowerPad *power_pad);
+
 void setPowerPadInfo(ifstream *def_file, string def_content, PowerPad *power_pad);
 void getDieArea(string def_file_name, DieArea *die_area);
 void setSide(PowerPad *power_pad, map<string, vector<PowerPad>> *direction_power_pad, DieArea *die_area);
@@ -139,12 +142,22 @@ void setPowerPadDirection(map<string, vector<PowerPad>> *direction_power_pad);
 float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side);
 void sortPowerPad(map<string, vector<PowerPad>> *direction_power_pad);
 void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction);
-void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec);
-float caculatePowerPad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site);
+void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, map<string, float> *power_value_map);
+float caculatePowerPad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, map<string, float> *power_stripe_distance_map);
 float one_side_power_pad(vector<PowerPad> *power_pad, CoreSite *core_site, string side);
-float twice_side_power_pad(map<string, vector<PowerPad>> *direction_power_pad, CoreSite *core_site, string side_first, string side_second);
-void setTwicePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set);
-void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, string side_first, string side_second);
+void twice_side_power_pad(map<string, vector<PowerPad>> *direction_power_pad, CoreSite *core_site, string side_first, string side_second, float *power_stripe_distance, float *power_rail_distance);
+void setTwicePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set, map<string, float> *power_stripe_distance_map);
+void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, string side_first, string side_second, map<string, float> *power_value_map);
+float getLongDistance(vector<PowerPad> *power_pad, float first_location, float last_location, string side, float other_side_distance);
+float getMiddleLongDistance(vector<PowerPad> *power_pad, float first_location, float last_location, string side, float left_side_distance, float right_side_distance);
+void setTriplePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set, map<string, float> *power_value_map);
+float setPowerStripeValue(float power_stripe_length, float pad_to_ring, PowerPad power_pad, ShapeRing shape_ring, bool is_exists_pad);
+float setPowerRailValue(float power_rail_length, PowerPad power_pad, ShapeRing shape_ring, bool is_exists_pad);
+int caculate_power_stripes(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, map<string, float> *power_value_map);
+int caculateTriplePowerStripe(map<string, float> *power_value_map, set<string> *side_set);
+int caculateDoublePowerStripe(map<string, float> *power_value_map, set<string> *side_set);
+int caculateSinglePowerStripe(map<string, float> *power_value_map);
+
 int main()
 {
     CoreSite core_site;
@@ -157,31 +170,276 @@ int main()
     map<string, ShapeRing> vss_shape_map;
 
     map<string, vector<PowerPad>> direction_power_pad;
+    map<string, float> power_value_map;
+    //TODO 1.計算power stripe 數量　可以重複寫
+    //     2. 
     setPowerPadDirection(&direction_power_pad);
     getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
     getDieArea(DEF_FILE, &die_area);
     getCoreSite(DEF_FILE, &core_site);
+    cout << "core site left : " << core_site.left_x_location << endl;
+    cout << "core site right : " << core_site.right_x_location << endl;
+    cout << "core site up : " << core_site.up_y_location << endl;
+    cout << "core site down : " << core_site.down_y_location << endl;
     setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
     sortPowerPad(&direction_power_pad);
 
     getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
+    
+    //================= 調整side start =========================
+    // direction_power_pad.erase(direction_power_pad.find(UP));
+    // direction_power_pad.erase(direction_power_pad.find(DOWN));
+    // direction_power_pad.erase(direction_power_pad.find(RIGHT));
+    direction_power_pad.erase(direction_power_pad.find(LEFT));
+    //================= 調整side end =========================
 
-    caculatePowerPad(&direction_power_pad, &vdd_shape_map, &core_site);
-    // float pad_to_stripe_resistance = caculatePowerPadToStripeResistance(&vdd_power_pad_vector, &vdd_shape_map, &core_site);
+    caculatePowerPad(&direction_power_pad, &vdd_shape_map, &core_site, &power_value_map);
+    float number_of_power_stripes = caculate_power_stripes(&direction_power_pad, &vdd_shape_map, &core_site, &power_value_map);
 
-    // cout << pad_to_stripe_resistance << endl;
-    // float power_stripes_number = caculate_power_stripe(TOTAL_POWER, IR_DROP, M3_SHEET_RESISTANCE_PAD, M1_SHEET_RESISTANCE, VDD_PAD, POWER_STRIPE_HEIGHT, POWER_STRIPE_WIDTH, POWER_RAIL_HEIGHT, POWER_RAIL_WIDTH, POWER_RAIL_NUMBER, pad_to_stripe_resistance);
-
-    // float interval = getInterval(&core_site, power_stripes_number);
+    float interval = getInterval(&core_site, number_of_power_stripes);
 
     // cout << "ir-drop : " << 0.7 - IR_DROP << " " << IR_DROP << endl;
-    // cout << "before power stripe number : " << power_stripes_number << endl;
-    // cout << "before interval : " << interval << endl;
+    cout << "before power stripe number : " << number_of_power_stripes << endl;
+    cout << "before interval : " << interval << endl;
 
     return 0;
 };
+
+int caculate_power_stripes(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, map<string, float> *power_value_map)
+{
+
+    vector<string> side_vec;
+    set<string> side_set;
+    int number_of_power_stripe = 0;
+
+    for (auto direct_pad_iter = (*direction_power_pad).begin(); direct_pad_iter != (*direction_power_pad).end(); ++direct_pad_iter)
+    {
+        string side = direct_pad_iter->first;
+
+        vector<PowerPad> pad_vec = direct_pad_iter->second;
+        if (pad_vec.size() > 0)
+        {
+            side_vec.push_back(side);
+            side_set.insert(side);
+        }
+    }
+
+    if (side_vec.size() == 1)
+    {
+        number_of_power_stripe = caculateSinglePowerStripe(&(*power_value_map));
+    }
+    else if (side_vec.size() == 2)
+    {
+        number_of_power_stripe = caculateDoublePowerStripe(&(*power_value_map), &side_set);
+    }
+    else if (side_vec.size() == 3)
+    {
+        number_of_power_stripe = caculateTriplePowerStripe(&(*power_value_map), &side_set);
+    }
+    else
+    {
+        cout << "four pad" << endl;
+    }
+    return number_of_power_stripe;
+}
+int caculateTriplePowerStripe(map<string, float> *power_value_map, set<string> *side_set)
+{
+    int m3_number = 0;
+    if ((*side_set).count(UP) && (*side_set).count(LEFT) && (*side_set).count(RIGHT))
+    {
+        float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+        float m1_square = (POWER_RAIL_HEIGHT / 2) / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * 2 * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+    }
+    else if ((*side_set).count(UP) && (*side_set).count(DOWN) && (*side_set).count(LEFT))
+    {
+        float m3_square = (POWER_STRIPE_HEIGHT / 2) / POWER_STRIPE_WIDTH;
+        float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+        m3_number = m3_number / 2;
+    }
+    else if ((*side_set).count(UP) && (*side_set).count(DOWN) && (*side_set).count(RIGHT))
+    {
+        float m3_square = (POWER_STRIPE_HEIGHT / 2) / POWER_STRIPE_WIDTH;
+        float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+        m3_number = m3_number / 2;
+    }
+    else if ((*side_set).count(LEFT) && (*side_set).count(RIGHT) && (*side_set).count(DOWN))
+    {
+        float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+        float m1_square = (POWER_RAIL_HEIGHT / 2) / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * 2 * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+    }
+    else
+    {
+        cout << "error" << endl;
+    }
+}
+
+int caculateDoublePowerStripe(map<string, float> *power_value_map, set<string> *side_set)
+{
+    int m3_number = 0;
+
+    if ((*side_set).count(UP) && (*side_set).count(DOWN))
+    {
+        float m3_square = (POWER_STRIPE_HEIGHT / 2) / POWER_STRIPE_WIDTH;
+        float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+        m3_number = m3_number / 2;
+    }
+    else if ((*side_set).count(RIGHT) && (*side_set).count(LEFT))
+    {
+        float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+        float m1_square = (POWER_RAIL_HEIGHT / 2) / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * 2 * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+    }
+    else
+    {
+        float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+        float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
+        float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+        float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+        m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+        m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+        float m3_current = IR_DROP / (m3_resistance);
+        float m1_current = IR_DROP / (m1_resistance);
+
+        float total_power = TOTAL_POWER * 0.001;
+        float temp_total_current = total_power / VDD_PAD;
+
+        float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+
+        temp_total_current = temp_total_current - temp_current;
+
+        m3_number = temp_total_current / m3_current;
+    }
+
+    return m3_number;
+}
+int caculateSinglePowerStripe(map<string, float> *power_value_map)
+{
+    float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+    float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
+    float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
+    float m1_resistance = M1_SHEET_RESISTANCE * m1_square;
+
+    m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
+    m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
+
+    float total_power = TOTAL_POWER * 0.001;
+    float temp_total_current = total_power / VDD_PAD;
+
+    float m3_current = IR_DROP / (m3_resistance);
+    float m1_current = IR_DROP / (m1_resistance);
+
+    float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+    temp_total_current = temp_total_current - temp_current;
+
+    int m3_number = temp_total_current / m3_current;
+    return m3_number;
+}
+
 // DOWN 221.508
 // DOWN 240.804
 // LEFT 132.624
@@ -195,16 +453,64 @@ int main()
 // down :10.0800
 // left :10.0800
 // right:395.5680
-float caculatePowerPad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site)
+
+float setPowerStripeValue(float power_stripe_length, PowerPad power_pad, ShapeRing shape_ring, bool is_exists_pad)
+{
+    float power_value = 0;
+    if (is_exists_pad)
+    {
+        float power_pad_length = stof(power_pad.y_location) - (power_pad.length / 2);
+        float pad_to_ring = abs(stof(shape_ring.start_y_location) - power_pad_length);
+
+        cout << "power_pad_length :" <<power_pad_length <<endl;
+        cout << "pad_to_ring :" <<pad_to_ring <<endl;
+        cout << "power_stripe_length :" <<power_stripe_length <<endl;
+
+        float power_stripe_value = power_stripe_length * M2_SHEET_RESISTANCE;
+        float power_pad_value = pad_to_ring * M3_SHEET_RESISTANCE_PAD;
+        power_value = power_stripe_value + power_pad_value;
+    }
+    else
+    {
+        float power_stripe_value = power_stripe_length * M2_SHEET_RESISTANCE;
+        power_value += power_stripe_value;
+    }
+    return power_value;
+}
+
+float setPowerRailValue(float power_rail_length, PowerPad power_pad, ShapeRing shape_ring, bool is_exists_pad)
+{
+    float power_value = 0;
+    if (is_exists_pad)
+    {
+        float power_pad_length = stof(power_pad.y_location) - (power_pad.length / 2);
+        float pad_to_ring = abs(stof(shape_ring.start_x_location) - power_pad_length);
+
+        float power_rail_value = power_rail_length * M2_SHEET_RESISTANCE;
+        float power_pad_value = pad_to_ring * M3_SHEET_RESISTANCE_PAD;
+
+        power_value = power_rail_value + power_pad_value;
+    }
+    else
+    {
+        float power_rail_value = power_rail_length * M2_SHEET_RESISTANCE;
+        power_value += power_rail_value;
+    }
+
+    return power_value;
+}
+
+float caculatePowerPad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, map<string, float> *power_value_map)
 {
     int pad_side = 0;
     vector<string> side_vec;
     set<string> side_set;
-    //================= 調整side start =========================
-    // (*direction_power_pad).erase((*direction_power_pad).find(UP));
-    (*direction_power_pad).erase((*direction_power_pad).find(DOWN));
-    (*direction_power_pad).erase((*direction_power_pad).find(LEFT));
-    //================= 調整side end =========================
+    // //================= 調整side start =========================
+    // // (*direction_power_pad).erase((*direction_power_pad).find(UP));
+    // // (*direction_power_pad).erase((*direction_power_pad).find(DOWN));
+    // (*direction_power_pad).erase((*direction_power_pad).find(RIGHT));
+    // (*direction_power_pad).erase((*direction_power_pad).find(LEFT));
+    // //================= 調整side end =========================
 
     for (auto direct_pad_iter = (*direction_power_pad).begin(); direct_pad_iter != (*direction_power_pad).end(); ++direct_pad_iter)
     {
@@ -221,40 +527,191 @@ float caculatePowerPad(map<string, vector<PowerPad>> *direction_power_pad, map<s
     if (side_vec.size() == 1)
     {
         // return resistance pad 到 stripe
-        setSinglePad(&(*direction_power_pad), &(*shape_map), &(*core_site), &side_vec);
+        setSinglePad(&(*direction_power_pad), &(*shape_map), &(*core_site), &side_vec, &(*power_value_map));
+        cout << "power_stripe_value : " << (*power_value_map)[POWERSTRIPEVALUE] << endl;
+        cout << "power_rail_value : " << (*power_value_map)[POWERRAILVALUE] << endl;
     }
     else if (side_vec.size() == 2)
     {
-        setTwicePad(&(*direction_power_pad), &(*shape_map), &(*core_site), &side_vec, &side_set);
+        setTwicePad(&(*direction_power_pad), &(*shape_map), &(*core_site), &side_vec, &side_set, &(*power_value_map));
     }
     else if (side_vec.size() == 3)
     {
+        setTriplePad(&(*direction_power_pad), &(*shape_map), &(*core_site), &side_vec, &side_set, &(*power_value_map));
     }
     else
     {
+        cout << "four pad" << endl;
+    }
+
+    return 0;
+}
+void setTriplePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set, map<string, float> *power_value_map)
+{
+    float power_stripe_distance = 0;
+    float power_rail_distance = 0;
+
+    if ((*side_set).count(UP) && (*side_set).count(LEFT) && (*side_set).count(RIGHT))
+    {
+        vector<PowerPad> up_power_pad = (*direction_power_pad)[UP];
+        vector<PowerPad> left_power_pad = (*direction_power_pad)[LEFT];
+        vector<PowerPad> right_power_pad = (*direction_power_pad)[RIGHT];
+
+        float power_stripe_distance_up = getMiddleLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), UP, abs(stof(up_power_pad[0].x_location) - stof((*core_site).left_x_location)), abs(stof(up_power_pad[up_power_pad.size() - 1].x_location) - stof((*core_site).right_x_location)));
+        float power_rail_distance_left = getLongDistance(&left_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), LEFT, abs(stof((*core_site).left_x_location) - stof(up_power_pad[0].x_location)));
+        float power_rail_distance_right = getLongDistance(&right_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), RIGHT, abs(stof((*core_site).right_x_location) - stof(up_power_pad[up_power_pad.size() - 1].y_location)));
+        float power_stripe_value = 0;
+        float power_rail_value = 0;
+        if (power_rail_distance_left >= power_rail_distance_right)
+        {
+            power_stripe_distance = power_stripe_distance_up;
+            power_rail_distance = power_rail_distance_left;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[UP], false);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[LEFT][0], (*shape_map)[LEFT], true);
+        }
+        else
+        {
+            power_stripe_distance = power_stripe_distance_up;
+            power_rail_distance = power_rail_distance_right;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[UP], false);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[RIGHT][0], (*shape_map)[RIGHT], true);
+        }
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+    }
+    else if ((*side_set).count(UP) && (*side_set).count(DOWN) && (*side_set).count(LEFT))
+    {
+        vector<PowerPad> up_power_pad = (*direction_power_pad)[UP];
+        vector<PowerPad> down_power_pad = (*direction_power_pad)[DOWN];
+        vector<PowerPad> left_power_pad = (*direction_power_pad)[LEFT];
+
+        float power_rail_distance_left = getMiddleLongDistance(&left_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), LEFT, abs(stof(down_power_pad[0].x_location) - stof((*core_site).left_x_location)), abs(stof(up_power_pad[0].x_location) - stof((*core_site).left_x_location)));
+        float power_stripe_distance_up = getLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), UP, abs(stof((*core_site).up_y_location) - stof(left_power_pad[left_power_pad.size() - 1].y_location)));
+        float power_stripe_distance_down = getLongDistance(&down_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), DOWN, abs(stof((*core_site).down_y_location) - stof(left_power_pad[0].y_location)));
+
+        float power_stripe_value = 0;
+        float power_rail_value = 0;
+
+        if (power_stripe_distance_up >= power_stripe_distance_down)
+        {
+            power_stripe_distance = power_stripe_distance_up;
+            power_rail_distance = power_rail_distance_left;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[UP], false);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[LEFT][0], (*shape_map)[LEFT], true);
+        }
+        else
+        {
+            power_stripe_distance = power_stripe_distance_down;
+            power_rail_distance = power_rail_distance_left;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[UP], false);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[LEFT][0], (*shape_map)[LEFT], true);
+        }
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+    }
+    else if ((*side_set).count(UP) && (*side_set).count(DOWN) && (*side_set).count(RIGHT))
+    {
+        vector<PowerPad> up_power_pad = (*direction_power_pad)[UP];
+        vector<PowerPad> down_power_pad = (*direction_power_pad)[DOWN];
+        vector<PowerPad> right_power_pad = (*direction_power_pad)[RIGHT];
+
+        float power_rail_distance_right = getMiddleLongDistance(&right_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), RIGHT, abs(stof(down_power_pad[0].x_location) - stof((*core_site).right_x_location)), abs(stof(up_power_pad[0].x_location) - stof((*core_site).right_x_location)));
+        float power_stripe_distance_up = getLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), UP, abs(stof((*core_site).up_y_location) - stof(right_power_pad[right_power_pad.size() - 1].y_location)));
+        float power_stripe_distance_down = getLongDistance(&down_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), DOWN, abs(stof((*core_site).down_y_location) - stof(right_power_pad[0].y_location)));
+
+        float power_stripe_value = 0;
+        float power_rail_value = 0;
+
+        if (power_stripe_distance_up >= power_stripe_distance_down)
+        {
+            power_stripe_distance = power_stripe_distance_up;
+            power_rail_distance = power_rail_distance_right;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[UP], true);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[RIGHT][0], (*shape_map)[RIGHT], true);
+        }
+        else
+        {
+            power_stripe_distance = power_stripe_distance_down;
+            power_rail_distance = power_rail_distance_right;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[DOWN][0], (*shape_map)[DOWN], true);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[RIGHT][0], (*shape_map)[RIGHT], true);
+        }
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+    }
+    else if ((*side_set).count(LEFT) && (*side_set).count(RIGHT) && (*side_set).count(DOWN))
+    {
+        vector<PowerPad> down_power_pad = (*direction_power_pad)[DOWN];
+        vector<PowerPad> left_power_pad = (*direction_power_pad)[LEFT];
+        vector<PowerPad> right_power_pad = (*direction_power_pad)[RIGHT];
+
+        float power_rail_distance_down = getMiddleLongDistance(&down_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), DOWN, abs(stof(left_power_pad[0].y_location) - stof((*core_site).down_y_location)), abs(stof(right_power_pad[0].y_location) - stof((*core_site).down_y_location)));
+        float power_stripe_rail_left = getLongDistance(&left_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), LEFT, abs(stof((*core_site).down_y_location) - stof(left_power_pad[0].y_location)));
+        float power_stripe_rail_right = getLongDistance(&right_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), RIGHT, abs(stof((*core_site).down_y_location) - stof(right_power_pad[0].y_location)));
+
+        float power_stripe_value = 0;
+        float power_rail_value = 0;
+
+        if (power_stripe_rail_left >= power_stripe_rail_right)
+        {
+            power_stripe_distance = power_rail_distance_down;
+            power_rail_distance = power_stripe_rail_left;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[DOWN][0], (*shape_map)[DOWN], true);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[LEFT][0], (*shape_map)[LEFT], true);
+        }
+        else
+        {
+            power_stripe_distance = power_rail_distance_down;
+            power_rail_distance = power_stripe_rail_right;
+
+            power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[DOWN][0], (*shape_map)[DOWN], true);
+            power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[RIGHT][0], (*shape_map)[RIGHT], true);
+        }
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+    }
+    else
+    {
+        cout << "error" << endl;
     }
 }
 
-void setTwicePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set)
+void setTwicePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, set<string> *side_set, map<string, float> *power_value_map)
 {
     if ((*side_set).count(UP) && (*side_set).count(DOWN))
     {
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), UP, DOWN, &(*power_value_map));
     }
     else if ((*side_set).count(UP) && (*side_set).count(RIGHT))
     {
-        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), UP, RIGHT);
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), UP, RIGHT, &(*power_value_map));
     }
     else if ((*side_set).count(UP) && (*side_set).count(LEFT))
     {
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), UP, LEFT, &(*power_value_map));
     }
     else if ((*side_set).count(DOWN) && (*side_set).count(RIGHT))
     {
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), DOWN, RIGHT, &(*power_value_map));
     }
     else if ((*side_set).count(DOWN) && (*side_set).count(LEFT))
     {
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), DOWN, LEFT, &(*power_value_map));
     }
     else if ((*side_set).count(RIGHT) && (*side_set).count(LEFT))
     {
+        countTwicePadDistance(&(*direction_power_pad), &(*shape_map), &(*core_site), LEFT, RIGHT, &(*power_value_map));
     }
     else
     {
@@ -262,7 +719,7 @@ void setTwicePad(map<string, vector<PowerPad>> *direction_power_pad, map<string,
     }
 }
 
-void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, string side_first, string side_second)
+void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, string side_first, string side_second, map<string, float> *power_value_map)
 {
     if (side_first == UP && side_second == DOWN)
     {
@@ -290,23 +747,112 @@ void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, m
 
         float power_stripe_distance = long_distance + pad_to_ring;
         float power_rail_distance = power_stripe_distance + abs(stof((*core_site).up_y_location) - stof((*core_site).down_y_location));
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[UP][0], (*shape_map)[side], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[UP][0], (*shape_map)[side], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+        cout << "UP DOWN : "
+             << "power_stripe_distance - " << power_stripe_distance << "power_rail_distance -" << power_rail_distance << endl;
         // TODO 距離
     }
     else if (side_first == UP && side_second == RIGHT)
     {
-        twice_side_power_pad(&(*direction_power_pad), &(*core_site), UP, RIGHT);
+        float power_stripe_distance = 0;
+        float power_rail_distance = 0;
+        twice_side_power_pad(&(*direction_power_pad), &(*core_site), UP, RIGHT, &power_stripe_distance, &power_rail_distance);
+
+        float up_power_pad_length = stof((*direction_power_pad)[UP][0].y_location) - ((*direction_power_pad)[UP][0].length / 2);
+        float up_pad_to_ring = abs(stof((*shape_map)[UP].start_y_location) - up_power_pad_length);
+
+        float right_power_pad_length = stof((*direction_power_pad)[RIGHT][0].x_location) - ((*direction_power_pad)[RIGHT][0].length / 2);
+        float right_pad_to_ring = abs(stof((*shape_map)[RIGHT].start_y_location) - right_power_pad_length);
+
+        power_stripe_distance = power_stripe_distance + up_pad_to_ring;
+        power_rail_distance = power_rail_distance + right_pad_to_ring;
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[side_first][0], (*shape_map)[side_first], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[side_second][0], (*shape_map)[side_second], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+
+        cout << "UP RIGHT : "
+             << "power_stripe_distance - " << power_stripe_distance << " power_rail_distance -" << power_rail_distance << endl;
     }
     else if (side_first == UP && side_second == LEFT)
     {
+        float power_stripe_distance = 0;
+        float power_rail_distance = 0;
+        twice_side_power_pad(&(*direction_power_pad), &(*core_site), UP, LEFT, &power_stripe_distance, &power_rail_distance);
+        cout << "UP LEFT : "
+             << "power_stripe_distance - " << power_stripe_distance << "power_rail_distance -" << power_rail_distance << endl;
+
+        float up_power_pad_length = stof((*direction_power_pad)[UP][0].y_location) - ((*direction_power_pad)[UP][0].length / 2);
+        float up_pad_to_ring = abs(stof((*shape_map)[UP].start_y_location) - up_power_pad_length);
+
+        float left_power_pad_length = stof((*direction_power_pad)[LEFT][0].x_location) - ((*direction_power_pad)[LEFT][0].length / 2);
+        float left_pad_to_ring = abs(stof((*shape_map)[LEFT].start_y_location) - left_power_pad_length);
+
+        power_stripe_distance = power_stripe_distance + up_pad_to_ring;
+        power_rail_distance = power_rail_distance + left_pad_to_ring;
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[side_first][0], (*shape_map)[side_first], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[side_second][0], (*shape_map)[side_second], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
     }
     else if (side_first == DOWN && side_second == RIGHT)
     {
+        float power_stripe_distance = 0;
+        float power_rail_distance = 0;
+        twice_side_power_pad(&(*direction_power_pad), &(*core_site), DOWN, RIGHT, &power_stripe_distance, &power_rail_distance);
+        cout << "DOWN RIGHT : "
+             << "power_stripe_distance - " << power_stripe_distance << "power_rail_distance -" << power_rail_distance << endl;
+
+        float down_power_pad_length = stof((*direction_power_pad)[DOWN][0].y_location) - ((*direction_power_pad)[DOWN][0].length / 2);
+        float down_pad_to_ring = abs(stof((*shape_map)[DOWN].start_y_location) - down_power_pad_length);
+
+        float right_power_pad_length = stof((*direction_power_pad)[RIGHT][0].x_location) - ((*direction_power_pad)[RIGHT][0].length / 2);
+        float right_pad_to_ring = abs(stof((*shape_map)[RIGHT].start_y_location) - right_power_pad_length);
+
+        power_stripe_distance = power_stripe_distance + down_pad_to_ring;
+        power_rail_distance = power_rail_distance + right_pad_to_ring;
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[side_first][0], (*shape_map)[side_first], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[side_second][0], (*shape_map)[side_second], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
     }
     else if (side_first == DOWN && side_second == LEFT)
     {
+        float power_stripe_distance = 0;
+        float power_rail_distance = 0;
+        twice_side_power_pad(&(*direction_power_pad), &(*core_site), DOWN, LEFT, &power_stripe_distance, &power_rail_distance);
+        cout << "DOWN LEFT : "
+             << "power_stripe_distance - " << power_stripe_distance << "power_rail_distance -" << power_rail_distance << endl;
+
+        float down_power_pad_length = stof((*direction_power_pad)[DOWN][0].y_location) - ((*direction_power_pad)[DOWN][0].length / 2);
+        float down_pad_to_ring = abs(stof((*shape_map)[DOWN].start_y_location) - down_power_pad_length);
+
+        float left_power_pad_length = stof((*direction_power_pad)[LEFT][0].x_location) - ((*direction_power_pad)[LEFT][0].length / 2);
+        float left_pad_to_ring = abs(stof((*shape_map)[LEFT].start_y_location) - left_power_pad_length);
+
+        power_stripe_distance = power_stripe_distance + down_pad_to_ring;
+        power_rail_distance = power_rail_distance + left_pad_to_ring;
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[side_first][0], (*shape_map)[side_first], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[side_second][0], (*shape_map)[side_second], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
     }
     else if (side_first == LEFT && side_second == RIGHT)
     {
+
         float left_distance = one_side_power_pad(&(*direction_power_pad)[LEFT], &(*core_site), LEFT);
         float right_distance = one_side_power_pad(&(*direction_power_pad)[RIGHT], &(*core_site), RIGHT);
         vector<PowerPad> power_pad_vec;
@@ -330,14 +876,114 @@ void countTwicePadDistance(map<string, vector<PowerPad>> *direction_power_pad, m
         float pad_to_ring = abs(stof((*shape_map)[side].start_x_location) - power_pad_length);
         float power_stripe_distance = long_distance + pad_to_ring;
         float power_rail_distance = power_stripe_distance + abs(stof((*core_site).up_y_location) - stof((*core_site).down_y_location));
-        // TODO 距離
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, (*direction_power_pad)[side_first][0], (*shape_map)[side_first], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, (*direction_power_pad)[side_second][0], (*shape_map)[side_second], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
+        cout << "LEFT RIGHT : "
+             << "power_stripe_distance - " << power_stripe_distance << "power_rail_distance -" << power_rail_distance << endl;
     }
     else
     {
         cout << "twice pad error" << endl;
     }
 }
-float getLongDistance(vector<PowerPad> *power_pad, float first_location, float last_location, string side)
+float getMiddleLongDistance(vector<PowerPad> *power_pad, float first_location, float last_location, string side, float left_side_distance, float right_side_distance)
+{
+    float long_distance = 0;
+
+    if (side == UP || side == DOWN)
+    {
+        for (int i = 0; i < (*power_pad).size(); i++)
+        {
+            if (i == 0)
+            {
+                float temp_distance = abs(stof((*power_pad)[i].x_location) - first_location);
+                temp_distance = (temp_distance + left_side_distance) / 2;
+                if (long_distance < temp_distance)
+                {
+                    long_distance = abs(stof((*power_pad)[i].x_location) - first_location);
+                }
+                if ((*power_pad).size() > 1)
+                {
+                    float temp_distance = abs(stof((*power_pad)[i].x_location) - stof((*power_pad)[i + 1].x_location)) / 2;
+                    if (long_distance < temp_distance)
+                    {
+                        long_distance = temp_distance;
+                    }
+                }
+            }
+            else if (i == (*power_pad).size() - 1)
+            {
+                float temp_distance = abs(stof((*power_pad)[i].x_location) - last_location);
+                temp_distance = (temp_distance + right_side_distance) / 2;
+
+                if (long_distance < temp_distance)
+                {
+                    long_distance = abs(stof((*power_pad)[i].x_location) - last_location);
+                }
+            }
+            else
+            {
+                float temp_distance = abs(stof((*power_pad)[i].x_location) - stof((*power_pad)[i + 1].x_location)) / 2;
+
+                if (long_distance < temp_distance)
+                {
+                    long_distance = temp_distance;
+                }
+            }
+        }
+    }
+    // 從下面開始選上來 first
+    else if (side == RIGHT || side == LEFT)
+    {
+        for (int i = 0; i < (*power_pad).size(); i++)
+        {
+            if (i == 0)
+            {
+                float temp_distance = abs(stof((*power_pad)[i].y_location) - first_location);
+                temp_distance = (temp_distance + left_side_distance) / 2;
+
+                if (long_distance < temp_distance)
+                {
+                    long_distance = temp_distance;
+                }
+                if ((*power_pad).size() > 1)
+                {
+                    float temp_distance = abs(stof((*power_pad)[i].y_location) - stof((*power_pad)[i + 1].y_location)) / 2;
+                    if (long_distance < temp_distance)
+                    {
+                        long_distance = temp_distance;
+                    }
+                }
+            }
+            else if (i == (*power_pad).size() - 1)
+            {
+                float temp_distance = abs(stof((*power_pad)[i].y_location) - last_location);
+
+                temp_distance = (temp_distance + right_side_distance) / 2;
+
+                if (long_distance < temp_distance)
+                {
+                    long_distance = abs(stof((*power_pad)[i].y_location) - last_location);
+                }
+            }
+            else
+            {
+                float temp_distance = abs(stof((*power_pad)[i].y_location) - stof((*power_pad)[i + 1].y_location)) / 2;
+                if (long_distance < temp_distance)
+                {
+                    long_distance = temp_distance;
+                }
+            }
+        }
+    }
+    return long_distance;
+}
+
+float getLongDistance(vector<PowerPad> *power_pad, float first_location, float last_location, string side, float other_side_distance)
 {
     float long_distance = 0;
 
@@ -364,9 +1010,11 @@ float getLongDistance(vector<PowerPad> *power_pad, float first_location, float l
             else if (i == (*power_pad).size() - 1)
             {
                 float temp_distance = abs(stof((*power_pad)[i].x_location) - last_location);
+                temp_distance = (temp_distance + other_side_distance) / 2;
+
                 if (long_distance < temp_distance)
                 {
-                    long_distance = temp_distance;
+                    long_distance = abs(stof((*power_pad)[i].x_location) - last_location);
                 }
             }
             else
@@ -380,7 +1028,7 @@ float getLongDistance(vector<PowerPad> *power_pad, float first_location, float l
             }
         }
     }
-    // down first
+    // 從下面開始選上來 first
     else if (side == RIGHT || side == LEFT)
     {
         for (int i = 0; i < (*power_pad).size(); i++)
@@ -404,9 +1052,12 @@ float getLongDistance(vector<PowerPad> *power_pad, float first_location, float l
             else if (i == (*power_pad).size() - 1)
             {
                 float temp_distance = abs(stof((*power_pad)[i].y_location) - last_location);
+
+                temp_distance = (temp_distance + other_side_distance) / 2;
+
                 if (long_distance < temp_distance)
                 {
-                    long_distance = temp_distance;
+                    long_distance = abs(stof((*power_pad)[i].y_location) - last_location);
                 }
             }
             else
@@ -422,20 +1073,45 @@ float getLongDistance(vector<PowerPad> *power_pad, float first_location, float l
     return long_distance;
 }
 
-float twice_side_power_pad(map<string, vector<PowerPad>> *direction_power_pad, CoreSite *core_site, string side_first, string side_second)
+void twice_side_power_pad(map<string, vector<PowerPad>> *direction_power_pad, CoreSite *core_site, string side_first, string side_second, float *power_stripe_distance, float *power_rail_distance)
 {
+
     if (side_first == UP && side_second == RIGHT)
     {
         vector<PowerPad> up_power_pad = (*direction_power_pad)[UP];
         vector<PowerPad> right_power_pad = (*direction_power_pad)[RIGHT];
+        //給定兩個PAD的邊界
+        (*power_stripe_distance) = getLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), UP, abs(stof((*core_site).up_y_location) - stof(right_power_pad[right_power_pad.size() - 1].y_location)));
+        //給定兩個PAD的邊界
+        (*power_rail_distance) = getLongDistance(&right_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), RIGHT, abs(stof(up_power_pad[up_power_pad.size() - 1].x_location) - stof((*core_site).right_x_location)));
+    }
+    else if (side_first == UP && side_second == LEFT)
+    {
+        vector<PowerPad> up_power_pad = (*direction_power_pad)[UP];
+        vector<PowerPad> left_power_pad = (*direction_power_pad)[LEFT];
 
-        float long_distance_power_stripe = 0;
-        float long_distance_power_rail = 0;
+        (*power_stripe_distance) = getLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), UP, abs(stof((*core_site).up_y_location) - stof(left_power_pad[left_power_pad.size() - 1].y_location)));
+        (*power_rail_distance) = getLongDistance(&left_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), LEFT, abs(stof(up_power_pad[0].x_location) - stof((*core_site).left_x_location)));
+    }
+    else if (side_first == DOWN && side_second == RIGHT)
+    {
+        vector<PowerPad> down_power_pad = (*direction_power_pad)[DOWN];
+        vector<PowerPad> right_power_pad = (*direction_power_pad)[RIGHT];
 
-        cout << "check in side" << endl;
+        (*power_stripe_distance) = getLongDistance(&down_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), DOWN, abs(stof((*core_site).down_y_location) - stof(right_power_pad[0].y_location)));
+        (*power_rail_distance) = getLongDistance(&right_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), RIGHT, abs(stof(down_power_pad[0].x_location) - stof((*core_site).right_x_location)));
+    }
+    else if (side_first == DOWN && side_second == LEFT)
+    {
+        vector<PowerPad> down_power_pad = (*direction_power_pad)[DOWN];
+        vector<PowerPad> left_power_pad = (*direction_power_pad)[LEFT];
 
-        long_distance_power_stripe = getLongDistance(&up_power_pad, stof((*core_site).left_x_location), stof(right_power_pad[right_power_pad.size() - 1].x_location), UP);
-        long_distance_power_rail =  getLongDistance(&right_power_pad, stof((*core_site).left_x_location), stof(up_power_pad[up_power_pad.size() - 1].x_location), UP);
+        (*power_stripe_distance) = getLongDistance(&down_power_pad, stof((*core_site).left_x_location), stof((*core_site).right_x_location), DOWN, abs(stof((*core_site).down_y_location) - stof(left_power_pad[0].y_location)));
+        (*power_rail_distance) = getLongDistance(&left_power_pad, stof((*core_site).down_y_location), stof((*core_site).up_y_location), LEFT, abs(stof(down_power_pad[0].x_location) - stof((*core_site).left_x_location)));
+    }
+    else
+    {
+        cout << "error twice_side_power_pad " << endl;
     }
 }
 
@@ -481,7 +1157,7 @@ float one_side_power_pad(vector<PowerPad> *power_pad, CoreSite *core_site, strin
             }
         }
     }
-    else if (side == LEFT && side == RIGHT)
+    else if (side == LEFT || side == RIGHT)
     {
         for (int i = 0; i < (*power_pad).size(); i++)
         {
@@ -527,7 +1203,7 @@ float one_side_power_pad(vector<PowerPad> *power_pad, CoreSite *core_site, strin
 }
 
 // single distance powerstripe distance and rail distance
-void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec)
+void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map, CoreSite *core_site, vector<string> *side_vec, map<string, float> *power_value_map)
 {
     string side = (*side_vec)[0];
 
@@ -575,11 +1251,19 @@ void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string
             }
         }
 
-        float power_pad_length = stof(power_pad[0].y_location) - (power_pad[0].length / 2);
-        float pad_to_ring = abs(stof((*shape_map)[side].start_y_location) - power_pad_length);
+        // float power_pad_length = stof(power_pad[0].y_location) - (power_pad[0].length / 2);
+        // float pad_to_ring = abs(stof((*shape_map)[side].start_y_location) - power_pad_length);
 
-        power_stripe_distance = long_distance + pad_to_ring;
+        power_stripe_distance = long_distance;
         power_rail_distance = power_stripe_distance + abs(stof((*core_site).up_y_location) - stof((*core_site).down_y_location));
+
+        
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, power_pad[0], (*shape_map)[side], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, power_pad[0], (*shape_map)[side], true);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
     }
     else
     {
@@ -623,6 +1307,12 @@ void setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, map<string
         float pad_to_ring = abs(stof((*shape_map)[side].start_x_location) - power_pad_length);
         power_stripe_distance = long_distance + pad_to_ring;
         power_rail_distance = power_stripe_distance + abs(stof((*core_site).up_y_location) - stof((*core_site).down_y_location));
+
+        float power_stripe_value = setPowerStripeValue(power_stripe_distance, power_pad[0], (*shape_map)[side], true);
+        float power_rail_value = setPowerRailValue(power_rail_distance, power_pad[0], (*shape_map)[side], false);
+
+        (*power_value_map).insert(pair<string, float>(POWERSTRIPEVALUE, power_stripe_value));
+        (*power_value_map).insert(pair<string, float>(POWERRAILVALUE, power_rail_value));
     }
 }
 
@@ -740,31 +1430,6 @@ void setPowerPadDirection(map<string, vector<PowerPad>> *direction_power_pad)
     (*direction_power_pad).insert(pair<string, vector<PowerPad>>(DOWN, down_power_pad_vector));
     (*direction_power_pad).insert(pair<string, vector<PowerPad>>(LEFT, left_power_pad_vector));
     (*direction_power_pad).insert(pair<string, vector<PowerPad>>(RIGHT, right_power_pad_vector));
-}
-
-int caculate_power_stripe(float total_power, float ir_drop, float m3_sheet_resistance, float m1_sheet_resistance, float vdd_pad, float power_stripe_height, float power_stripe_width, float power_rail_height, float power_rail_width, int power_rail_number, float pad_to_stripe_resist)
-{
-    float m3_square = (power_stripe_height / 2) / power_stripe_width;
-    float m1_square = (power_rail_height / 2) / power_rail_width;
-    float m3_resistance = m3_sheet_resistance * m3_square;
-    float m1_resistance = m1_sheet_resistance * m1_square;
-
-    m3_resistance = m3_resistance + pad_to_stripe_resist; // pad to stripe resistance
-
-    total_power = total_power * 0.001;
-
-    float m3_current = ir_drop / (m3_resistance);
-    float m1_current = ir_drop / (m1_resistance);
-
-    float temp_total_current = (total_power / vdd_pad);
-
-    float temp_current = ((power_rail_number * 2 * m1_current));
-
-    temp_total_current = temp_total_current - temp_current;
-
-    int m3_number = temp_total_current / m3_current;
-    m3_number = m3_number / 2;
-    return m3_number;
 }
 
 float caculatePowerPadToStripeResistance(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, CoreSite *core_site)
@@ -1304,48 +1969,3 @@ string &trim(string &str)
 
     return str;
 }
-
-// float getPowerPadMiddle(vector<PowerPad> *power_pad_vector, map<string, ShapeRing> *shape_map, string side)
-// {
-//     float y_location = 0;
-//     //距離與voltus 有些許落差 有時間再改
-//     for (int i = 0; i < (*power_pad_vector).size(); i++)
-//     {
-//         if ((*power_pad_vector)[i].side == side)
-//         {
-//             if (side == UP)
-//             {
-//                 y_location = stof((*power_pad_vector)[i].y_location) - ((*power_pad_vector)[i].length / 2);
-//                 if ((*shape_map).count(side))
-//                 {
-//                     y_location = abs(stof((*shape_map)[side].start_y_location) - y_location);
-//                     cout << "UP : " << y_location << endl;
-//                 }
-//                 else
-//                 {
-//                     cout << "side error" << endl;
-//                 }
-//             }
-//             else if (side == DOWN)
-//             {
-//                 float y_location = stof((*power_pad_vector)[i].y_location) + ((*power_pad_vector)[i].length / 2);
-//                 if ((*shape_map).count(side))
-//                 {
-//                     y_location = abs(stof((*shape_map)[side].start_y_location) - y_location);
-//                     cout << "DOWN : " << y_location << endl;
-//                 }
-//                 else
-//                 {
-//                     cout << "side error" << endl;
-//                 }
-//             }
-//             else
-//             {
-//                 cout << " side error " << endl;
-//             }
-
-//             break;
-//         }
-//     }
-//     return y_location;
-// }
