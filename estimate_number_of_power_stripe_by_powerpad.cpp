@@ -9,7 +9,7 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const float TOTAL_POWER = 4.743;
+const float TOTAL_POWER = 4.55424569;
 const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
 const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
 const float M2_SHEET_RESISTANCE = 0.811738;
@@ -37,7 +37,7 @@ const string VSS = "VSSX";
 const string POWERSTRIPEVALUE = "power_stripe_distance";
 const string POWERRAILVALUE = "power_rail_distance";
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_54_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_transfer.def";
 
 struct ResistLine
 {
@@ -190,8 +190,8 @@ int main()
     
     //================= 調整side start =========================
     // direction_power_pad.erase(direction_power_pad.find(UP));
-    // direction_power_pad.erase(direction_power_pad.find(DOWN));
-    // direction_power_pad.erase(direction_power_pad.find(RIGHT));
+    direction_power_pad.erase(direction_power_pad.find(DOWN));
+    direction_power_pad.erase(direction_power_pad.find(RIGHT));
     direction_power_pad.erase(direction_power_pad.find(LEFT));
     //================= 調整side end =========================
 
@@ -225,6 +225,8 @@ int caculate_power_stripes(map<string, vector<PowerPad>> *direction_power_pad, m
             side_set.insert(side);
         }
     }
+    
+    cout << side_vec.size() << endl;
 
     if (side_vec.size() == 1)
     {
@@ -282,12 +284,16 @@ int caculateTriplePowerStripe(map<string, float> *power_value_map, set<string> *
         float m3_current = IR_DROP / (m3_resistance);
         float m1_current = IR_DROP / (m1_resistance);
 
+
+
         float total_power = TOTAL_POWER * 0.001;
         float temp_total_current = total_power / VDD_PAD;
 
         float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
 
         temp_total_current = temp_total_current - temp_current;
+
+      
 
         m3_number = temp_total_current / m3_current;
         m3_number = m3_number / 2;
@@ -417,6 +423,7 @@ int caculateDoublePowerStripe(map<string, float> *power_value_map, set<string> *
 
     return m3_number;
 }
+
 int caculateSinglePowerStripe(map<string, float> *power_value_map)
 {
     float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
@@ -430,13 +437,18 @@ int caculateSinglePowerStripe(map<string, float> *power_value_map)
     float total_power = TOTAL_POWER * 0.001;
     float temp_total_current = total_power / VDD_PAD;
 
+
     float m3_current = IR_DROP / (m3_resistance);
     float m1_current = IR_DROP / (m1_resistance);
 
-    float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
-    temp_total_current = temp_total_current - temp_current;
+    float temp = temp_total_current - (POWER_RAIL_NUMBER * m1_current);
+    int m3_number = temp / m3_current;
 
-    int m3_number = temp_total_current / m3_current;
+
+     
+    // float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
+    // temp_total_current = temp_total_current - temp_current;
+    // int m3_number = temp_total_current / m3_current;
     return m3_number;
 }
 

@@ -1,39 +1,273 @@
+
+total_power : 0.000101692
+vdd_pad : 0.7
+current : 0.000145274
+resistance : 1359.76
 0.197539
+
+
+total_power : 0.000153744
+vdd_pad : 0.7
+current : 0.000219635
+resistance : 1359.76
 0.298651
+
+
+total_power : 0.000147728
+vdd_pad : 0.7
+current : 0.00021104
+resistance : 1359.76
 0.286965
-0.25983
+
+
+total_power : 0.000133759
+vdd_pad : 0.7
+current : 0.000191085
+resistance : 1359.76
+0.259829
+
+
+total_power : 0.000139112
+vdd_pad : 0.7
+current : 0.000198732
+resistance : 1359.76
 0.270228
+
+
+total_power : 0.000165085
+vdd_pad : 0.7
+current : 0.000235836
+resistance : 1359.76
 0.320681
-0.300091
+
+
+total_power : 0.000154485
+vdd_pad : 0.7
+current : 0.000220693
+resistance : 1359.76
+0.30009
+
+
+total_power : 0.000127694
+vdd_pad : 0.7
+current : 0.00018242
+resistance : 1359.76
 0.248048
+
+
+total_power : 0.000126917
+vdd_pad : 0.7
+current : 0.000181311
+resistance : 1359.76
 0.246539
+
+
+total_power : 9.847e-05
+vdd_pad : 0.7
+current : 0.000140671
+resistance : 1359.76
 0.19128
+
+
+total_power : 9.16368e-05
+vdd_pad : 0.7
+current : 0.00013091
+resistance : 1359.76
 0.178006
+
+
+total_power : 8.47126e-05
+vdd_pad : 0.7
+current : 0.000121018
+resistance : 1359.76
 0.164556
-0.150262
+
+
+total_power : 7.7354e-05
+vdd_pad : 0.7
+current : 0.000110506
+resistance : 1359.76
+0.150261
+
+
+total_power : 0.000109211
+vdd_pad : 0.7
+current : 0.000156016
+resistance : 1359.76
 0.212144
+
+
+total_power : 0.000111154
+vdd_pad : 0.7
+current : 0.000158792
+resistance : 1359.76
 0.215919
+
+
+total_power : 0.000121102
+vdd_pad : 0.7
+current : 0.000173003
+resistance : 1359.76
 0.235242
+
+
+total_power : 0.000176065
+vdd_pad : 0.7
+current : 0.000251522
+resistance : 1359.76
 0.34201
+
+
+total_power : 0.00021554
+vdd_pad : 0.7
+current : 0.000307914
+resistance : 1359.76
 0.41869
+
+
+total_power : 0.000141187
+vdd_pad : 0.7
+current : 0.000201696
+resistance : 1359.76
 0.274259
+
+
+total_power : 0.000121045
+vdd_pad : 0.7
+current : 0.000172922
+resistance : 1359.76
 0.235132
+
+
+total_power : 0.000122003
+vdd_pad : 0.7
+current : 0.000174289
+resistance : 1359.76
 0.236992
+
+
+total_power : 0.000116349
+vdd_pad : 0.7
+current : 0.000166212
+resistance : 1359.76
 0.226009
+
+
+total_power : 9.67315e-05
+vdd_pad : 0.7
+current : 0.000138188
+resistance : 1359.76
 0.187903
+
+
+total_power : 0.000114766
+vdd_pad : 0.7
+current : 0.000163951
+resistance : 1359.76
 0.222935
-0.175569
+
+
+total_power : 9.03819e-05
+vdd_pad : 0.7
+current : 0.000129117
+resistance : 1359.76
+0.175568
+
+
+total_power : 7.9221e-05
+vdd_pad : 0.7
+current : 0.000113173
+resistance : 1359.76
 0.153888
+
+
+total_power : 9.21514e-05
+vdd_pad : 0.7
+current : 0.000131645
+resistance : 1359.76
 0.179006
+
+
+total_power : 9.25237e-05
+vdd_pad : 0.7
+current : 0.000132177
+resistance : 1359.76
 0.179729
+
+
+total_power : 0.000107848
+vdd_pad : 0.7
+current : 0.000154068
+resistance : 1359.76
 0.209496
+
+
+total_power : 0.000114517
+vdd_pad : 0.7
+current : 0.000163596
+resistance : 1359.76
 0.222452
+
+
+total_power : 0.000134477
+vdd_pad : 0.7
+current : 0.000192109
+resistance : 1359.76
 0.261223
+
+
+total_power : 0.000119188
+vdd_pad : 0.7
+current : 0.000170269
+resistance : 1359.76
 0.231525
-0.171436
+
+
+total_power : 8.82543e-05
+vdd_pad : 0.7
+current : 0.000126078
+resistance : 1359.76
+0.171435
+
+
+total_power : 7.76513e-05
+vdd_pad : 0.7
+current : 0.00011093
+resistance : 1359.76
 0.150839
+
+
+total_power : 7.63025e-05
+vdd_pad : 0.7
+current : 0.000109004
+resistance : 1359.76
 0.148219
+
+
+total_power : 7.47356e-05
+vdd_pad : 0.7
+current : 0.000106765
+resistance : 1359.76
 0.145175
+
+
+total_power : 7.55408e-05
+vdd_pad : 0.7
+current : 0.000107915
+resistance : 1359.76
 0.146739
-0.159367
+
+
+total_power : 8.20412e-05
+vdd_pad : 0.7
+current : 0.000117202
+resistance : 1359.76
+0.159366
+
+
+total_power : 0.000143858
+vdd_pad : 0.7
+current : 0.000205511
+resistance : 1359.76
 0.279447
+

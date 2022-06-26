@@ -9,8 +9,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_22_9_56_2pad_transfer.def";
-const string POWER_PAD_SRIPE_FILE = "stripe_tcl/power_pad_stripe_tcl_56.tcl";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_22_30_transfer.def";
+const string POWER_PAD_SRIPE_FILE = "stripe_tcl/power_pad_stripe_tcl_22_30.tcl";
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
 const string UP = "UP";
