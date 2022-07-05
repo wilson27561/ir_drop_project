@@ -11,7 +11,7 @@ using namespace std;
 
 const float TOTAL_POWER = 4.55424569;
 const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
-const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
+const float wsd = 0.9;
 const float M2_SHEET_RESISTANCE = 0.811738;
 const float M1_SHEET_RESISTANCE = 1.2;
 const float M3_PAD_WIDTH = 1.728;
