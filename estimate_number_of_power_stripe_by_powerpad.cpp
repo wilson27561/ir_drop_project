@@ -11,7 +11,7 @@ using namespace std;
 
 const float TOTAL_POWER = 4.55424569;
 const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
-const float wsd = 0.9;
+const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
 const float M2_SHEET_RESISTANCE = 0.811738;
 const float M1_SHEET_RESISTANCE = 1.2;
 const float M3_PAD_WIDTH = 1.728;
@@ -37,7 +37,7 @@ const string VSS = "VSSX";
 const string POWERSTRIPEVALUE = "power_stripe_distance";
 const string POWERRAILVALUE = "power_rail_distance";
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_53_transfer.def";
 
 struct ResistLine
 {
