@@ -42,42 +42,42 @@ int main()
     //   }
     // }
 
-    double temp_num = 10.26 / 0.18;
+    // double temp_num = 10.26 / 0.18;
 
-    // cout << temp_num << endl;
+    // // cout << temp_num << endl;
 
-    vector<int> number_vector;
-    number_vector.push_back(5);
-    number_vector.push_back(3);
-    number_vector.push_back(1);
-    number_vector.push_back(2);
-    number_vector.push_back(6);
-    number_vector.push_back(4);
+    // vector<int> number_vector;
+    // number_vector.push_back(5);
+    // number_vector.push_back(3);
+    // number_vector.push_back(1);
+    // number_vector.push_back(2);
+    // number_vector.push_back(6);
+    // number_vector.push_back(4);
 
-    //  number_vector.insert(number_vector.begin()+2,10);
-    //  number_vector.erase(number_vector.begin() + 2);
+    // //  number_vector.insert(number_vector.begin()+2,10);
+    // //  number_vector.erase(number_vector.begin() + 2);
+    // // for (int i = 0; i < number_vector.size(); i++)
+    // // {
+    // //     cout << number_vector[i] << endl;
+    // // }
+
+    // for (int i = 1; i < number_vector.size(); i++)
+    // {
+    //     for (int j = 0; j < i; j++)
+    //     {
+    //         if (number_vector[j] > number_vector[i])
+    //         {
+    //             number_vector.insert(number_vector.begin() + j, number_vector[i]);
+    //             number_vector.erase(number_vector.begin() + i + 1);
+    //             break;
+    //         }
+    //     }
+    // }
+
     // for (int i = 0; i < number_vector.size(); i++)
     // {
     //     cout << number_vector[i] << endl;
     // }
-
-    for (int i = 1; i < number_vector.size(); i++)
-    {
-        for (int j = 0; j < i; j++)
-        {
-            if (number_vector[j] > number_vector[i])
-            {
-                number_vector.insert(number_vector.begin() + j, number_vector[i]);
-                number_vector.erase(number_vector.begin() + i + 1);
-                break;
-            }
-        }
-    }
-
-    for (int i = 0; i < number_vector.size(); i++)
-    {
-        cout << number_vector[i] << endl;
-    }
 
     //  for (int i = 1; i < number_vector.size(); i++)
     // {
@@ -89,6 +89,11 @@ int main()
     //         }
     //     }
     // }
+
+    for (int i = 0; i < 10; i+=4)
+    {
+        cout << i << endl;
+    }
 
     return 0;
 }

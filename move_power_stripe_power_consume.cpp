@@ -9,7 +9,7 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_69_transfer.def";
 const string EFFR_FILE_VDD = "VDDX.effr";
 const string ADD_STRIPE_FILE = "add_stripe_PD9_6t49_b19_routing_88_9_stripe_power_consume.tcl";
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
@@ -154,21 +154,27 @@ int main()
     //   //將它分成區段
     getStripeLocation(DEF_FILE, &vdd_stripe_vector, &vss_stripe_vector, &vdd_range_vector, &vss_range_vector);
 
-    //範圍不使用core site
-    getStripeMovingRange(&vdd_stripe_vector, &vss_stripe_vector);
-    getLefCellImformation(LEF_FILE, &cell_info_map);
-    getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
-    // TODO boundary 之後可以寫在裡面
-    getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
-    // TODO 會有 FILLER 隔開logic gate
-    // getIpBoudary(&cell_ip_map, &cell_boundary_vector, &cell_placed_map);
-    setIpPowerInStripe(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
-    getCoreSite(DEF_FILE, &core_site);
-    getTrack(DEF_FILE, &layer_track_map, &core_site);
+    cout << "vdd_stripe : " << vdd_stripe_vector.size() << endl; 
+    cout << "vss_stripe : " << vss_stripe_vector.size() << endl; 
 
-    Track track = layer_track_map["M3"]["X"];
+    // //範圍不使用core site
+    // getStripeMovingRange(&vdd_stripe_vector, &vss_stripe_vector);
+    // getLefCellImformation(LEF_FILE, &cell_info_map);
+    // getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
+    // // TODO boundary 之後可以寫在裡面
+    // getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
+    // // TODO 會有 FILLER 隔開logic gate
+    // // getIpBoudary(&cell_ip_map, &cell_boundary_vector, &cell_placed_map);
+    // setIpPowerInStripe(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
+    // getCoreSite(DEF_FILE, &core_site);
+    // getTrack(DEF_FILE, &layer_track_map, &core_site);
 
-    getaddStripeLocation(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map, &add_stripe_vector, &track);
+    // Track track = layer_track_map["M3"]["X"];
+
+    // getaddStripeLocation(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map, &add_stripe_vector, &track);
+
+
+
     // ofstream myfile;
     // myfile.open(ADD_STRIPE_FILE);
     // for (int i = 0; i < add_stripe_vector.size(); i++)
