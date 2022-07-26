@@ -11,10 +11,11 @@ using namespace std;
 #include <cmath>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_69_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_transfer.def";
 // 6t49_b19_routing_88_9_68_transfer.def
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
-const string IP_REPORT_FILE = "ip_report/print_ip_4pad.report";
+const string IP_REPORT_FILE = "power_report/print_ip.report";
+// const string IP_SWITCHING_POWER_REPORT_FILE = "power_report/print_ip.report";
 // print_ip_8pad.report
 const string ADD_STRIPE_ESTIMATE = "stripe_tcl/addStripe_b19_4_pad.tcl";
 const string LEFT = "LEFT";
@@ -25,11 +26,11 @@ const string UP = "UP";
 const string DOWN = "DOWN";
 const string M3 = "M3";
 const string X = "X";
-const float TOTAL_POWER = 4.55424569;
+// const float TOTAL_POWER = 2.24801;
 const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
 const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
 const float M2_SHEET_RESISTANCE = 0.811738;
-const float M1_SHEET_RESISTANCE = 1.2;
+const float M1_SHEET_RESISTANCE = 1.2208;
 const float M3_PAD_WIDTH = 1.728;
 const float M2_WIDTH = 1.8;
 const float VDD_PAD = 0.7;
@@ -122,7 +123,10 @@ struct CellInstancePowerInfo
 {
     string cell_id;
     string cell_name;
-    float instance_power;
+    float instance_total_power;
+    float internal_power;
+    float leakage_power;
+    float switching_power;
 };
 struct Track
 {
@@ -213,6 +217,7 @@ int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector
 float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_up_down);
 float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_left_right);
 void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe);
+void getSwitchingPowerReport(string sw_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 int main()
 {
     CoreSite core_site;
@@ -237,21 +242,23 @@ int main()
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
+    // getSwitchingPowerReport(IP_SWITCHING_POWER_REPORT_FILE, &cell_ip_map);
     setCurrentRange(&core_site, &current_range_vector);
+
     setIpPowerInStripe(&current_range_vector, &cell_ip_map, &cell_placed_map);
-    getTrack(DEF_FILE, &layer_track_map, &core_site);
+    // getTrack(DEF_FILE, &layer_track_map, &core_site);
 
-    setPowerPadDirection(&direction_power_pad);
-    getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
-    getDieArea(DEF_FILE, &die_area);
+    // setPowerPadDirection(&direction_power_pad);
+    // getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
+    // getDieArea(DEF_FILE, &die_area);
 
-    setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
-    sortPowerPad(&direction_power_pad);
+    // setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
+    // sortPowerPad(&direction_power_pad);
 
-    getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
-    setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
-    tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
-    getFollowPin(DEF_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
+    // getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
+    // setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
+    // tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
+    // getFollowPin(DEF_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
 
     //================= 調整side start =========================
     // direction_power_pad.erase(direction_power_pad.find(UP));
@@ -264,23 +271,74 @@ int main()
     // direction_power_pad[RIGHT].pop_back();
     // direction_power_pad[LEFT].pop_back();
 
-    setPowerPadSupplyRange(&core_site, &direction_power_pad, &vdd_range_pad_vector);
-    setRoutingTrackInCurrentRange(&layer_track_map, &current_range_vector);
+    // setPowerPadSupplyRange(&core_site, &direction_power_pad, &vdd_range_pad_vector);
+    // setRoutingTrackInCurrentRange(&layer_track_map, &current_range_vector);
 
-    setCurrentRangePowerStripe(&direction_power_pad, &vdd_range_pad_vector, &current_range_vector, &follow_pin_vdd_vector, &layer_track_map, &vdd_shape_map, &core_site);
-    generateAddStripeTcl(&current_range_vector);
-    // for (int i = 0; i < current_range_vector.size(); i++)
-    // {
-    //     // cout << "range start : " << current_range_vector[i].left_x_location << "  " << current_range_vector[i].right_x_location << endl;
-    //     // cout << "distance : " << abs(current_range_vector[i].left_x_location - current_range_vector[i].right_x_location) << endl;
-    //     // cout << "routing track size : " << current_range_vector[i].routing_track_vector.size() << endl;
-    //     for (int j = 0; j < current_range_vector[i].power_stripe_vector.size(); j++)
-    //     {
-    //         cout << current_range_vector[i].power_stripe_vector[j].start_x_location << " " << current_range_vector[i].power_stripe_vector[j].start_y_location << endl;
-    //     }
-    // }
+    // setCurrentRangePowerStripe(&direction_power_pad, &vdd_range_pad_vector, &current_range_vector, &follow_pin_vdd_vector, &layer_track_map, &vdd_shape_map, &core_site);
+    // generateAddStripeTcl(&current_range_vector);
 
-    // // cout << "total : " << total << endl;
+    float total_ip_power = 0;
+    for (int i = 0; i < current_range_vector.size(); i++)
+    {
+     
+           total_ip_power+=current_range_vector[i].range_total_power;
+
+        // cout << "range start : " << current_range_vector[i].left_x_location << "  " << current_range_vector[i].right_x_location << endl;
+        // cout << "distance : " << abs(current_range_vector[i].left_x_location - current_range_vector[i].right_x_location) << endl;
+        // cout << "routing track size : " << current_range_vector[i].routing_track_vector.size() << endl;
+        // for (int j = 0; j < current_range_vector[i].power_stripe_vector.size(); j++)
+        // {
+        //     cout << current_range_vector[i].power_stripe_vector[j].start_x_location << " " << current_range_vector[i].power_stripe_vector[j].start_y_location << endl;
+        // }
+    }
+
+    cout << " power consuming of each range : " << total_ip_power << endl;
+}
+
+void getSwitchingPowerReport(string sw_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
+{
+
+    ifstream sw_file(sw_report);
+    string sw_content;
+    int log = 0;
+    float power = 0;
+    if (sw_file)
+    {
+        while (getline(sw_file, sw_content))
+        {
+            if (sw_content.find("Cell") != string::npos && sw_content.find("Instance") != string::npos)
+            {
+                continue;
+            }
+            else if (sw_content.find("Range") != string::npos && sw_content.find("Total") != string::npos)
+            {
+                break;
+            }
+            else
+            {
+                vector<string> sw_content_array = splitByPattern(sw_content, " ");
+                float switching_power = stof(sw_content_array[0]);
+                string cell_name = sw_content_array[1];
+                string cell_id = sw_content_array[2];
+
+                if ((*cell_ip_map).count(cell_id))
+                {
+                    (*cell_ip_map)[cell_id].switching_power = switching_power;
+                }
+                else
+                {
+                    cout << " getSwitchingPowerReport exception  " <<  cell_id << endl;
+                };
+
+                log++;
+                if (log % 1000 == 0)
+                {
+                    cout << "switching data : " << log << endl;
+                }
+            }
+        }
+    }
+    cout << "total : " << power << endl;
 }
 
 void generateAddStripeTcl(vector<CurrentRange> *current_range_vector)
@@ -682,7 +740,7 @@ int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector
         total_resist += power_rail_resist;
     }
     cout << "number of power stripes : " << power_stripes << endl;
-    cout << "total_resist     : "          << total_resist << endl;
+    cout << "total_resist     : " << total_resist << endl;
 }
 
 float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_left_right)
@@ -703,9 +761,12 @@ float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd
     {
         total_range_follow_pin_distance += range_follow_pin_distance;
     }
-    total_range_follow_pin_distance = total_range_follow_pin_distance/2;
+    total_range_follow_pin_distance = total_range_follow_pin_distance / 2;
+   
+    
 
     float range_follw_pin_resist = (total_range_follow_pin_distance / POWER_RAIL_WIDTH) * M1_SHEET_RESISTANCE;
+
     //================= FollowPin To Range 距離 end =================
 
     //================= 在此range裡所有的FollowPin start =================
@@ -1107,7 +1168,7 @@ int caculateSinglePowerStripe(map<string, float> *power_value_map)
     m3_resistance = m3_resistance + (*power_value_map)[POWERSTRIPEVALUE];
     m1_resistance = m1_resistance + (*power_value_map)[{POWERRAILVALUE}];
 
-    float total_power = TOTAL_POWER * 0.001;
+    float total_power = 5.14506685 * 0.001;
     float temp_total_current = total_power / VDD_PAD;
 
     float m3_current = IR_DROP / (m3_resistance);
@@ -1564,14 +1625,14 @@ bool isInStripeRange(CurrentRange *current_range, string cell_id, unordered_map<
     if ((left_x_location_float < move_range_x_left_float) && (right_x_location_float > move_range_x_left_float) && (left_x_location_float < move_range_x_right_float) && (right_x_location_float < move_range_x_right_float))
     {
         float ratio = getConsumeRatio(LEFT, left_x_location_float, right_x_location_float, move_range_x_left_float, move_range_x_right_float);
-        float power = (*cell_ip_map)[cell_id].instance_power * ratio;
+        float power = (*cell_ip_map)[cell_id].instance_total_power * ratio;
         (*current_range).range_total_power += power;
         // cout << " middle of left stripe " << endl;
         return true;
     } // case 2 : in stripe moving location
     else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float <= move_range_x_right_float)
     {
-        float power = (*cell_ip_map)[cell_id].instance_power;
+        float power = (*cell_ip_map)[cell_id].instance_total_power;
 
         (*current_range).range_total_power += power;
 
@@ -1581,7 +1642,7 @@ bool isInStripeRange(CurrentRange *current_range, string cell_id, unordered_map<
     else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float >= move_range_x_right_float)
     {
         float ratio = getConsumeRatio(RIGHT, left_x_location_float, right_x_location_float, move_range_x_left_float, move_range_x_right_float);
-        float power = (*cell_ip_map)[cell_id].instance_power * ratio;
+        float power = (*cell_ip_map)[cell_id].instance_total_power * ratio;
         (*current_range).range_total_power += power;
         // cout << " middle of right stripe " << endl;
         return true;
@@ -1589,7 +1650,7 @@ bool isInStripeRange(CurrentRange *current_range, string cell_id, unordered_map<
     else if (left_x_location_float < move_range_x_left_float && left_x_location_float < move_range_x_right_float && right_x_location_float > move_range_x_right_float && right_x_location_float > move_range_x_left_float)
     {
         float ratio = getConsumeRatio(MIDDLE, left_x_location_float, right_x_location_float, move_range_x_left_float, move_range_x_right_float);
-        float power = (*cell_ip_map)[cell_id].instance_power * ratio;
+        float power = (*cell_ip_map)[cell_id].instance_total_power * ratio;
         (*current_range).range_total_power += power;
         // cout << " over stripe moving location " << endl;
         return true;
@@ -1811,8 +1872,8 @@ void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerI
             {
                 vector<string> ip_content_array = splitByPattern(ip_content, " ");
                 CellInstancePowerInfo cell_instance_power_info;
-                cell_instance_power_info.instance_power = stof(ip_content_array[0]);
-                power += cell_instance_power_info.instance_power;
+                cell_instance_power_info.instance_total_power = stof(ip_content_array[0]);
+                power += cell_instance_power_info.instance_total_power;
                 cell_instance_power_info.cell_name = ip_content_array[1];
                 cell_instance_power_info.cell_id = ip_content_array[2];
                 (*cell_ip_map).insert(pair<string, CellInstancePowerInfo>(cell_instance_power_info.cell_id, cell_instance_power_info));
@@ -1824,7 +1885,8 @@ void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerI
             }
         }
     }
-    cout << "total : " << power << endl;
+    // cout << "total : " << power << endl;
+    cout << " count power consuming of total ip report : " << power << endl;
 }
 
 //根據pattern切字串
