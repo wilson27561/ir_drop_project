@@ -74,6 +74,7 @@ void getIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map);
 void printPowerStripeIrDropFromVoltus(map<string, Stripe> *vdd_stripe_map, vector<Stripe> *vdd_stripe_vector);
 bool isPowerStripe(Stripe *stripe, CoreSite *core_site);
 void setStripeLocation(Stripe *stripe, vector<string> *def_content_array);
+vector<string> splitByPattern(string content, string pattern);
 int main()
 {
     vector<Stripe> vdd_stripe_vector;
@@ -243,7 +244,7 @@ void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, 
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         if (def_content_array[4] == "SHAPE" && def_content_array[5] == "STRIPE" && def_content_array.size() == 14)
                         {
-                            cout << "VDDX :" << def_content << " " << def_content_array.size() << endl;
+                            cout << "VDDX :" << def_content  << endl;
                             Stripe stripe;
                             setStripeLocation(&stripe, &def_content_array);
                             stripe.net_name = NET_NAME_VDD;
@@ -270,7 +271,7 @@ void getStripeLocation(string def_file_name, vector<Stripe> *vdd_stripe_vector, 
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         if (def_content_array[4] == "SHAPE" && def_content_array[5] == "STRIPE" && def_content_array.size() == 14)
                         {
-                            cout << "VSSX :" << def_content << " " << def_content_array.size() << endl;
+                            cout << "VSSX :" << def_content  << endl;
                             Stripe stripe;
                             setStripeLocation(&stripe, &def_content_array);
                             stripe.net_name = NET_NAME_VSS;
