@@ -10,7 +10,7 @@ using namespace std;
 #include <algorithm>
 #include <math.h>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_81_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_73_transfer.def";
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
@@ -36,6 +36,12 @@ const float POWER_RAIL_HEIGHT = 385.344;
 const float POWER_RAIL_WIDTH = 0.1;
 const int POWER_RAIL_NUMBER = 178;
 const float SPACING = 0.072;
+
+struct Point
+{
+    float x_location;
+    float y_location;
+};
 
 struct Via
 {
@@ -103,7 +109,6 @@ struct CellPlacedInfo
 {
     string cell_id;
     string cell_name;
-
     string left_x_location;
     string down_y_location;
     string right_x_location;
@@ -176,6 +181,7 @@ void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_pl
 void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map);
 void getDieArea(string def_file_name, DieArea *die_area);
 void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction);
+float twoPointDistance(float start_x_location, float start_y_location, float end_x_location, float end_y_location);
 string floatToString(const float value);
 int main()
 {
@@ -205,12 +211,26 @@ int main()
     getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
     // setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
     // sortPowerPad(&direction_power_pad);
+
+
     for (int i = 0; i < vdd_power_pad_vector.size(); i++)
     {
         cout << vdd_power_pad_vector[i].pad_name << " location -> " << vdd_power_pad_vector[i].x_location << " " << vdd_power_pad_vector[i].y_location << endl;
     }
 
     return 0;
+}
+
+PowerPad getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector,Point *point)
+{
+
+
+}
+
+
+float countResist(vector<PowerPad> *vdd_power_pad_vector,Point *point)
+{
+
 }
 
 float twoPointDistance(float start_x_location, float start_y_location, float end_x_location, float end_y_location)
