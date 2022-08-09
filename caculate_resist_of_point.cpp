@@ -12,6 +12,9 @@ using namespace std;
 
 const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_73_transfer.def";
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
+const string M1_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_M1.rpt";
+const string M3_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_M3.rpt";
+
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
 const string MIDDLE = "middle";
@@ -81,24 +84,6 @@ struct PowerGround
     string start_y_location;
     string end_y_location;
 };
-struct RoutingTrack
-{
-    float start_x_location;
-    float end_x_location;
-    float start_y_location;
-    float end_y_location;
-};
-struct CurrentRange
-{
-    float left_x_location;
-    float right_x_location;
-    float range_total_power;
-    vector<string> ip_power_vector;
-    float pad_to_range;
-    vector<PowerStripe> power_stripe_vector;
-    vector<PowerGround> power_ground_vector;
-    vector<RoutingTrack> routing_track_vector;
-};
 struct CellInfo
 {
     string cell_name;
@@ -113,23 +98,6 @@ struct CellPlacedInfo
     string down_y_location;
     string right_x_location;
     string up_y_location;
-};
-struct CellInstancePowerInfo
-{
-    string cell_id;
-    string cell_name;
-    float instance_total_power;
-    float internal_power;
-    float leakage_power;
-    float switching_power;
-};
-struct Track
-{
-    string direction;
-    string step;
-    string layer;
-    string start_step;
-    vector<float> location_vector;
 };
 struct PowerPad
 {
@@ -164,6 +132,16 @@ struct ShapeRing
     string side;
 };
 
+struct GridResistNode
+{
+    string layer;
+    string net;
+    float x_location;
+    float y_location;
+    string voltus_file_resist;
+    string model_reist;
+};
+
 void getCoreSite(string def_file_name, CoreSite *core_site);
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
@@ -182,15 +160,22 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
 void getDieArea(string def_file_name, DieArea *die_area);
 void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction);
 float twoPointDistance(float start_x_location, float start_y_location, float end_x_location, float end_y_location);
+void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector);
+void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
+void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
+void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_array, vector<ShapeRing> *shape_ring_vector);
 string floatToString(const float value);
+void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line);
+void getGridResistNode(string grid_file_name, vector<GridResistNode> *grid_node_vector);
+float countPadToRing(map<string, ShapeRing> *shape_map, PowerPad *power_pad, string side);
+void countResist(vector<PowerPad> *vdd_power_pad_vector, vector<GridResistNode> *grid_node_vector, map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map);
+int getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector, GridResistNode *point);
+float modelResist(vector<PowerPad> *vdd_power_pad_vector,int index, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right);
 int main()
 {
     CoreSite core_site;
     unordered_map<string, CellInfo> cell_info_map;
     unordered_map<string, CellPlacedInfo> cell_placed_map;
-    unordered_map<string, CellInstancePowerInfo> cell_ip_map;
-    vector<CurrentRange> current_range_vector;
-    unordered_map<string, unordered_map<string, Track>> layer_track_map;
     map<string, vector<PowerPad>> direction_power_pad;
     DieArea die_area;
     vector<PowerPad> vdd_power_pad_vector;
@@ -202,35 +187,302 @@ int main()
     vector<FollowPin> follow_pin_vdd_vector;
     vector<FollowPin> follow_pin_vss_vector;
     vector<PowerPad> vdd_range_pad_vector;
+    vector<GridResistNode> m1_grid_node_vector;
+    vector<GridResistNode> m3_grid_node_vector;
+
+    getGridResistNode(M3_GRID_RESIST_FILE, &m3_grid_node_vector);
+    getGridResistNode(M1_GRID_RESIST_FILE, &m1_grid_node_vector);
 
     getCoreSite(DEF_FILE, &core_site);
     getDieArea(DEF_FILE, &die_area);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
-    // setPowerPadDirection(&direction_power_pad);
+    setPowerPadDirection(&direction_power_pad);
     getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
-    // setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
-    // sortPowerPad(&direction_power_pad);
+    setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
+    sortPowerPad(&direction_power_pad);
 
+    getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
+    setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
+    tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
+
+    countResist(&vdd_power_pad_vector, &m3_grid_node_vector, &direction_power_pad, &vdd_shape_map);
+
+    //讀完每個grid node 檔
+    //計算每個grid node 到 最近power pad resist
 
     for (int i = 0; i < vdd_power_pad_vector.size(); i++)
     {
-        cout << vdd_power_pad_vector[i].pad_name << " location -> " << vdd_power_pad_vector[i].x_location << " " << vdd_power_pad_vector[i].y_location << endl;
+        cout << vdd_power_pad_vector[i].pad_name << " " << vdd_power_pad_vector[i].side << " location -> " << vdd_power_pad_vector[i].x_location << " " << vdd_power_pad_vector[i].y_location << endl;
     }
 
     return 0;
 }
-
-PowerPad getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector,Point *point)
+void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map)
 {
 
+    for (int i = 0; i < (*vdd_shape_ring_vector).size(); i++)
+    {
+        if ((*vdd_shape_map).count((*vdd_shape_ring_vector)[i].side) != true)
+        {
+            (*vdd_shape_map).insert(pair<string, ShapeRing>((*vdd_shape_ring_vector)[i].side, (*vdd_shape_ring_vector)[i]));
+        }
+        else
+        {
+            cout << "power ring side has error " << endl;
+        }
+    }
+    for (int i = 0; i < (*vss_shape_ring_vector).size(); i++)
+    {
+        if ((*vss_shape_map).count((*vss_shape_ring_vector)[i].side) != true)
+        {
+            (*vss_shape_map).insert(pair<string, ShapeRing>((*vss_shape_ring_vector)[i].side, (*vss_shape_ring_vector)[i]));
+        }
+        else
+        {
+            cout << "power ring side has error" << endl;
+        }
+    }
+}
+void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line)
+{
 
+    for (int i = 0; i < (*shape_ring_vector).size(); i++)
+    {
+        // UP OR DOWN
+        if ((*shape_ring_vector)[i].start_y_location == (*shape_ring_vector)[i].end_y_location)
+        {
+
+            if (stof((*shape_ring_vector)[i].start_y_location) > middle_y_line)
+            {
+                (*shape_ring_vector)[i].side = UP;
+            }
+            else
+            {
+                (*shape_ring_vector)[i].side = DOWN;
+            }
+        }
+        else if ((*shape_ring_vector)[i].start_x_location == (*shape_ring_vector)[i].end_x_location)
+        {
+            if (stof((*shape_ring_vector)[i].start_x_location) > middle_x_line)
+            {
+                (*shape_ring_vector)[i].side = RIGHT;
+            }
+            else
+            {
+                (*shape_ring_vector)[i].side = LEFT;
+            }
+        }
+    }
+}
+void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area)
+{
+    float middle_x_line = stof(die_area->top_right_x_location) / 2;
+    float middle_y_line = stof(die_area->top_right_y_location) / 2;
+    setRingSide(&(*vdd_shape_ring_vector), middle_x_line, middle_y_line);
+    setRingSide(&(*vss_shape_ring_vector), middle_x_line, middle_y_line);
+}
+void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector)
+{
+    ifstream def_file(def_file_name);
+    string def_content;
+    if (def_file)
+    {
+        while (getline(def_file, def_content))
+        {
+            if (def_content.find("( * VDD )") != string::npos)
+            {
+                while (getline(def_file, def_content))
+                {
+                    if (def_content.find("SHAPE RING") != string::npos)
+                    {
+
+                        vector<string> def_content_array = splitByPattern(def_content, " ");
+                        ShapeRing shape_ring;
+                        setShapeRingLocation(&shape_ring, &def_content_array, &(*vdd_shape_ring_vector));
+                    }
+                    if (def_content.find("SHAPE STRIPE") != string::npos || def_content.find("+ USE POWER") != string::npos)
+                    {
+                        break;
+                    }
+                }
+            }
+            else if (def_content.find("( * VSS )") != string::npos)
+            {
+                while (getline(def_file, def_content))
+                {
+                    if (def_content.find("SHAPE RING") != string::npos)
+                    {
+                        vector<string> def_content_array = splitByPattern(def_content, " ");
+                        ShapeRing shape_ring;
+                        setShapeRingLocation(&shape_ring, &def_content_array, &(*vss_shape_ring_vector));
+                    }
+                    if (def_content.find("SHAPE STRIPE") != string::npos || def_content.find("+ USE GROUND") != string::npos)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_array, vector<ShapeRing> *shape_ring_vector)
+{
+    if ((*def_content_array).size() == 15)
+    {
+        (*shape_ring).layer = (*def_content_array)[2];
+        (*shape_ring).width = stof((*def_content_array)[3]);
+        (*shape_ring).start_x_location = (*def_content_array)[8];
+        (*shape_ring).start_y_location = (*def_content_array)[9];
+        // y
+        if ((*def_content_array)[13] == "*")
+        {
+            (*shape_ring).end_y_location = (*def_content_array)[9];
+            (*shape_ring).end_x_location = (*def_content_array)[12];
+        }
+        else if ((*def_content_array)[12] == "*")
+        {
+            (*shape_ring).end_x_location = (*def_content_array)[8];
+            (*shape_ring).end_y_location = (*def_content_array)[13];
+        }
+        else
+        {
+            (*shape_ring).end_x_location = (*def_content_array)[12];
+            (*shape_ring).end_y_location = (*def_content_array)[13];
+        }
+        (*shape_ring_vector).push_back((*shape_ring));
+    }
+    else if ((*def_content_array).size() == 14)
+    {
+
+        (*shape_ring).layer = (*def_content_array)[1];
+        (*shape_ring).width = stof((*def_content_array)[2]);
+        (*shape_ring).start_x_location = (*def_content_array)[7];
+        (*shape_ring).start_y_location = (*def_content_array)[8];
+        if ((*def_content_array)[12] == "*")
+        {
+            (*shape_ring).end_x_location = (*def_content_array)[11];
+            (*shape_ring).end_y_location = (*shape_ring).start_y_location;
+        }
+        else if ((*def_content_array)[11] == "*")
+        {
+            (*shape_ring).end_x_location = (*shape_ring).start_x_location;
+            (*shape_ring).end_y_location = (*def_content_array)[12];
+        }
+        else
+        {
+            (*shape_ring).end_x_location = (*def_content_array)[11];
+            (*shape_ring).end_y_location = (*def_content_array)[12];
+        }
+        (*shape_ring_vector).push_back((*shape_ring));
+    }
 }
 
-
-float countResist(vector<PowerPad> *vdd_power_pad_vector,Point *point)
+void getGridResistNode(string grid_file_name, vector<GridResistNode> *grid_node_vector)
 {
+    ifstream grid_file(grid_file_name);
+    string grid_file_content;
+    if (grid_file)
+    {
+        while (getline(grid_file, grid_file_content))
+        {
+            vector<string> grid_content_array = splitByPattern(grid_file_content, " ");
+            if (grid_content_array.size() == 6)
+            {
+                // cout << grid_file_content << "  " << grid_content_array.size() << endl;
+                GridResistNode grid_reist_node;
+                grid_reist_node.voltus_file_resist = grid_content_array[0];
+                grid_reist_node.layer = grid_content_array[1];
+                grid_reist_node.x_location = stof(grid_content_array[2]);
+                grid_reist_node.y_location = stof(grid_content_array[3]);
+                grid_reist_node.net = grid_content_array[4];
+                (*grid_node_vector).push_back(grid_reist_node);
+            }
+        }
+    }
+}
 
+int getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector, GridResistNode *point)
+{
+    int index = 0;
+    float shortest_distance = 0;
+    for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
+    {
+        float distance = twoPointDistance((*point).x_location, (*point).y_location, stof((*vdd_power_pad_vector)[i].x_location), stof((*vdd_power_pad_vector)[i].y_location));
+      
+        if (shortest_distance == 0)
+        {
+            shortest_distance = distance;
+        }
+        else if (distance < shortest_distance)
+        {
+            shortest_distance = distance;
+            index = i;
+            cout << "index : " << index << endl;
+        }
+    }
+    // cout << "index : " << index << endl;
+    // cout << "shortest_distance : " << shortest_distance << endl;
+    return index;
+}
+
+void countResist(vector<PowerPad> *vdd_power_pad_vector, vector<GridResistNode> *grid_node_vector, map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map)
+{
+    float pad_to_ring_up_down = countPadToRing(&(*shape_map), &(*direction_power_pad)[UP][0], UP);
+    float pad_to_ring_left_right = countPadToRing(&(*shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
+    cout << pad_to_ring_up_down << endl;
+    cout << pad_to_ring_left_right << endl;
+    for (int i = 0; i < (*grid_node_vector).size(); i++)
+    {
+        int index = getShortestResistPad(&(*vdd_power_pad_vector), &((*grid_node_vector)[i]));
+        float resist = modelResist(&(*vdd_power_pad_vector),index, &((*grid_node_vector)[i]), pad_to_ring_up_down, pad_to_ring_left_right);
+    }
+}
+
+float modelResist(vector<PowerPad> *vdd_power_pad_vector,int index, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right)
+{
+    
+    cout << " ====== "<< (*vdd_power_pad_vector)[index].side << " ========= " << endl;
+
+    if ((*vdd_power_pad_vector)[index].side == UP)
+    {
+        // pad_ring
+        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        //橫 直
+        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+    }
+    else if ((*vdd_power_pad_vector)[index].side == DOWN)
+    {
+        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        //橫 直
+        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+
+        // cout << "=============================================" << endl;
+        // cout << DOWN << endl;
+        // cout << "horizontal_distance : " << horizontal_distance << endl;
+        // cout << "vertical_distance : " << vertical_distance << endl;
+        // cout << "=============================================" << endl;
+    }
+    else if ((*vdd_power_pad_vector)[index].side == LEFT)
+    {
+        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        //橫 直
+        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+    }
+    else if ((*vdd_power_pad_vector)[index].side == RIGHT)
+    {
+        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        //橫 直
+        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+    }
+    else
+    {
+        cout << " power side error  " << endl;
+    }
 }
 
 float twoPointDistance(float start_x_location, float start_y_location, float end_x_location, float end_y_location)
@@ -240,16 +492,15 @@ float twoPointDistance(float start_x_location, float start_y_location, float end
     int end_x_location_int = stoi(floatToString(end_x_location));
     int end_y_location_int = stoi(floatToString(end_y_location));
 
-    int x_distance =  abs(start_x_location_int - start_y_location_int);
+    int x_distance = abs(start_x_location_int - start_y_location_int);
     int y_distance = abs(end_x_location_int - end_y_location_int);
 
-    int x_distance_pow = pow(x_distance,2);
-    int y_distance_pow = pow(y_distance,2);
+    int x_distance_pow = pow(x_distance, 2);
+    int y_distance_pow = pow(y_distance, 2);
 
-    int power_add = x_distance_pow+y_distance_pow;
-    int distance = pow(power_add,0.5);
+    int power_add = x_distance_pow + y_distance_pow;
+    int distance = pow(power_add, 0.5);
 
-    
     return distance;
 }
 
@@ -464,6 +715,43 @@ void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_
     (*power_pad).length = power_pad_up_float + power_pad_down_float;
 }
 
+float countPadToRing(map<string, ShapeRing> *shape_map, PowerPad *power_pad, string side)
+{
+
+    if (side == UP)
+    {
+        float power_pad_length = stof((*power_pad).y_location) - ((*power_pad).length / 2);
+        float pad_to_ring_distance = abs(stof((*shape_map)[UP].start_y_location) - power_pad_length);
+
+        return pad_to_ring_distance;
+    }
+    else if (side == DOWN)
+    {
+        float power_pad_length = stof((*power_pad).y_location) + ((*power_pad).length / 2);
+        float pad_to_ring_distance = abs(stof((*shape_map)[DOWN].start_y_location) - power_pad_length);
+
+        return pad_to_ring_distance;
+    }
+    else if (side == LEFT)
+    {
+        float power_pad_length = stof((*power_pad).x_location) + ((*power_pad).length / 2);
+        float pad_to_ring_distance = abs(stof((*shape_map)[LEFT].start_x_location) - power_pad_length);
+
+        return pad_to_ring_distance;
+    }
+    else if (side == RIGHT)
+    {
+        float power_pad_length = stof((*power_pad).x_location) - ((*power_pad).length / 2);
+        float pad_to_ring_distance = abs(stof((*shape_map)[RIGHT].start_x_location) - power_pad_length);
+
+        return pad_to_ring_distance;
+    }
+    else
+    {
+        cout << " countPadToRing error " << endl;
+        return 0;
+    }
+}
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_info_map)
 {
 
