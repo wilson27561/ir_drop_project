@@ -9,11 +9,13 @@ using namespace std;
 #include <string>
 #include <algorithm>
 #include <math.h>
+#include <iomanip>
 
 const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_73_transfer.def";
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
-const string M1_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_M1.rpt";
-const string M3_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_M3.rpt";
+const string M3_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_M3.report";
+const string M1_GRID_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_LISD.report";
+const string COMPARE_RESIST_FILE = "resistance_report/b19_routing_44_9_73_grid_resist_compare.report";
 
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
@@ -23,21 +25,21 @@ const string UP = "UP";
 const string DOWN = "DOWN";
 const string M3 = "M3";
 const string X = "X";
-// const float TOTAL_POWER = 2.24801;
-const float RANGER_POWER_RATIO = 0.3;
-const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
-const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
-const float M2_SHEET_RESISTANCE = 0.811738;
-const float LISD_SHEET_RESISTANCE = 1.0416;
-const float M3_PAD_WIDTH = 1.728;
-const float M2_WIDTH = 1.8;
-const float VDD_PAD = 0.7;
-const float IR_DROP = 0.07;
-const float POWER_STRIPE_HEIGHT = 313.92;
-const float POWER_STRIPE_WIDTH = 0.224;
-const float POWER_RAIL_HEIGHT = 385.344;
-const float POWER_RAIL_WIDTH = 0.1;
-const int POWER_RAIL_NUMBER = 178;
+
+// SHEET_RESISTANCE
+const float POWER_PAD_TO_POWER_RING_M3_SHEET_RESISTANCE = 0.8119971;
+const float POWER_RING_M2_SHEET_RESISTANCE = 0.811738;
+const float POWER_RING_M1_SHEET_RESISTANCE = 0.812;
+const float POWER_STRIPE_M3_SHEET_RESISTANCE = 0.9;
+const float POWER_RAIL_LISD_SHEET_RESISTANCE = 1.0416;
+
+// WIDTH
+const float POWER_RING_M2_WIDTH = 1.8;
+const float POWER_RING_M1_WIDTH = 1.8;
+const float POWER_PAD_TO_POWER_RING_M3_WIDTH = 1.728;
+const float POWER_STRIPE_M3_WIDTH = 0.224;
+const float POWER_RAIL_LISD_WIDTH = 0.1;
+
 const float SPACING = 0.072;
 
 struct Point
@@ -140,6 +142,8 @@ struct GridResistNode
     float y_location;
     string voltus_file_resist;
     string model_reist;
+    string side;
+    float ratio;
 };
 
 void getCoreSite(string def_file_name, CoreSite *core_site);
@@ -170,7 +174,9 @@ void getGridResistNode(string grid_file_name, vector<GridResistNode> *grid_node_
 float countPadToRing(map<string, ShapeRing> *shape_map, PowerPad *power_pad, string side);
 void countResist(vector<PowerPad> *vdd_power_pad_vector, vector<GridResistNode> *grid_node_vector, map<string, vector<PowerPad>> *direction_power_pad, map<string, ShapeRing> *shape_map);
 int getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector, GridResistNode *point);
-float modelResist(vector<PowerPad> *vdd_power_pad_vector,int index, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right);
+float modelResist(vector<PowerPad> *vdd_power_pad_vector, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right);
+void outputCompareFile(vector<GridResistNode> *grid_node_vector);
+float ratio(float voltus_resist, float model_resist);
 int main()
 {
     CoreSite core_site;
@@ -206,10 +212,9 @@ int main()
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
 
-    countResist(&vdd_power_pad_vector, &m3_grid_node_vector, &direction_power_pad, &vdd_shape_map);
-
-    //讀完每個grid node 檔
-    //計算每個grid node 到 最近power pad resist
+    countResist(&vdd_power_pad_vector, &m1_grid_node_vector, &direction_power_pad, &vdd_shape_map);
+    outputCompareFile(&m1_grid_node_vector);
+    // countResist(&vdd_power_pad_vector, &m1_grid_node_vector, &direction_power_pad, &vdd_shape_map);
 
     for (int i = 0; i < vdd_power_pad_vector.size(); i++)
     {
@@ -218,6 +223,27 @@ int main()
 
     return 0;
 }
+
+void outputCompareFile(vector<GridResistNode> *grid_node_vector)
+{
+    ofstream myfile;
+    myfile.open(COMPARE_RESIST_FILE);
+
+    for (int i = 0; i < (*grid_node_vector).size(); i++)
+    {
+        // myfile << (*grid_node_vector)[i].side << "  node location : " << (*grid_node_vector)[i].x_location << " " << (*grid_node_vector)[i].y_location << "    " << (*grid_node_vector)[i].voltus_file_resist << "    " << (*grid_node_vector)[i].model_reist << "    " << ratio(stof((*grid_node_vector)[i].voltus_file_resist), stof( (*grid_node_vector)[i].model_reist)) << endl;
+         myfile <<  (*grid_node_vector)[i].model_reist  << endl;
+    }
+    myfile.close();
+}
+
+float ratio(float voltus_resist, float model_resist)
+{
+    float resist = ( model_resist - voltus_resist) / voltus_resist;
+
+    return resist;
+}
+
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map)
 {
 
@@ -408,8 +434,12 @@ int getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector, GridResistNode 
     float shortest_distance = 0;
     for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
     {
+        // cout << "=============" << endl;
+        // cout << "point : " << (*point).x_location << " " << (*point).y_location << endl;
+        // cout << (*vdd_power_pad_vector)[i].side << "  vdd pad location: " << (*vdd_power_pad_vector)[i].x_location << " " << (*vdd_power_pad_vector)[i].y_location << endl;
         float distance = twoPointDistance((*point).x_location, (*point).y_location, stof((*vdd_power_pad_vector)[i].x_location), stof((*vdd_power_pad_vector)[i].y_location));
-      
+        // cout << "distance :" << distance << endl;
+        // cout << "=============" << endl;
         if (shortest_distance == 0)
         {
             shortest_distance = distance;
@@ -418,7 +448,7 @@ int getShortestResistPad(vector<PowerPad> *vdd_power_pad_vector, GridResistNode 
         {
             shortest_distance = distance;
             index = i;
-            cout << "index : " << index << endl;
+            // cout << "index : " << index << endl;
         }
     }
     // cout << "index : " << index << endl;
@@ -430,59 +460,87 @@ void countResist(vector<PowerPad> *vdd_power_pad_vector, vector<GridResistNode> 
 {
     float pad_to_ring_up_down = countPadToRing(&(*shape_map), &(*direction_power_pad)[UP][0], UP);
     float pad_to_ring_left_right = countPadToRing(&(*shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
-    cout << pad_to_ring_up_down << endl;
-    cout << pad_to_ring_left_right << endl;
+
     for (int i = 0; i < (*grid_node_vector).size(); i++)
     {
-        int index = getShortestResistPad(&(*vdd_power_pad_vector), &((*grid_node_vector)[i]));
-        float resist = modelResist(&(*vdd_power_pad_vector),index, &((*grid_node_vector)[i]), pad_to_ring_up_down, pad_to_ring_left_right);
+        // int index = getShortestResistPad(&(*vdd_power_pad_vector), &((*grid_node_vector)[i]));
+        float resist = modelResist(&(*vdd_power_pad_vector), &((*grid_node_vector)[i]), pad_to_ring_up_down, pad_to_ring_left_right);
+        (*grid_node_vector)[i].model_reist = floatToString(resist);
+
+        // cout << "near pad : " << (*grid_node_vector)[i].side << " " <<  (*grid_node_vector)[i].x_location << " " <<  (*grid_node_vector)[i].y_location <<  " " << (*grid_node_vector)[i].model_reist << endl;
     }
 }
 
-float modelResist(vector<PowerPad> *vdd_power_pad_vector,int index, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right)
+float compareModelResist(PowerPad *power_pad, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right)
 {
-    
-    cout << " ====== "<< (*vdd_power_pad_vector)[index].side << " ========= " << endl;
-
-    if ((*vdd_power_pad_vector)[index].side == UP)
+    if ((*power_pad).side == UP)
     {
         // pad_ring
-        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / POWER_PAD_TO_POWER_RING_M3_WIDTH) * POWER_PAD_TO_POWER_RING_M3_SHEET_RESISTANCE;
         //橫 直
-        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
-        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
-    }
-    else if ((*vdd_power_pad_vector)[index].side == DOWN)
-    {
-        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
-        //橫 直
-        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
-        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+        float horizontal_distance = abs(stof((*power_pad).x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*power_pad).y_location) - (*grid_node).y_location);
 
-        // cout << "=============================================" << endl;
-        // cout << DOWN << endl;
-        // cout << "horizontal_distance : " << horizontal_distance << endl;
-        // cout << "vertical_distance : " << vertical_distance << endl;
-        // cout << "=============================================" << endl;
+        float horizontal_resist = (horizontal_distance / POWER_RING_M2_WIDTH) * POWER_RING_M2_SHEET_RESISTANCE;
+        float vertical_resist = (vertical_distance / POWER_STRIPE_M3_WIDTH) * POWER_STRIPE_M3_SHEET_RESISTANCE;
+
+        return (pad_to_ring_resist_up_down + horizontal_resist + vertical_resist);
     }
-    else if ((*vdd_power_pad_vector)[index].side == LEFT)
+    else if ((*power_pad).side == DOWN)
     {
-        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        float pad_to_ring_resist_up_down = (pad_to_ring_up_down / POWER_PAD_TO_POWER_RING_M3_WIDTH) * POWER_PAD_TO_POWER_RING_M3_SHEET_RESISTANCE;
         //橫 直
-        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
-        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+        float horizontal_distance = abs(stof((*power_pad).x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*power_pad).y_location) - (*grid_node).y_location);
+
+        float horizontal_resist = (horizontal_distance / POWER_RING_M2_WIDTH) * POWER_RING_M2_SHEET_RESISTANCE;
+        float vertical_resist = (vertical_distance / POWER_STRIPE_M3_WIDTH) * POWER_STRIPE_M3_SHEET_RESISTANCE;
+
+        return (pad_to_ring_resist_up_down + horizontal_resist + vertical_resist);
     }
-    else if ((*vdd_power_pad_vector)[index].side == RIGHT)
+    else if ((*power_pad).side == LEFT)
     {
-        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
+        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / POWER_PAD_TO_POWER_RING_M3_WIDTH) * POWER_PAD_TO_POWER_RING_M3_SHEET_RESISTANCE;
         //橫 直
-        float horizontal_distance = abs(stof((*vdd_power_pad_vector)[index].x_location) - (*grid_node).x_location);
-        float vertical_distance = abs(stof((*vdd_power_pad_vector)[index].y_location) - (*grid_node).y_location);
+        float horizontal_distance = abs(stof((*power_pad).x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*power_pad).y_location) - (*grid_node).y_location);
+
+        float vertical_resist = (vertical_distance / POWER_RING_M1_WIDTH) * POWER_RING_M1_SHEET_RESISTANCE;
+        float horizontal_resist = (horizontal_distance / POWER_RAIL_LISD_WIDTH) * POWER_RAIL_LISD_SHEET_RESISTANCE;
+
+        return (pad_to_ring_resist_left_right + vertical_resist + horizontal_resist);
+    }
+    else if ((*power_pad).side == RIGHT)
+    {
+        float pad_to_ring_resist_left_right = (pad_to_ring_left_right / POWER_PAD_TO_POWER_RING_M3_WIDTH) * POWER_PAD_TO_POWER_RING_M3_SHEET_RESISTANCE;
+        //橫 直
+        float horizontal_distance = abs(stof((*power_pad).x_location) - (*grid_node).x_location);
+        float vertical_distance = abs(stof((*power_pad).y_location) - (*grid_node).y_location);
+
+        float vertical_resist = (vertical_distance / POWER_RING_M1_WIDTH) * POWER_RING_M1_SHEET_RESISTANCE;
+        float horizontal_resist = (horizontal_distance / POWER_RAIL_LISD_WIDTH) * POWER_RAIL_LISD_SHEET_RESISTANCE;
+
+        return (pad_to_ring_resist_left_right + vertical_resist + horizontal_resist);
     }
     else
     {
         cout << " power side error  " << endl;
     }
+}
+
+float modelResist(vector<PowerPad> *vdd_power_pad_vector, GridResistNode *grid_node, float pad_to_ring_up_down, float pad_to_ring_left_right)
+{
+    float resist = 10000000000000;
+    for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
+    {
+        float resist_node = compareModelResist(&(*vdd_power_pad_vector)[i], &(*grid_node), pad_to_ring_up_down, pad_to_ring_left_right);
+        if (resist_node < resist)
+        {
+            resist = resist_node;
+            (*grid_node).side = (*vdd_power_pad_vector)[i].side;
+        }
+    }
+    return resist;
 }
 
 float twoPointDistance(float start_x_location, float start_y_location, float end_x_location, float end_y_location)
@@ -492,8 +550,8 @@ float twoPointDistance(float start_x_location, float start_y_location, float end
     int end_x_location_int = stoi(floatToString(end_x_location));
     int end_y_location_int = stoi(floatToString(end_y_location));
 
-    int x_distance = abs(start_x_location_int - start_y_location_int);
-    int y_distance = abs(end_x_location_int - end_y_location_int);
+    int x_distance = abs(start_x_location_int - end_x_location_int);
+    int y_distance = abs(start_y_location_int - end_y_location_int);
 
     int x_distance_pow = pow(x_distance, 2);
     int y_distance_pow = pow(y_distance, 2);

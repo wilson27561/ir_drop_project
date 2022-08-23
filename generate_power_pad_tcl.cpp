@@ -9,8 +9,6 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_22_9_72_transfer.def";
-const string POWER_PAD_SRIPE_FILE = "stripe_tcl/power_pad_stripe_tcl_22_9_72_2pad.tcl";
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
 const string UP = "UP";
@@ -75,11 +73,33 @@ void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_arr
 void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
 void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line);
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
-void generatePowerPadTcl(map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector);
+void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector);
 string floatToString(const float value);
+bool getShapeRingContent(string def_content,string pad_string);
 string generateTcl(StripeTcl stripe_tcl);
 int main()
 {
+    string config_file = "config.txt";
+    string DEF_TRANSFER_FILE = "";
+    string POWER_PAD_SRIPE_FILE = "";
+    ifstream config(config_file);
+    string config_content;
+    if (config)
+    {
+        while (getline(config, config_content))
+        {
+            vector<string> config_content_array = splitByPattern(config_content, " ");
+            if (config_content_array[0] == "DEF_TRANSFER_FILE")
+            {
+                DEF_TRANSFER_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "POWER_PAD_SRIPE_FILE")
+            {
+                POWER_PAD_SRIPE_FILE = config_content_array[2];
+            }
+        }
+    }
+
     vector<PowerPad> vdd_power_pad_vector;
     vector<PowerPad> vss_power_pad_vector;
     vector<ShapeRing> vdd_shape_ring_vector;
@@ -89,22 +109,22 @@ int main()
 
     DieArea die_area;
 
-    getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
-    getDieArea(DEF_FILE, &die_area);
+    getPowerPadLocation(DEF_TRANSFER_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
+    getDieArea(DEF_TRANSFER_FILE, &die_area);
     setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &die_area);
-    getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
+    getShapeRing(DEF_TRANSFER_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
 
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
-    generatePowerPadTcl(&vdd_shape_map, &vss_shape_map, &vdd_power_pad_vector, &vss_power_pad_vector);
+    generatePowerPadTcl(POWER_PAD_SRIPE_FILE, &vdd_shape_map, &vss_shape_map, &vdd_power_pad_vector, &vss_power_pad_vector);
 
     return 0;
 }
 
-void generatePowerPadTcl(map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
+void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
 {
     ofstream myfile;
-    myfile.open(POWER_PAD_SRIPE_FILE);
+    myfile.open(power_pad_stripe_file);
     for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
     {
         PowerPad power_pad = (*vdd_power_pad_vector)[i];
@@ -115,9 +135,10 @@ void generatePowerPadTcl(map<string, ShapeRing> *vdd_shape_map, map<string, Shap
         float stripe_y_end_location_float = 0;
         if (power_pad.side == UP)
         {
+
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
-     
+
             stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
             stripe_y_start_location_float = stof(shape_ring.start_y_location) - (shape_ring.width / 2);
             stripe_x_end_location_float = power_pad_x_loction + (power_pad.width / 2);
@@ -265,7 +286,7 @@ string generateTcl(StripeTcl stripe_tcl)
 
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map)
 {
-    
+
     for (int i = 0; i < (*vdd_shape_ring_vector).size(); i++)
     {
         if ((*vdd_shape_map).count((*vdd_shape_ring_vector)[i].side) != true)
@@ -274,7 +295,7 @@ void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing
         }
         else
         {
-            cout << "power ring side has error "  << endl;
+            cout << "power ring side has error " << endl;
         }
     }
     for (int i = 0; i < (*vss_shape_ring_vector).size(); i++)
@@ -337,7 +358,7 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
     {
         while (getline(def_file, def_content))
         {
-            if (def_content.find("( * VDD )") != string::npos)
+            if ((def_content.find("( * VDD )") != string::npos))
             {
                 while (getline(def_file, def_content))
                 {
@@ -347,7 +368,6 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         ShapeRing shape_ring;
                         setShapeRingLocation(&shape_ring, &def_content_array, &(*vdd_shape_ring_vector));
-                        
                     }
                     if (def_content.find("SHAPE STRIPE") != string::npos || def_content.find("+ USE POWER") != string::npos)
                     {
@@ -365,7 +385,7 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
                         ShapeRing shape_ring;
                         setShapeRingLocation(&shape_ring, &def_content_array, &(*vss_shape_ring_vector));
                     }
-                    if (def_content.find("SHAPE STRIPE") != string::npos ||  def_content.find("+ USE GROUND") != string::npos )
+                    if (def_content.find("SHAPE STRIPE") != string::npos || def_content.find("+ USE GROUND") != string::npos)
                     {
                         break;
                     }
@@ -373,6 +393,18 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
             }
         }
     }
+}
+
+bool getShapeRingContent(string def_content,string pad_string){
+    vector<string> def_content_array = splitByPattern(def_content, " ");
+    int array_size = def_content_array.size();
+    bool pad_exisit = (def_content.find(pad_string) != string::npos);
+    if( pad_exisit && array_size==2){
+        return true;
+    }else{
+        return false;
+    }
+
 }
 
 void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_array, vector<ShapeRing> *shape_ring_vector)
@@ -563,7 +595,6 @@ void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_
     float power_pad_down_float = abs(stof((*def_content_array)[9]));
     (*power_pad).length = power_pad_up_float + power_pad_down_float;
 }
-
 
 //根據pattern切字串
 vector<string> splitByPattern(string content, string pattern)

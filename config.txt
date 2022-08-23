@@ -1,0 +1,3 @@
+DEF_FILE : def_file/gpu_nerualNetwork_ricsv_aes/6t49_riscv_routing_run0.def
+DEF_TRANSFER_FILE : def_file/gpu_nerualNetwork_ricsv_aes/6t49_riscv_routing_run0_transfer.def
+POWER_PAD_SRIPE_FILE : stripe_tcl/power_pad_stripe_6t49_gpu_routing_run0_4pad.tcl

@@ -3,38 +3,40 @@ using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 
-
 int main()
 {
 
+    // Build command to execute.  For example if the input
+    // file name is a.cpp, then str holds "gcc -o a.out a.cpp"
+    // Here -o is used to specify executable file name
     
-  
-    // Build command to execute.  For example if the input 
-    // file name is a.cpp, then str holds "gcc -o a.out a.cpp"  
-    // Here -o is used to specify executable file name 
-    string str = "g++ "; 
-    str = str + "test_too.cpp -o test_too "; 
-
-//   cd "d:\ir_drop_project\" ; if ($?) { g++ def_stripe_transform.cpp -o def_stripe_transform } ; if ($?) { .\def_stripe_transform }
-
-    // Convert string to const char * as system requires 
-    // parameter of type const char * 
-    const char *command = str.c_str(); 
-  
-    cout << "Compiling file using " << command << endl; 
-    system(command); 
-  
-    string compile = "./test_too";
-    const char *compile_str = compile.c_str(); 
-   
-    system(compile_str); 
-  
-    
-
-    //  string tcl_test = "voltus -batch -file voltus_file.tcl";
-    //  const char *tcl_test_str = tcl_test.c_str(); 
-    //  system(tcl_test_str); 
+    // string innovus_voltus_generate = "innovus -batch -file innovus_voltus_generate_pad_location.tcl";
+    // const char *innovus_voltus_generate_str = innovus_voltus_generate.c_str();
+    // system(innovus_voltus_generate_str);
 
 
- return 0;
+    string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
+    const char *command_def = def_stripe_transform_command.c_str();
+    cout << "Compiling file using " << command_def << endl;
+    system(command_def);
+    system("def_stripe_transform.exe");
+
+    // string generate_power_pad_tcl_command = "g++ generate_power_pad_tcl.cpp -o generate_power_pad_tcl";
+    // const char *command_power_pad = generate_power_pad_tcl_command.c_str();
+    // cout << "Compiling file using " << command_power_pad << endl;
+    // system(command_power_pad);
+    // system("generate_power_pad_tcl.exe");
+
+
+    string ir_drop_summary_command = "g++ ir_drop_summary.cpp -o ir_drop_summary";
+    const char *command_ir_drop_summary = ir_drop_summary_command.c_str();
+    cout << "Compiling file using " << command_ir_drop_summary << endl;
+    system(command_ir_drop_summary);
+    system("ir_drop_summary.exe");
+
+    //  string innovus_voltus = "innovus -batch -file innovus_voltus.tcl";
+    //  const char *innovus_voltus_str = innovus_voltus.c_str();
+    //  system(innovus_voltus_str);
+
+    return 0;
 }

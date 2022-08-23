@@ -9,9 +9,6 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_73.def";
-const string DEF_TRANSFER_FILE = "def_file/b19/6t49_b19_routing_44_9_73_transfer.def";
-
 struct Position
 {
     string ori_position;
@@ -32,6 +29,29 @@ bool beReplace(string resource_str, string sub_str, string new_str);
 
 int main()
 {
+    string DEF_FILE = "";
+    string DEF_TRANSFER_FILE = "";
+    string config_file = "config.txt";
+    ifstream config(config_file);
+    string config_content;
+    if (config)
+    {
+        while (getline(config, config_content))
+        {
+            vector<string> config_content_array = splitByPattern(config_content, " ");
+            std::cout << config_content_array[0] << " " << config_content_array[2] << std::endl;
+            if(config_content_array[0] == "DEF_FILE")
+            {
+                DEF_FILE = config_content_array[2];
+
+            }
+            if (config_content_array[0] == "DEF_TRANSFER_FILE")
+            {
+                DEF_TRANSFER_FILE = config_content_array[2];
+            }
+        }
+    }
+
     ifstream def_file(DEF_FILE);
     string def_content;
     ofstream myfile;
@@ -142,7 +162,7 @@ int main()
                 }
                 else
                 {
-                     myfile << def_content << endl;
+                    myfile << def_content << endl;
                 }
             }
             else

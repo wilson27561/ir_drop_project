@@ -1,56 +1,35 @@
-using namespace std;
-#include <iostream>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
 #include <vector>
-#include <set>
-#include <unordered_map>
-#include <map>
-#include <fstream>
-#include <sstream>
 #include <string>
-#include <algorithm>
-#include <cmath>
-#include <iomanip>
-#include <math.h>
+#include <iostream>
 
-void InsertionSort(vector<int> *num_vec)
-{
 
-    for (int i = 1; i < (*num_vec).size(); i++)
-    {
-        int key = (*num_vec)[i];
-        cout << "key : "<< key << endl;
-        int j = i - 1;
-        while (key < (*num_vec)[j] && j >= 0)
-        {
-            (*num_vec)[j + 1] = (*num_vec)[j];
-            j--;
-        }
-        (*num_vec)[j + 1] = key;
+using namespace std;
+
+int getdir(string dir, vector<string> &files);
+int main(){
+    string dir = string("D:/ir_drop_project/congest_area_file");//資料夾路徑(絕對位址or相對位址)
+    vector<string> files = vector<string>();
+    getdir(dir, files);
+	//輸出資料夾和檔案名稱於螢幕
+    for(int i=0; i<files.size(); i++){
+        cout << files[i] << endl;
     }
+    system("pause");
+    return 0;
 }
-
-int main()
-{
-
-    int array[6] = {5, 3, 1, 2, 6, 4};
-
-    vector<int> num_vec;
-    num_vec.push_back(5);
-    num_vec.push_back(3);
-    num_vec.push_back(1);
-    num_vec.push_back(2);
-    num_vec.push_back(6);
-
-
-
-    InsertionSort(&num_vec);
-    for (int i = 0; i < num_vec.size(); i++)
-    {
-        cout << num_vec[i] << endl;
+int getdir(string dir, vector<string> &files){
+    DIR *dp;//創立資料夾指標
+    struct dirent *dirp;
+    if((dp = opendir(dir.c_str())) == NULL){
+        cout << "Error(" << errno << ") opening " << dir << endl;
+        return errno;
     }
-    
-
-    std::cout << "sorted:\n";
-
+    while((dirp = readdir(dp)) != NULL){//如果dirent指標非空
+        files.push_back(string(dirp->d_name));//將資料夾和檔案名放入vector
+    }
+    closedir(dp);//關閉資料夾指標
     return 0;
 }
