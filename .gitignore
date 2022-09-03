@@ -29,3 +29,14 @@
 *.exe
 *.out
 *.app
+
+def_file/*
+power_report/*
+ir_drop_report/*
+ip_report/*
+congest_area_file/*
+effr_file/*
+io/*
+resistance_report/*
+stripe_tcl/*
+tech_lef_file/*

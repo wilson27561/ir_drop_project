@@ -11,22 +11,20 @@ using namespace std;
 #include <cmath>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_81_transfer.def";
-// 6t49_b19_routing_88_9_68_transfer.def
-const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
-const string IP_REPORT_FILE = "power_report/activity_0.6/print_ip.report";
-// const string IP_SWITCHING_POWER_REPORT_FILE = "power_report/print_ip.report";
-// print_ip_8pad.report
-const string ADD_STRIPE_ESTIMATE = "stripe_tcl/addStripe_b19_4_pad.tcl";
+// const string DEF_TRANSFER_FILE = "DEF_TRANSFER_FILE/b19/6t49_b19_routing_44_9_81_transfer.def";
+// // 6t49_b19_routing_88_9_68_transfer.def
+// const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
+// const string IP_REPORT_FILE = "power_report/activity_0.6/print_ip.report";
+// // print_ip_8pad.report
+// const string ADD_STRIPE_ESTIMATE = "stripe_tcl/addStripe_b19_4_pad.tcl";
 const string LEFT = "LEFT";
 const string RIGHT = "RIGHT";
 const string MIDDLE = "middle";
-const float BOUNDARY = 60;
+// const float BOUNDARY = 60;
 const string UP = "UP";
 const string DOWN = "DOWN";
 const string M3 = "M3";
 const string X = "X";
-// const float TOTAL_POWER = 2.24801;
 const float RANGER_POWER_RATIO = 0.3;
 const float M3_SHEET_RESISTANCE_PAD = 0.8119971;
 const float M3_SHEET_RESISTANCE_STRIPE = 0.9;
@@ -36,15 +34,15 @@ const float M3_PAD_WIDTH = 1.728;
 const float M2_WIDTH = 1.8;
 const float VDD_PAD = 0.7;
 const float IR_DROP = 0.07;
-const float POWER_STRIPE_HEIGHT = 313.92;
+// const float POWER_STRIPE_HEIGHT = 313.92;
 const float POWER_STRIPE_WIDTH = 0.224;
 const float POWER_RAIL_HEIGHT = 385.344;
 const float POWER_RAIL_WIDTH = 0.1;
-const int POWER_RAIL_NUMBER = 178;
-const float SPACING = 0.072;
-const float START_Y_LOCATION_STRIPE = 6.48;
-const float END_Y_LOCATION_STRIPE = 320.4;
-
+// const int POWER_RAIL_NUMBER = 178;
+// const float SPACING = 0.072;
+// float START_Y_LOCATION_STRIPE = 6.48;
+// float END_Y_LOCATION_STRIPE = 320.4;
+float START_TRACK = 0;
 const string POWERSTRIPEVALUE = "power_stripe_resistance";
 const string POWERRAILVALUE = "power_rail_resistance";
 
@@ -169,8 +167,8 @@ struct ShapeRing
     string end_y_location;
     string side;
 };
-void getCoreSite(string def_file_name, CoreSite *core_site);
-void getDefPlacedImformation(string DEF_FILE, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
+void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site);
+void getDefPlacedImformation(string DEF_TRANSFER_FILE, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
 vector<string> splitByPattern(string content, string pattern);
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_map);
 void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
@@ -181,31 +179,30 @@ float getConsumeRatio(string boudary, float left_x_location_float, float right_x
 bool isInStripeRange(CurrentRange *current_range, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void setIpPowerInStripe(vector<CurrentRange> *current_range_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
-void setCurrentRange(CoreSite *core_site, vector<CurrentRange> *current_range_vector);
-void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite);
+void setCurrentRange(CoreSite *core_site, vector<CurrentRange> *current_range_vector, float boundary);
 void setTrackInfo(vector<string> def_content_array, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite);
 void setTrackLocation(Track *track, CoreSite *coreSite);
 void setPowerPadLocation(vector<string> *def_content_array, PowerPad *power_pad);
 void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_pad);
-void setPowerPadInfo(ifstream *def_file, string def_content, PowerPad *power_pad);
-void getDieArea(string def_file_name, DieArea *die_area);
-void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
+void setPowerPadInfo(ifstream *DEF_TRANSFER_FILE, string def_content, PowerPad *power_pad);
+void getDieArea(string DEF_TRANSFER_FILE_name, DieArea *die_area);
+void getPowerPadLocation(string DEF_TRANSFER_FILE_name, vector<PowerPad> *vdd_power_pad, vector<PowerPad> *vss_power_pad);
 void setPowerPadDirection(map<string, vector<PowerPad>> *direction_power_pad);
 void setPowerPadSide(vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector, map<string, vector<PowerPad>> *direction_power_pad, DieArea *die_area);
 void sortPowerPad(map<string, vector<PowerPad>> *direction_power_pad);
 void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction);
 void setSide(PowerPad *power_pad, map<string, vector<PowerPad>> *direction_power_pad, DieArea *die_area);
-int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, set<string> *side_set, CoreSite *core_site);
-void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<CurrentRange> *current_range_vector, vector<FollowPin> *follow_pin_vdd_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, CoreSite *core_site);
+int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, set<string> *side_set, CoreSite *core_site);
+void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<CurrentRange> *current_range_vector, vector<FollowPin> *follow_pin_vdd_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, CoreSite *core_site);
 float countPadToRing(map<string, ShapeRing> *shape_map, PowerPad *power_pad, string side);
 void coutPadToRing(map<string, ShapeRing> *shape_map, PowerPad *power_pad);
 void setRingSide(vector<ShapeRing> *shape_ring_vector, float middle_x_line, float middle_y_line);
 void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_array, vector<ShapeRing> *shape_ring_vector);
-void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector);
+void getShapeRing(string DEF_TRANSFER_FILE_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector);
 void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
 void setRoutingTrackInCurrentRange(unordered_map<string, unordered_map<string, Track>> *layer_track_map, vector<CurrentRange> *current_range_vector);
-void getFollowPin(string def_file_name, vector<FollowPin> *follow_pin_vdd_vector, vector<FollowPin> *follow_pin_vss_vector);
+void getFollowPin(string DEF_TRANSFER_FILE_name, vector<FollowPin> *follow_pin_vdd_vector, vector<FollowPin> *follow_pin_vss_vector);
 void setPowerPadSupplyRange(CoreSite *core_site, map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector);
 void sortRangePadVector(vector<PowerPad> *vdd_range_pad_vector, map<string, vector<PowerPad>> *direction_power_pad, CoreSite *core_site);
 float powerStripePowerRailToSupplyDistance(string transfer_supply_location_side, float x_location, float y_location, vector<PowerPad> *vdd_range_pad_vector, CoreSite *core_site);
@@ -213,12 +210,13 @@ float getSingleFolllowPinResist(CurrentRange *current_range, vector<PowerPad> *v
 float getFollowPinToCoreSiteLeft(map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site);
 int getNumberOfPowerStripe(CurrentRange *current_range, float power_stripe_resist, float power_rail_resist, int number_of_power_rail);
 string floatToString(const float value);
-void generateAddStripeTcl(vector<CurrentRange> *current_range_vector);
-int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, set<string> *side_set, CoreSite *core_site);
-float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_up_down);
+void generateAddStripeTcl(vector<CurrentRange> *current_range_vector, string add_stripe_estimate_name);
+int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, set<string> *side_set, CoreSite *core_site);
+float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_up_down, float power_stripe_height);
 float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_left_right);
-void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe);
+void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe, float start_y_location_stripe, float end_y_location_stripe, float start_y_location_ground, float end_y_location_ground);
 void getSwitchingPowerReport(string sw_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
+void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite);
 int main()
 {
     CoreSite core_site;
@@ -239,50 +237,79 @@ int main()
     vector<FollowPin> follow_pin_vss_vector;
     vector<PowerPad> vdd_range_pad_vector;
 
-    getCoreSite(DEF_FILE, &core_site);
+    string DEF_TRANSFER_FILE = "";
+    string LEF_FILE = "";
+    string IP_REPORT_FILE = "";
+    string ADD_STRIPE_ESTIMATE = "";
+    string config_file = "config.txt";
+
+    ifstream config(config_file);
+    string config_content;
+    if (config)
+    {
+        while (getline(config, config_content))
+        {
+            vector<string> config_content_array = splitByPattern(config_content, " ");
+            std::cout << config_content_array[0] << " " << config_content_array[2] << std::endl;
+            if (config_content_array[0] == "DEF_TRANSFER_FILE")
+            {
+                DEF_TRANSFER_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "LEF_FILE")
+            {
+                LEF_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "IP_REPORT_FILE")
+            {
+                IP_REPORT_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "ADD_STRIPE_ESTIMATE")
+            {
+                ADD_STRIPE_ESTIMATE = config_content_array[2];
+            }
+        }
+    }
+
+    getCoreSite(DEF_TRANSFER_FILE, &core_site);
+    float boundary = abs(stof(core_site.left_x_location) - stof(core_site.right_x_location)) / 6;
+    cout << "boundary :" << boundary << endl;
+
     getLefCellImformation(LEF_FILE, &cell_info_map);
-    getDefPlacedImformation(DEF_FILE, &cell_placed_map, &cell_info_map);
+    getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
-    // getSwitchingPowerReport(IP_SWITCHING_POWER_REPORT_FILE, &cell_ip_map);
-    setCurrentRange(&core_site, &current_range_vector);
+
+    setCurrentRange(&core_site, &current_range_vector, boundary);
 
     setIpPowerInStripe(&current_range_vector, &cell_ip_map, &cell_placed_map);
-    getTrack(DEF_FILE, &layer_track_map, &core_site);
+    getTrack(DEF_TRANSFER_FILE, &layer_track_map, &core_site);
 
     setPowerPadDirection(&direction_power_pad);
-    getPowerPadLocation(DEF_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
-    getDieArea(DEF_FILE, &die_area);
+    getPowerPadLocation(DEF_TRANSFER_FILE, &vdd_power_pad_vector, &vss_power_pad_vector);
+    getDieArea(DEF_TRANSFER_FILE, &die_area);
 
     setPowerPadSide(&vdd_power_pad_vector, &vss_power_pad_vector, &direction_power_pad, &die_area);
     sortPowerPad(&direction_power_pad);
 
-    getShapeRing(DEF_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
+    getShapeRing(DEF_TRANSFER_FILE, &vdd_shape_ring_vector, &vss_shape_ring_vector);
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
-    getFollowPin(DEF_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
 
-    // ================= 調整side start =========================
-    // direction_power_pad.erase(direction_power_pad.find(UP));
-    // direction_power_pad.erase(direction_power_pad.find(DOWN));
-    // direction_power_pad.erase(direction_power_pad.find(RIGHT));
-    // direction_power_pad.erase(direction_power_pad.find(LEFT));
-    // ================= 調整side end =========================
-    // direction_power_pad[UP].pop_back();
-    // direction_power_pad[DOWN].pop_back();
-    // direction_power_pad[RIGHT].pop_back();
-    // direction_power_pad[LEFT].pop_back();
+    unordered_map<string, Track> track_map = layer_track_map[M3];
+    Track track = track_map["Y"];
+    START_TRACK = stof(track.start_step);
 
+    getFollowPin(DEF_TRANSFER_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
     setPowerPadSupplyRange(&core_site, &direction_power_pad, &vdd_range_pad_vector);
     setRoutingTrackInCurrentRange(&layer_track_map, &current_range_vector);
 
-    setCurrentRangePowerStripe(&direction_power_pad, &vdd_range_pad_vector, &current_range_vector, &follow_pin_vdd_vector, &layer_track_map, &vdd_shape_map, &core_site);
-    generateAddStripeTcl(&current_range_vector);
+    setCurrentRangePowerStripe(&direction_power_pad, &vdd_range_pad_vector, &current_range_vector, &follow_pin_vdd_vector, &layer_track_map, &vdd_shape_map, &vss_shape_map, &core_site);
+    generateAddStripeTcl(&current_range_vector, ADD_STRIPE_ESTIMATE);
 
     float total_ip_power = 0;
     for (int i = 0; i < current_range_vector.size(); i++)
     {
-     
-           total_ip_power+=current_range_vector[i].range_total_power;
+
+        total_ip_power += current_range_vector[i].range_total_power;
 
         // cout << "range start : " << current_range_vector[i].left_x_location << "  " << current_range_vector[i].right_x_location << endl;
         // cout << "distance : " << abs(current_range_vector[i].left_x_location - current_range_vector[i].right_x_location) << endl;
@@ -328,7 +355,7 @@ void getSwitchingPowerReport(string sw_report, unordered_map<string, CellInstanc
                 }
                 else
                 {
-                    cout << " getSwitchingPowerReport exception  " <<  cell_id << endl;
+                    cout << " getSwitchingPowerReport exception  " << cell_id << endl;
                 };
 
                 log++;
@@ -342,10 +369,10 @@ void getSwitchingPowerReport(string sw_report, unordered_map<string, CellInstanc
     cout << "total : " << power << endl;
 }
 
-void generateAddStripeTcl(vector<CurrentRange> *current_range_vector)
+void generateAddStripeTcl(vector<CurrentRange> *current_range_vector, string add_stripe_estimate_name)
 {
     ofstream myfile;
-    myfile.open(ADD_STRIPE_ESTIMATE);
+    myfile.open(add_stripe_estimate_name);
     for (int i = 0; i < (*current_range_vector).size(); i++)
     {
         for (int j = 0; j < (*current_range_vector)[i].power_stripe_vector.size(); j++)
@@ -680,7 +707,7 @@ void setRoutingTrackInCurrentRange(unordered_map<string, unordered_map<string, T
     }
 }
 
-void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<CurrentRange> *current_range_vector, vector<FollowPin> *follow_pin_vdd_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, CoreSite *core_site)
+void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<CurrentRange> *current_range_vector, vector<FollowPin> *follow_pin_vdd_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, CoreSite *core_site)
 {
     vector<string> side_vec;
     set<string> side_set;
@@ -703,7 +730,7 @@ void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_p
 
     if (side_vec.size() == 1)
     {
-        setSinglePad(&(*direction_power_pad), &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*current_range_vector), &(*layer_track_map), &(*shape_map), &side_set, &(*core_site));
+        setSinglePad(&(*direction_power_pad), &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*current_range_vector), &(*layer_track_map), &(*vdd_shape_map), &(*vdd_shape_map), &side_set, &(*core_site));
     }
     else if (side_vec.size() == 2)
     {
@@ -713,7 +740,7 @@ void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_p
     }
     else if (side_vec.size() == 4)
     {
-        setForthPadResist(&(*direction_power_pad), &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*current_range_vector), &(*layer_track_map), &(*shape_map), &side_set, &(*core_site));
+        setForthPadResist(&(*direction_power_pad), &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*current_range_vector), &(*layer_track_map), &(*vdd_shape_map), &(*vss_shape_map), &side_set, &(*core_site));
     }
     else
     {
@@ -721,25 +748,46 @@ void setCurrentRangePowerStripe(map<string, vector<PowerPad>> *direction_power_p
     }
 }
 //平均分布四個邊
-int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, set<string> *side_set, CoreSite *core_site)
+int setForthPadResist(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, set<string> *side_set, CoreSite *core_site)
 {
-    float pad_to_ring_up_down = countPadToRing(&(*shape_map), &(*direction_power_pad)[UP][0], UP);
-    float pad_to_ring_left_right = countPadToRing(&(*shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
+    float pad_to_ring_up_down = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[UP][0], UP);
+    float pad_to_ring_left_right = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
     int power_stripes = 0;
     float total_resist = 0;
+
+    float power_stripe_y_location_start = stof((*vdd_shape_map)[DOWN].start_y_location) - ((*vdd_shape_map)[DOWN].width / 2);
+    float power_stripe_y_location_end = stof((*vdd_shape_map)[UP].start_y_location) + ((*vdd_shape_map)[DOWN].width / 2);
+    cout << "power_stripe_y_location_start : " << power_stripe_y_location_start << endl;
+    cout << "power_stripe_y_location_end : " << power_stripe_y_location_end << endl;
+
+    float power_ground_y_location_start = stof((*vss_shape_map)[DOWN].start_y_location) - ((*vdd_shape_map)[DOWN].width / 2);
+    float power_ground_y_location_end = stof((*vss_shape_map)[UP].start_y_location) + ((*vdd_shape_map)[DOWN].width / 2);
+
+    cout << "power_ground_y_location_start : " << power_ground_y_location_start << endl;
+    cout << "power_ground_y_location_end : " << power_ground_y_location_end << endl;
+
+    float power_stripe_height = abs(power_stripe_y_location_start - power_stripe_y_location_end);
+
     for (int i = 0; i < (*current_range_vector).size(); i++)
     {
         cout << "range : " << i << endl;
-        float power_stripe_resist = getForthPowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring_up_down);
+        float power_stripe_resist = getForthPowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring_up_down, power_stripe_height);
         cout << "power_stripe_resist : " << power_stripe_resist << endl;
-        float power_rail_resist = getForthFollowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring_left_right);
-        cout << "power_rail_resist : " << power_rail_resist/178 << endl;
+        float power_rail_resist = getForthFollowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring_left_right);
+        cout << "power_rail_resist : " << power_rail_resist << endl;
+        cout << "routing track size : " << (*current_range_vector)[i].routing_track_vector.size() << endl;
+
         int number_of_stripe = getNumberOfPowerStripe(&(*current_range_vector)[i], power_stripe_resist, power_rail_resist, (*follow_pin_vdd_vector).size());
-        generatePowerStripeTcl(&(*current_range_vector)[i], number_of_stripe);
+        cout << "number_of_stripe : " << number_of_stripe << endl;
+        if (number_of_stripe > 0)
+        {
+            generatePowerStripeTcl(&(*current_range_vector)[i], number_of_stripe, power_stripe_y_location_start, power_stripe_y_location_end, power_ground_y_location_start, power_ground_y_location_end);
+        }
         power_stripes += number_of_stripe;
         total_resist += power_stripe_resist;
         total_resist += power_rail_resist;
     }
+
     cout << "number of power stripes : " << power_stripes << endl;
     cout << "total_resist     : " << total_resist << endl;
 }
@@ -763,8 +811,6 @@ float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd
         total_range_follow_pin_distance += range_follow_pin_distance;
     }
     total_range_follow_pin_distance = total_range_follow_pin_distance / 2;
-   
-    
 
     float range_follw_pin_resist = (total_range_follow_pin_distance / POWER_RAIL_WIDTH) * LISD_SHEET_RESISTANCE;
 
@@ -802,7 +848,7 @@ float getForthFollowPinResist(CurrentRange *current_range, vector<PowerPad> *vdd
     return (pad_to_ring_resist + range_follw_pin_resist + power_shape_ring_resist);
 }
 
-float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_up_down)
+float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring_up_down, float power_stripe_height)
 {
 
     // ========= Pad To Ring start =========
@@ -826,7 +872,7 @@ float getForthPowerStripeResist(CurrentRange *current_range, vector<PowerPad> *v
     }
     float stripe_to_shape_ring_resist = (stripe_to_shape_ring / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
     // ========= power stripe to shape Ring end =========
-    float power_stripe_resist = (POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
+    float power_stripe_resist = (power_stripe_height / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
     power_stripe_resist = power_stripe_resist / 2;
 
     return (pad_to_ring_resist_up_down + stripe_to_shape_ring_resist + power_stripe_resist);
@@ -846,7 +892,7 @@ float getSiglePowerPadToPowerRailDistanceUpAndDown(float power_pad_middle, CoreS
     }
 };
 
-int getSinglePadCurrentRangeNumberOfPowerStripe(CurrentRange *currentRange, float power_pad_middle, float pad_to_ring, CoreSite *core_site, string side)
+int getSinglePadCurrentRangeNumberOfPowerStripe(CurrentRange *currentRange, float power_pad_middle, float pad_to_ring, CoreSite *core_site, string side, float power_stripe_height)
 {
     if (side == UP || side == DOWN)
     {
@@ -859,7 +905,7 @@ int getSinglePadCurrentRangeNumberOfPowerStripe(CurrentRange *currentRange, floa
         // ====== power stripe resistance ========
         float pad_to_ring_resist = (pad_to_ring / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
         float current_range_to_resist = (current_range_to_pad_distance / M2_WIDTH) * M2_SHEET_RESISTANCE;
-        float power_stripe_resist = (POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
+        float power_stripe_resist = (power_stripe_height / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
         float power_stripe_total_resist = pad_to_ring_resist + current_range_to_resist + power_stripe_resist + pad_to_ring_resist;
         // ====== power stripe resistance ========
 
@@ -946,7 +992,7 @@ float getFollowPinToCoreSiteLeft(map<string, ShapeRing> *vdd_shape_map, CoreSite
 
     return distance;
 }
-float getSinglePowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring)
+float getSinglePowerStripeResist(CurrentRange *current_range, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, map<string, ShapeRing> *vdd_shape_map, CoreSite *core_site, float pad_to_ring, float power_stripe_height)
 {
     // ========= Pad To Ring start =========
     float pad_to_ring_resist = (pad_to_ring / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
@@ -968,7 +1014,7 @@ float getSinglePowerStripeResist(CurrentRange *current_range, vector<PowerPad> *
     float stripe_to_shape_ring_resist = (stripe_to_shape_ring / M3_PAD_WIDTH) * M3_SHEET_RESISTANCE_PAD;
     // ========= power stripe to shape Ring end =========
 
-    float power_stripe_resist = (POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
+    float power_stripe_resist = (power_stripe_height / POWER_STRIPE_WIDTH) * M3_SHEET_RESISTANCE_STRIPE;
 
     return (pad_to_ring_resist + stripe_to_shape_ring_resist + power_stripe_resist);
 }
@@ -976,26 +1022,18 @@ float getSinglePowerStripeResist(CurrentRange *current_range, vector<PowerPad> *
 int getNumberOfPowerStripe(CurrentRange *current_range, float power_stripe_resist, float power_rail_resist, int number_of_power_rail)
 {
 
+    float total_power = ((*current_range).range_total_power) * 0.001 *0.3;
 
-    float total_power = ((*current_range).range_total_power) * 0.001;
     float temp_total_current = total_power / VDD_PAD;
-    float temp_power_rail_current = (IR_DROP / power_rail_resist);
 
-    temp_total_current = (temp_total_current - temp_power_rail_current);
+    // float temp_power_rail_current = (IR_DROP / power_rail_resist);
+    // temp_total_current = (temp_total_current - temp_power_rail_current);
+
     int number_of_stripe = (temp_total_current * power_stripe_resist) / IR_DROP;
-
-
-    // float total_power = ((*current_range).range_total_power) * 0.001;
-    // float temp_total_current = total_power / VDD_PAD;
-
-    // temp_total_current = temp_total_current * power_stripe_resist;
-    // int number_of_stripe = temp_total_current / IR_DROP;
-
-
     return number_of_stripe;
 }
 
-void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe)
+void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe, float start_y_location_vdd_stripe, float end_y_location_vdd_stripe, float start_y_location_vss_stripe, float end_y_location_vss_stripe)
 {
 
     int routing_track_size = (*currenge).routing_track_vector.size();
@@ -1009,33 +1047,49 @@ void generatePowerStripeTcl(CurrentRange *currenge, int number_of_stripe)
     {
         float routing_track_location = (*currenge).routing_track_vector[i].start_x_location;
         // TODO 之後要改成動態
-        float routing_track_powerGround_location = (*currenge).routing_track_vector[i].start_x_location + 0.144;
+        float routing_track_powerGround_location = (*currenge).routing_track_vector[i].start_x_location + START_TRACK;
 
         float start_x_location = routing_track_location - power_stripe_width;
         float end_x_location = routing_track_location + power_stripe_width;
         power_stripe.start_x_location = floatToString(start_x_location);
-        power_stripe.start_y_location = floatToString(START_Y_LOCATION_STRIPE);
+        power_stripe.start_y_location = floatToString(start_y_location_vdd_stripe);
         power_stripe.end_x_location = floatToString(end_x_location);
-        power_stripe.end_y_location = floatToString(END_Y_LOCATION_STRIPE);
+        power_stripe.end_y_location = floatToString(end_y_location_vdd_stripe);
 
-        float start_x_ground_location = routing_track_powerGround_location - power_stripe_width;
-        float end_x_ground_location = routing_track_powerGround_location + power_stripe_width;
+        float power_middle_x_loaction = (stof(power_stripe.start_x_location) + stof(power_stripe.end_x_location)) / 2;
+        float ground_middle_x_loaction = power_middle_x_loaction + (START_TRACK * 3);
+
+        float start_x_ground_location = ground_middle_x_loaction - (POWER_STRIPE_WIDTH / 2);
+        float end_x_ground_location = ground_middle_x_loaction + (POWER_STRIPE_WIDTH / 2);
         power_ground.start_x_location = floatToString(start_x_ground_location);
-        power_ground.start_y_location = floatToString(START_Y_LOCATION_STRIPE);
+        power_ground.start_y_location = floatToString(start_y_location_vss_stripe);
         power_ground.end_x_location = floatToString(end_x_ground_location);
-        power_ground.end_y_location = floatToString(END_Y_LOCATION_STRIPE);
+        power_ground.end_y_location = floatToString(end_y_location_vss_stripe);
 
         (*currenge).power_stripe_vector.push_back(power_stripe);
         (*currenge).power_ground_vector.push_back(power_ground);
     }
 }
 
-int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *shape_map, set<string> *side_set, CoreSite *core_site)
+int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<PowerPad> *vdd_range_pad_vector, vector<FollowPin> *follow_pin_vdd_vector, vector<CurrentRange> *current_range_vector, unordered_map<string, unordered_map<string, Track>> *layer_track_map, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, set<string> *side_set, CoreSite *core_site)
 {
+    float power_stripe_y_location_start = stof((*vdd_shape_map)[DOWN].start_y_location) - ((*vdd_shape_map)[DOWN].width / 2);
+    float power_stripe_y_location_end = stof((*vdd_shape_map)[UP].start_y_location) + ((*vdd_shape_map)[DOWN].width / 2);
+    cout << "power_stripe_y_location_start : " << power_stripe_y_location_start << endl;
+    cout << "power_stripe_y_location_end : " << power_stripe_y_location_end << endl;
+
+    float power_ground_y_location_start = stof((*vss_shape_map)[DOWN].start_y_location) - ((*vdd_shape_map)[DOWN].width / 2);
+    float power_ground_y_location_end = stof((*vss_shape_map)[UP].start_y_location) + ((*vdd_shape_map)[DOWN].width / 2);
+
+    cout << "power_ground_y_location_start : " << power_ground_y_location_start << endl;
+    cout << "power_ground_y_location_end : " << power_ground_y_location_end << endl;
+
+    float power_stripe_height = abs(power_stripe_y_location_start - power_stripe_y_location_end);
+
     //為了計算不同的pad to ring
     if ((*side_set).count(UP))
     {
-        float pad_to_ring = countPadToRing(&(*shape_map), &(*direction_power_pad)[UP][0], UP);
+        float pad_to_ring = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[UP][0], UP);
         int power_stripes = 0;
         float total_resist = 0;
         //計算每個current range 需要幾條power_stripe
@@ -1043,13 +1097,17 @@ int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<Powe
         for (int i = 0; i < (*current_range_vector).size(); i++)
         {
             cout << "range : " << i << endl;
-            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
+            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring, power_stripe_height);
             cout << "power_stripe_resist : " << power_stripe_resist << endl;
-            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
-            // cout << "power_rail_resist : " << power_rail_resist/178 << endl;
+            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring);
+            cout << "power_rail_resist : " << power_rail_resist / 178 << endl;
             int number_of_stripe = getNumberOfPowerStripe(&(*current_range_vector)[i], power_stripe_resist, power_rail_resist, (*follow_pin_vdd_vector).size());
             cout << "number_of_stripe : " << number_of_stripe << endl;
-            generatePowerStripeTcl(&(*current_range_vector)[i], number_of_stripe);
+            cout << "routing track size : " << (*current_range_vector)[i].routing_track_vector.size() << endl;
+            if (number_of_stripe > 0)
+            {
+                generatePowerStripeTcl(&(*current_range_vector)[i], number_of_stripe, power_stripe_y_location_start, power_stripe_y_location_end, power_ground_y_location_start, power_ground_y_location_end);
+            }
             power_stripes += number_of_stripe;
             total_resist += power_stripe_resist;
             total_resist += power_rail_resist;
@@ -1062,16 +1120,16 @@ int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<Powe
     {
         ofstream myfile;
         myfile.open("power_file/power stripe");
-        float pad_to_ring = countPadToRing(&(*shape_map), &(*direction_power_pad)[DOWN][0], DOWN);
+        float pad_to_ring = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[DOWN][0], DOWN);
         cout << "pad_to_ring : " << pad_to_ring << endl;
-        myfile << "boundary        : " << BOUNDARY << endl;
+        // myfile << "boundary        : " << boundary << endl;
         cout << "" << endl;
         float power_stripes = 0;
         //計算每個current range 需要幾條power_stripe
         for (int i = 0; i < (*current_range_vector).size(); i++)
         {
-            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
-            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
+            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring, power_stripe_height);
+            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring);
             float number_of_stripe = getNumberOfPowerStripe(&(*current_range_vector)[i], power_stripe_resist, power_rail_resist, (*follow_pin_vdd_vector).size());
             power_stripes += number_of_stripe;
             myfile << "range            : " << i + 1 << endl;
@@ -1087,16 +1145,16 @@ int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<Powe
 
         ofstream myfile;
         myfile.open("power_file/power stripe");
-        float pad_to_ring = countPadToRing(&(*shape_map), &(*direction_power_pad)[RIGHT][0], RIGHT);
+        float pad_to_ring = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[RIGHT][0], RIGHT);
         cout << "pad_to_ring : " << pad_to_ring << endl;
-        myfile << "boundary        : " << BOUNDARY << endl;
+        // myfile << "boundary        : " << boundary << endl;
         cout << "" << endl;
         float power_stripes = 0;
         //計算每個current range 需要幾條power_stripe
         for (int i = 0; i < (*current_range_vector).size(); i++)
         {
-            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
-            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
+            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring, power_stripe_height);
+            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring);
             float number_of_stripe = getNumberOfPowerStripe(&(*current_range_vector)[i], power_stripe_resist, power_rail_resist, (*follow_pin_vdd_vector).size());
             power_stripes += number_of_stripe;
             myfile << "range            : " << i + 1 << endl;
@@ -1112,16 +1170,16 @@ int setSinglePad(map<string, vector<PowerPad>> *direction_power_pad, vector<Powe
     {
         ofstream myfile;
         myfile.open("power_file/power stripe");
-        float pad_to_ring = countPadToRing(&(*shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
+        float pad_to_ring = countPadToRing(&(*vdd_shape_map), &(*direction_power_pad)[LEFT][0], LEFT);
         cout << "pad_to_ring : " << pad_to_ring << endl;
-        myfile << "boundary        : " << BOUNDARY << endl;
+        // myfile << "boundary        : " << boundary << endl;
         cout << "" << endl;
         float power_stripes = 0;
         //計算每個current range 需要幾條power_stripe
         for (int i = 0; i < (*current_range_vector).size(); i++)
         {
-            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
-            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*shape_map), &(*core_site), pad_to_ring);
+            float power_stripe_resist = getSinglePowerStripeResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring, power_stripe_height);
+            float power_rail_resist = getSingleFolllowPinResist(&(*current_range_vector)[i], &(*vdd_range_pad_vector), &(*follow_pin_vdd_vector), &(*vdd_shape_map), &(*core_site), pad_to_ring);
             float number_of_stripe = getNumberOfPowerStripe(&(*current_range_vector)[i], power_stripe_resist, power_rail_resist, (*follow_pin_vdd_vector).size());
             power_stripes += number_of_stripe;
             myfile << "range            : " << i + 1 << endl;
@@ -1162,16 +1220,17 @@ float powerStripePowerRailToSupplyDistance(string transfer_supply_location_side,
     // cout << "tranfer :" << transfer_supply_location_side << " " << x_location << " " << y_location << " ----> " << supply_location << endl;
     // cout << "power pad to power stripe : " << middle << endl;
     // powerStripePowerRailToSupplyDistance error
+    // TODO check
     if (middle == 0)
     {
-        cout << " exception error " << endl;
+        // cout << " exception error " << endl;
     }
     return middle;
 }
 
-int caculateSinglePowerStripe(map<string, float> *power_value_map)
+int caculateSinglePowerStripe(map<string, float> *power_value_map, float power_stripe_height, float power_rail_number)
 {
-    float m3_square = POWER_STRIPE_HEIGHT / POWER_STRIPE_WIDTH;
+    float m3_square = power_stripe_height / POWER_STRIPE_WIDTH;
     float m1_square = POWER_RAIL_HEIGHT / POWER_RAIL_WIDTH;
     float m3_resistance = M3_SHEET_RESISTANCE_STRIPE * m3_square;
     float m1_resistance = LISD_SHEET_RESISTANCE * m1_square;
@@ -1185,7 +1244,7 @@ int caculateSinglePowerStripe(map<string, float> *power_value_map)
     float m3_current = IR_DROP / (m3_resistance);
     float m1_current = IR_DROP / (m1_resistance);
 
-    float temp = temp_total_current - (POWER_RAIL_NUMBER * m1_current);
+    float temp = temp_total_current - (power_rail_number * m1_current);
     int m3_number = temp / m3_current;
 
     // float temp_current = m3_current + (POWER_RAIL_NUMBER * m1_current);
@@ -1273,20 +1332,20 @@ void sortPowerPad(map<string, vector<PowerPad>> *direction_power_pad)
     // }
 }
 //暫且紀錄M1
-void getFollowPin(string def_file_name, vector<FollowPin> *follow_pin_vdd_vector, vector<FollowPin> *follow_pin_vss_vector)
+void getFollowPin(string def_transfer_file_name, vector<FollowPin> *follow_pin_vdd_vector, vector<FollowPin> *follow_pin_vss_vector)
 {
-    ifstream def_file(def_file_name);
+    ifstream def_transfer_file(def_transfer_file_name);
     string def_content;
-    if (def_file)
+    if (def_transfer_file)
     {
-        if (def_file)
+        if (def_transfer_file)
         {
-            while (getline(def_file, def_content))
+            while (getline(def_transfer_file, def_content))
             {
                 if (def_content.find("( * VDD )") != string::npos)
                 {
                     // VDDX stripe
-                    while (getline(def_file, def_content))
+                    while (getline(def_transfer_file, def_content))
                     {
                         if (def_content.find("( * VSS )") != string::npos)
                         {
@@ -1304,7 +1363,7 @@ void getFollowPin(string def_file_name, vector<FollowPin> *follow_pin_vdd_vector
                         }
                     }
                     // VSSX stripe
-                    while (getline(def_file, def_content))
+                    while (getline(def_transfer_file, def_content))
                     {
                         if (def_content.find("SHAPE FOLLOWPIN") != string::npos && def_content.find("M1") != string::npos)
                         {
@@ -1324,7 +1383,7 @@ void getFollowPin(string def_file_name, vector<FollowPin> *follow_pin_vdd_vector
             cout << "can't found file" << endl;
         }
     }
-    def_file.close();
+    def_transfer_file.close();
 }
 void power_pad_loction_sort(vector<PowerPad> *power_pad_vec, string direction)
 {
@@ -1386,13 +1445,13 @@ void setSide(PowerPad *power_pad, map<string, vector<PowerPad>> *direction_power
     }
 }
 
-void getDieArea(string def_file_name, DieArea *die_area)
+void getDieArea(string def_transfer_file_name, DieArea *die_area)
 {
-    ifstream def_file(def_file_name);
+    ifstream def_transfer_file(def_transfer_file_name);
     string def_content;
-    if (def_file)
+    if (def_transfer_file)
     {
-        while (getline(def_file, def_content))
+        while (getline(def_transfer_file, def_content))
         {
             if (def_content.find("DIEAREA") != string::npos)
             {
@@ -1416,23 +1475,23 @@ void setPowerPadDirection(map<string, vector<PowerPad>> *direction_power_pad)
     (*direction_power_pad).insert(pair<string, vector<PowerPad>>(LEFT, left_power_pad_vector));
     (*direction_power_pad).insert(pair<string, vector<PowerPad>>(RIGHT, right_power_pad_vector));
 }
-void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
+void getPowerPadLocation(string def_transfer_file_name, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
 {
 
-    ifstream def_file(def_file_name);
+    ifstream def_transfer_file(def_transfer_file_name);
     string def_content;
-    if (def_file)
+    if (def_transfer_file)
     {
-        while (getline(def_file, def_content))
+        while (getline(def_transfer_file, def_content))
         {
             if (def_content.find("PINS") != string::npos)
             {
-                while (getline(def_file, def_content))
+                while (getline(def_transfer_file, def_content))
                 {
                     if (def_content.find("VDD") != string::npos || def_content.find("VSS") != string::npos)
                     {
                         PowerPad power_pad;
-                        setPowerPadInfo(&def_file, def_content, &power_pad);
+                        setPowerPadInfo(&def_transfer_file, def_content, &power_pad);
                         if (def_content.find("VDD") != string::npos)
                         {
                             (*vdd_power_pad_vector).push_back(power_pad);
@@ -1451,13 +1510,13 @@ void getPowerPadLocation(string def_file_name, vector<PowerPad> *vdd_power_pad_v
         }
     }
 }
-void setPowerPadInfo(ifstream *def_file, string def_content, PowerPad *power_pad)
+void setPowerPadInfo(ifstream *def_transfer_file, string def_content, PowerPad *power_pad)
 {
 
     vector<string> def_content_array = splitByPattern(def_content, " ");
     (*power_pad).pad_name = def_content_array[1];
     (*power_pad).net_name = def_content_array[4];
-    while (getline((*def_file), def_content))
+    while (getline((*def_transfer_file), def_content))
     {
         if (def_content.find("LAYER") != string::npos)
         {
@@ -1496,38 +1555,6 @@ void setPowerPadLengthtWidth(vector<string> *def_content_array, PowerPad *power_
     float power_pad_up_float = abs(stof((*def_content_array)[5]));
     float power_pad_down_float = abs(stof((*def_content_array)[9]));
     (*power_pad).length = power_pad_up_float + power_pad_down_float;
-}
-void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite)
-{
-    ifstream def_file(def_file_name);
-    string def_content;
-    bool track_content_end = false;
-
-    if (def_file)
-    {
-        while (getline(def_file, def_content))
-        {
-            if (def_content.find("TRACKS") != string::npos)
-            {
-                vector<string> def_content_array = splitByPattern(def_content, " ");
-                setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
-                while (getline(def_file, def_content))
-                {
-                    if (def_content.find("TRACKS") != string::npos == false)
-                    {
-                        track_content_end = true;
-                        break;
-                    }
-                    vector<string> def_content_array = splitByPattern(def_content, " ");
-                    setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
-                }
-                if (track_content_end)
-                {
-                    break;
-                }
-            }
-        }
-    }
 }
 
 void setTrackInfo(vector<string> def_content_array, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite)
@@ -1570,17 +1597,22 @@ void setTrackLocation(Track *track, CoreSite *coreSite)
     track->location_vector = loacation_vector;
 };
 
-void setCurrentRange(CoreSite *core_site, vector<CurrentRange> *current_range_vector)
+void setCurrentRange(CoreSite *core_site, vector<CurrentRange> *current_range_vector, float boundary)
 {
     float start = stof((*core_site).left_x_location);
     float end = stof((*core_site).right_x_location);
 
-    for (float i = start; i < end; i += BOUNDARY)
+    int boundary_int = (int)boundary;
+    boundary = (float)boundary_int;
+    cout << "check boundary :" << boundary << endl;
+
+    for (float i = start; i < end; i += boundary)
     {
         CurrentRange current_range;
         current_range.left_x_location = i;
         // TODO 這裡要改過 =========
-        if (i + BOUNDARY > end)
+
+        if (i + boundary >= end)
         {
             current_range.right_x_location = end;
             current_range.range_total_power = 0;
@@ -1588,10 +1620,15 @@ void setCurrentRange(CoreSite *core_site, vector<CurrentRange> *current_range_ve
         }
         else
         {
-            current_range.right_x_location = i + BOUNDARY;
+            current_range.right_x_location = i + boundary;
             current_range.range_total_power = 0;
             (*current_range_vector).push_back(current_range);
         }
+    }
+    cout << "core site : " << start << "  " << end << endl;
+    for (int i = 0; i < (*current_range_vector).size(); i++)
+    {
+        cout << (*current_range_vector)[i].left_x_location << " " << (*current_range_vector)[i].right_x_location << endl;
     }
 }
 
@@ -1698,18 +1735,18 @@ float getConsumeRatio(string boudary, float left_x_location_float, float right_x
     return ratio;
 }
 
-void getDefPlacedImformation(string DEF_FILE, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map)
+void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map)
 {
-    ifstream def_file(DEF_FILE);
+    ifstream def_transfer_file(def_transfer_file_name);
     string def_content;
     int log = 0;
-    if (def_file)
+    if (def_transfer_file)
     {
-        while (getline(def_file, def_content))
+        while (getline(def_transfer_file, def_content))
         {
             if (def_content.find("COMPONENT") != string::npos && ((def_content.find("COMPONENTPIN") != string::npos) == false))
             {
-                while (getline(def_file, def_content))
+                while (getline(def_transfer_file, def_content))
                 {
                     if (def_content.find("PLACED") != string::npos)
                     {
@@ -1775,14 +1812,14 @@ void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_pl
         }
     }
 }
-void getCoreSite(string def_file_name, CoreSite *core_site)
+void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site)
 {
-    ifstream def_file(def_file_name);
+    ifstream DEF_TRANSFER_FILE(DEF_TRANSFER_FILE_name);
     string def_content;
 
-    if (def_file)
+    if (DEF_TRANSFER_FILE)
     {
-        while (getline(def_file, def_content))
+        while (getline(DEF_TRANSFER_FILE, def_content))
         {
 
             if (def_content.find("FE_CORE_BOX_LL_X") != string::npos)
@@ -1813,7 +1850,7 @@ void getCoreSite(string def_file_name, CoreSite *core_site)
     }
     else
     {
-        cout << "read " << def_file_name << " error " << endl;
+        cout << "read " << DEF_TRANSFER_FILE_name << " error " << endl;
     }
 }
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_info_map)
@@ -1883,7 +1920,7 @@ void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerI
             {
                 vector<string> ip_content_array = splitByPattern(ip_content, " ");
                 CellInstancePowerInfo cell_instance_power_info;
-                cell_instance_power_info.instance_total_power = stof(ip_content_array[0])*RANGER_POWER_RATIO;
+                cell_instance_power_info.instance_total_power = stof(ip_content_array[0]);
                 power += cell_instance_power_info.instance_total_power;
                 cell_instance_power_info.cell_name = ip_content_array[1];
                 cell_instance_power_info.cell_id = ip_content_array[2];
@@ -1966,17 +2003,17 @@ void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing
     }
 }
 
-void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector)
+void getShapeRing(string DEF_TRANSFER_FILE_name, vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector)
 {
-    ifstream def_file(def_file_name);
+    ifstream DEF_TRANSFER_FILE(DEF_TRANSFER_FILE_name);
     string def_content;
-    if (def_file)
+    if (DEF_TRANSFER_FILE)
     {
-        while (getline(def_file, def_content))
+        while (getline(DEF_TRANSFER_FILE, def_content))
         {
             if (def_content.find("( * VDD )") != string::npos)
             {
-                while (getline(def_file, def_content))
+                while (getline(DEF_TRANSFER_FILE, def_content))
                 {
                     if (def_content.find("SHAPE RING") != string::npos)
                     {
@@ -1993,7 +2030,7 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
             }
             else if (def_content.find("( * VSS )") != string::npos)
             {
-                while (getline(def_file, def_content))
+                while (getline(DEF_TRANSFER_FILE, def_content))
                 {
                     if (def_content.find("SHAPE RING") != string::npos)
                     {
@@ -2108,3 +2145,54 @@ string floatToString(const float value)
     out << value;
     return out.str();
 }
+
+void getTrack(string def_file_name, unordered_map<string, unordered_map<string, Track>> *layer_track_map, CoreSite *corsite)
+{
+    ifstream def_file(def_file_name);
+    string def_content;
+    bool track_content_end = false;
+
+    if (def_file)
+    {
+        while (getline(def_file, def_content))
+        {
+            if (def_content.find("TRACKS") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
+                while (getline(def_file, def_content))
+                {
+                    if (def_content.find("TRACKS") != string::npos == false)
+                    {
+                        track_content_end = true;
+                        break;
+                    }
+                    vector<string> def_content_array = splitByPattern(def_content, " ");
+                    setTrackInfo(def_content_array, &(*layer_track_map), &(*corsite));
+                }
+                if (track_content_end)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// ================= 調整side start =========================
+// direction_power_pad.erase(direction_power_pad.find(UP));
+// direction_power_pad.erase(direction_power_pad.find(DOWN));
+// direction_power_pad.erase(direction_power_pad.find(RIGHT));
+// direction_power_pad.erase(direction_power_pad.find(LEFT));
+// ================= 調整side end =========================
+// direction_power_pad[UP].pop_back();
+// direction_power_pad[DOWN].pop_back();
+// direction_power_pad[RIGHT].pop_back();
+// direction_power_pad[LEFT].pop_back();
+// for (auto shape : vdd_shape_map)
+// {
+//     cout << "side : " << shape.second.side << " " << shape.second.width << "==========" << endl;
+//     cout << shape.second.start_x_location << " " << shape.second.start_y_location << endl;
+//     cout << shape.second.end_x_location << " " << shape.second.end_y_location << endl;
+//     cout << "============================================" << endl;
+// }

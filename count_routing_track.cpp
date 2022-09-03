@@ -9,7 +9,7 @@ using namespace std;
 #include <string>
 #include <algorithm>
 
-const string DEF_FILE = "def_file/b19/6t49_b19_routing_44_9_53_transfer.def";
+const string DEF_FILE = "def_file/b19/6t49_b19_routing_88_9_39_transfer.def";
 const float TOTAL_POWER = 4.4743;
 const float M3_SHEET_RESISTANCE = 3.1445326;
 const float M1_SHEET_RESISTANCE = 3.1445326;
@@ -79,16 +79,29 @@ int main()
     getCoreSite(DEF_FILE, &core_site);
     getTrack(DEF_FILE, &layer_track_map, &core_site);
 
-    for (auto iter = layer_track_map.begin(); iter != layer_track_map.end(); ++iter)
-    {
-        unordered_map<string, Track> track_map =  iter->second;
-        for (auto iter = track_map.begin(); iter != track_map.end(); ++iter)
-        {
-            cout << iter->first << endl;
-            Track track =  iter->second;
+    unordered_map<string, Track> track_map = layer_track_map["M3"];
+    Track track = track_map["Y"];
+    cout << track.start_step << endl;
+
+    //  for (auto iter = track_map.begin(); iter != track_map.end(); ++iter)
+    //     {
+    //         cout << iter->first << endl;
+    //         Track track =  iter->second;
         
-        }
-    }
+    //     }
+
+    // for (auto iter = layer_track_map.begin(); iter != layer_track_map.end(); ++iter)
+    // {
+    //     unordered_map<string, Track> track_map =  iter->second;
+    //     for (auto iter = track_map.begin(); iter != track_map.end(); ++iter)
+    //     {
+    //         cout << iter->first << endl;
+    //         Track track =  iter->second;
+            
+            
+        
+    //     }
+    // }
 
     // getFollowPin(DEF_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
     //   getPowerStripeVia(DEF_FILE, &m3_m2_via_vdd_map,  &m2_m1_via_vdd_map, &m3_m2_via_vss_map,  &m2_m1_via_vss_map);
