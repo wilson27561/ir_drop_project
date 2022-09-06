@@ -4,3 +4,5 @@ POWER_PAD_SRIPE_FILE : stripe_tcl/6t49_aes_routing_run0_4pad.tcl
 LEF_FILE : tech_lef_file/characterization_6T_ALL_20200610area_4x.lef
 IP_REPORT_FILE : power_report/activity_0.2/print_ip_aes.report
 ADD_STRIPE_ESTIMATE : stripe_tcl/activity_0.2/addStripe_6t49_aes_routing_run0.tcl
+
+
