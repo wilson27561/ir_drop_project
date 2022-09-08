@@ -13,16 +13,8 @@ using namespace std;
 const double esp = 1e-6;
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
-struct PinAcess
+struct PinAccess
 {
-    // lef information
-    string left_bottom_x_location;
-    string left_bottom_y_location;
-    string right_top_x_location;
-    string right_top_y_location;
-    string middle_x_location;
-    string middle_y_location;
-
     // def information
     string left_bottom_x_location_def;
     string left_bottom_y_location_def;
@@ -31,6 +23,16 @@ struct PinAcess
     string middle_x_location_def;
     string middle_y_location_def;
 };
+struct PinAccessShape
+{
+    // lef information
+    string left_bottom_x_location;
+    string left_bottom_y_location;
+    string right_top_x_location;
+    string right_top_y_location;
+    string middle_x_location;
+    string middle_y_location;
+};
 
 struct Rect
 {
@@ -38,14 +40,21 @@ struct Rect
     string bottom_y_location;
     string top_x_location;
     string top_y_location;
-    vector<PinAcess> pin_access_vector;
+    vector<PinAccessShape> pin_access_shape_vector;
 };
-
+// Step1 : 把Pin 改成pin shape
+// Step2 : 把Pin放到CellPlacedInfo -> PinAcess (pinname pinAcess_vector)
+struct PinShape
+{
+    string pin_name;
+    // layer    rect
+    map<string, vector<Rect>> rect_map;
+    // map<string, vector<PinShape>> pin_shape_map;
+};
 struct Pin
 {
     string pin_name;
-    map<string, vector<Rect>> rect_map;
-    // map<string, vector<PinShape>> pin_shape_map;
+    map<string, vector<PinAccess>> layer_pin_access_map;
 };
 
 struct CellInfo
@@ -53,8 +62,8 @@ struct CellInfo
     string cell_name;
     string height;
     string width;
-    // key:PinName value:Pin
-    map<string, Pin> pin_map;
+    // key:PinName value:PinShape
+    map<string, PinShape> pin_shape_map;
 };
 struct CellPlacedInfo
 {
@@ -65,6 +74,7 @@ struct CellPlacedInfo
     string right_x_location;
     string up_y_location;
     string direction;
+    map<string, Pin> pin_map;
 };
 struct CellInstancePowerInfo
 {
@@ -107,14 +117,14 @@ void getDefPlacedImformation(string DEF_TRANSFER_FILE, unordered_map<string, Cel
 
 // sub function
 void getSizeOfCell(string lef_content, CellInfo *cell_info);
-void getPinOfCell(ifstream *lef_file, string left_content, Pin *pin);
-void getPortOfPin(ifstream *lef_file, string lef_content, Pin *pin);
-void getLayerOfPin(ifstream *lef_file, string lef_content, Pin *pin);
+void getPinShapeOfCell(ifstream *lef_file, string left_content, PinShape *pin_shape);
+void getPortOfPinShape(ifstream *lef_file, string lef_content, PinShape *pin_shape);
+void getLayerOfPinShape(ifstream *lef_file, string lef_content, PinShape *pin_shape);
 void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map);
 void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
 void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_placed_info);
 void getPinAccessFromRect(Rect *rect);
-void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_placed_info, string cell_height, string cell_width);
+void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInfo *cell_placed_info, string cell_width, string cell_height, PinAccess *pin_access);
 void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site);
 void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site);
@@ -134,12 +144,12 @@ int stringToInt(string num);
 int main()
 {
     string LEF_FILE = "tech_lef_file/test.lef";
-    string DEF_TRANSFER_FILE = "def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_aes_routing_run0_transfer.def";
+    string DEF_TRANSFER_FILE = "def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/test.def";
     string IP_REPORT_FILE = "power_report/activity_0.2/print_ip_aes.report";
     string v1_width = "0.072";
-    string m2_y_pitch = "0.144";
+    string m2_y_pitch = "0.072";
     string m2_y_start = "1.44";
-    string m3_x_pitch = "0.144";
+    string m3_x_pitch = "0.072";
     string m3_x_start = "0.18";
     CoreSite core_site;
     vector<Stripe> vdd_stripe_vector;
@@ -151,34 +161,53 @@ int main()
     unordered_map<string, TrackPoint> m2_track_point_map;
     getCoreSite(DEF_TRANSFER_FILE, &core_site);
     setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
-    // getLefCellImformation(LEF_FILE, &cell_info_map);
-    // getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
-    // getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
-    // getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
-    // c (&vdd_stripe_vector, &vss_stripe_vector, &core_site);
+    getLefCellImformation(LEF_FILE, &cell_info_map);
+    getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
+
+    getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
+    getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
+    setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site);
 
     // step 4 : 取得每一條routing track 蓋到多少cell 的 power 及 蓋到多少 cell的pin access point
 
-    // for (auto cellInfo : cell_info_map)
+    // a. power stripe 在每條power stripe 上 各經過多少 power consuming 跟多少cell 需要牽扯到 power stripe 的 width 還有track 的部分
+    // b. 經過每條後 壓到多少pin access point
+    // c. 確認pin access 是不是在track 上面
+
+
+
+    // for (auto cell_place : cell_placed_map)
     // {
-    //     cout << "cell name : " << cellInfo.first << endl;
-    //     map<string, Pin> pin_map = cellInfo.second.pin_map;
+    //     cout << "pin id :" << cell_place.first << endl;
+    //     map<string, Pin> pin_map = cell_place.second.pin_map;
     //     for (auto pin : pin_map)
     //     {
-    //         cout << pin.second.pin_name << " " << pin.second.rect_map.size() << endl;
-    //         for (auto rect : pin.second.rect_map)
+    //         cout << "pin name : " << pin.first << endl;
+    //         for (auto pin_layer : pin.second.layer_pin_access_map)
     //         {
-    //             cout << rect.first << endl;
-    //             for (int i = 0; i < rect.second.size(); i++)
+    //             cout << "layer : " << pin_layer.first << " ";
+    //             for (int i = 0; i < pin_layer.second.size(); i++)
     //             {
-    //                 cout << rect.second[i].bottom_x_location << " " << rect.second[i].bottom_y_location << " " << rect.second[i].top_x_location << " " << rect.second[i].top_y_location << " "  << rect.second[i].pin_access_vector.size() << endl;
+    //                 cout << "(" << pin_layer.second[i].middle_x_location_def << " " << pin_layer.second[i].middle_y_location_def << ")";
     //             }
-    //         }
+    //             std::cout << "" << std::endl;
+    //         };
     //     }
     // }
 
     return 0;
 }
+
+
+
+
+
+void setPinAccessPointFromTrack(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map) {
+
+
+
+}
+
 void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map, string m3_x_start, string m3_x_pitch, string m2_y_start, string m2_y_pitch, CoreSite *core_site)
 {
 
@@ -216,9 +245,9 @@ void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map,
         }
     };
 
-    cout << "m2 track size : " << (*m2_track_point_map).size() << endl;
-    cout << "m2 track size : " << m2_track_point_vector.size() << endl;
-    cout << "m2 track point : " << m2_track_point_vector[3179].y_point << endl;
+    // cout << "m2 track size : " << (*m2_track_point_map).size() << endl;
+    // cout << "m2 track size : " << m2_track_point_vector.size() << endl;
+    // cout << "m2 track point : " << m2_track_point_vector[507].y_point << endl;
 
     int start_core_site_x_location_int = (stof((*core_site).left_x_location) * 1000) / 4;
     int end_core_site_x_location_int = (stof((*core_site).right_x_location) * 1000) / 4;
@@ -251,9 +280,9 @@ void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map,
             break;
         }
     };
-    cout << "m2 track size : " << (*m3_track_point_map).size() << endl;
-    cout << "m2 track size : " << m3_track_point_vector.size() << endl;
-    cout << "m2 track point : " << m3_track_point_vector[3981].x_point << endl;
+    // cout << "m2 track size : " << (*m3_track_point_map).size() << endl;
+    // cout << "m2 track size : " << m3_track_point_vector.size() << endl;
+    // cout << "m3 track point : " << m3_track_point_vector[509].x_point << endl;
 };
 
 int stringToInt(string num)
@@ -500,7 +529,7 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
 
     if ((*cell_info_map).count(cell_name))
     {
-
+        // cell 的 右上資訊
         string left_x_location = (*cell_placed_info).left_x_location;
         string down_y_location = (*cell_placed_info).down_y_location;
         float left_x_float = stof(left_x_location);
@@ -509,42 +538,50 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
         string cell_height = (*cell_info_map)[cell_name].height;
         float right_x_float = left_x_float + stof(cell_width);
         float up_y_float = down_y_float + stof(cell_height);
-
-        cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
-
         (*cell_placed_info).right_x_location = to_string(right_x_float);
         (*cell_placed_info).up_y_location = to_string(up_y_float);
+        cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
 
         if ((*cell_placed_info).cell_id == "U145431")
         {
 
-            map<string, Pin> pin_map = (*cell_info_map)[cell_name].pin_map;
-
-            for (auto pin : pin_map)
+            map<string, PinShape> pin_shape_map = (*cell_info_map)[cell_name].pin_shape_map;
+            map<string, Pin> pin_map;
+            // 將 pin access 放入 cell placed imformation
+            for (auto pin_shape : pin_shape_map)
             {
-                map<string, vector<Rect>> rect_map = pin.second.rect_map;
-                cout << pin.first << endl;
-
+                Pin pin;
+                map<string, vector<Rect>> rect_map = pin_shape.second.rect_map;
+                cout << pin_shape.first << endl;
+                string pin_name = pin_shape.first;
+                map<string, vector<PinAccess>> pin_access_layer_map;
                 for (auto rect : rect_map)
                 {
+                    string layer_name = rect.first;
                     vector<Rect> rect_vector = rect.second;
+                    vector<PinAccess> pin_access_vector;
                     for (int i = 0; i < rect_vector.size(); i++)
                     {
-
-                        vector<PinAcess> pin_access_vector = rect_vector[i].pin_access_vector;
-                        if (pin_access_vector.size() > 0)
+                        vector<PinAccessShape> pin_access_shape_vector = rect_vector[i].pin_access_shape_vector;
+                        if (pin_access_shape_vector.size() > 0)
                         {
-                            for (int i = 0; i < pin_access_vector.size(); i++)
+                            for (int i = 0; i < pin_access_shape_vector.size(); i++)
                             {
+                                PinAccess pin_access;
                                 // cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
-                                cout << pin_access_vector[i].left_bottom_x_location << " " << pin_access_vector[i].left_bottom_y_location << " " << pin_access_vector[i].right_top_x_location << " " << pin_access_vector[i].right_top_y_location << endl;
-                                getPinAccessLocationFromDef(&(pin_access_vector[i]), &(*cell_placed_info), cell_width, cell_height);
+                                cout << pin_access_shape_vector[i].left_bottom_x_location << " " << pin_access_shape_vector[i].left_bottom_y_location << " " << pin_access_shape_vector[i].right_top_x_location << " " << pin_access_shape_vector[i].right_top_y_location << endl;
+                                getPinAccessLocationFromDef(&(pin_access_shape_vector[i]), &(*cell_placed_info), cell_width, cell_height, &pin_access);
+                                pin_access_vector.push_back(pin_access);
                             }
                             cout << "" << endl;
                         }
                     }
+                    pin_access_layer_map.insert(pair<string, vector<PinAccess>>(layer_name, pin_access_vector));
                 }
+                pin.layer_pin_access_map = pin_access_layer_map;
+                pin_map.insert(pair<string, Pin>(pin_name, pin));
             }
+            (*cell_placed_info).pin_map = pin_map;
         }
     }
     else
@@ -553,7 +590,7 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
     }
 }
 
-void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_placed_info, string cell_width, string cell_height)
+void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInfo *cell_placed_info, string cell_width, string cell_height, PinAccess *pin_access)
 {
     float cell_place_left_x = stof((*cell_placed_info).left_x_location);
     float cell_place_down_y = stof((*cell_placed_info).down_y_location);
@@ -571,8 +608,8 @@ void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_plac
         // (*pin_access).right_top_x_location_def = floatToString(cell_place_left_x + right_top_x_location_float);
         // (*pin_access).right_top_y_location_def = floatToString(cell_place_down_y + right_top_y_location_float);
 
-        float middle_x_location_float = stof((*pin_access).middle_x_location);
-        float middle_y_location_float = stof((*pin_access).middle_y_location);
+        float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
+        float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
 
         (*pin_access).middle_x_location_def = floatToString(cell_place_left_x + middle_x_location_float);
         (*pin_access).middle_y_location_def = floatToString(cell_place_down_y + middle_y_location_float);
@@ -583,8 +620,8 @@ void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_plac
     }
     else if ((*cell_placed_info).direction == "S")
     {
-        float middle_x_location_float = stof((*pin_access).middle_x_location);
-        float middle_y_location_float = stof((*pin_access).middle_y_location);
+        float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
+        float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
 
         float left_bottom_x_distance = abs(cell_width_float - middle_x_location_float);
         float right_top_y_distance = abs(cell_height_float - middle_y_location_float);
@@ -608,8 +645,8 @@ void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_plac
         // (*pin_access).right_top_x_location_def = floatToString(cell_place_left_x + right_top_x_distance);
         // (*pin_access).right_top_y_location_def = floatToString(cell_place_down_y + right_top_y_location_float);
 
-        float middle_x_location_float = stof((*pin_access).middle_x_location);
-        float middle_y_location_float = stof((*pin_access).middle_y_location);
+        float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
+        float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
 
         float middle_x_distance_float = abs(cell_width_float - middle_x_location_float);
         (*pin_access).middle_x_location_def = floatToString(cell_place_left_x + middle_x_distance_float);
@@ -631,8 +668,8 @@ void getPinAccessLocationFromDef(PinAcess *pin_access, CellPlacedInfo *cell_plac
         // (*pin_access).right_top_x_location_def = floatToString(cell_place_left_x + right_top_x_location_float);
         // (*pin_access).right_top_y_location_def = floatToString(cell_place_down_y + right_top_y_distance);
 
-        float middle_x_location_float = stof((*pin_access).middle_x_location);
-        float middle_y_location_float = stof((*pin_access).middle_y_location);
+        float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
+        float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
 
         (*pin_access).middle_x_location_def = floatToString(cell_place_left_x + middle_x_location_float);
         float top_y_distance_float = abs(cell_height_float - middle_y_location_float);
@@ -682,7 +719,7 @@ void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cel
                 vector<string> lef_content_array = splitByPattern(lef_content, " ");
                 string cell_name = lef_content_array[1];
                 cell_info.cell_name = cell_name;
-                map<string, Pin> pin_map;
+                map<string, PinShape> pin_shape_map;
                 while (getline(lef_file, lef_content))
                 {
                     vector<string> lef_content_array = splitByPattern(lef_content, " ");
@@ -692,12 +729,12 @@ void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cel
                     }
                     if (lef_content.find("PIN") != string::npos)
                     {
-                        Pin pin;
+                        PinShape pin_shape;
                         map<string, vector<Rect>> rect_map;
-                        pin.rect_map = rect_map;
-                        getPinOfCell(&lef_file, lef_content, &pin);
-                        pin_map.insert(pair<string, Pin>(pin.pin_name, pin));
-                        cell_info.pin_map = pin_map;
+                        pin_shape.rect_map = rect_map;
+                        getPinShapeOfCell(&lef_file, lef_content, &pin_shape);
+                        pin_shape_map.insert(pair<string, PinShape>(pin_shape.pin_name, pin_shape));
+                        cell_info.pin_shape_map = pin_shape_map;
                     }
                     if ((lef_content_array[0] == "END") && (lef_content_array[1] == cell_info.cell_name))
                     {
@@ -722,19 +759,19 @@ void getSizeOfCell(string lef_content, CellInfo *cell_info)
     (*cell_info).width = lef_content_array[1];
 }
 
-void getPinOfCell(ifstream *lef_file, string lef_content, Pin *pin)
+void getPinShapeOfCell(ifstream *lef_file, string lef_content, PinShape *pin_shape)
 {
     vector<string> lef_content_array = splitByPattern(lef_content, " ");
-    (*pin).pin_name = lef_content_array[1];
+    (*pin_shape).pin_name = lef_content_array[1];
     // cout << (*pin).pin_name << endl;
     while (getline(*lef_file, lef_content))
     {
         vector<string> lef_content_array = splitByPattern(lef_content, " ");
         if ((lef_content_array[0] == "PORT"))
         {
-            getPortOfPin(&(*lef_file), lef_content, &(*pin));
+            getPortOfPinShape(&(*lef_file), lef_content, &(*pin_shape));
         }
-        if ((lef_content_array[0] == "END") && (lef_content_array[1] == (*pin).pin_name))
+        if ((lef_content_array[0] == "END") && (lef_content_array[1] == (*pin_shape).pin_name))
         {
             // cout << lef_content << endl;
             break;
@@ -742,7 +779,7 @@ void getPinOfCell(ifstream *lef_file, string lef_content, Pin *pin)
     }
 }
 
-void getPortOfPin(ifstream *lef_file, string lef_content, Pin *pin)
+void getPortOfPinShape(ifstream *lef_file, string lef_content, PinShape *pin_shape)
 {
     // cout << lef_content << endl;
     vector<Rect> rect_vector;
@@ -754,7 +791,7 @@ void getPortOfPin(ifstream *lef_file, string lef_content, Pin *pin)
         {
             if (rect_vector.size() > 0)
             {
-                (*pin).rect_map.insert(pair<string, vector<Rect>>(layer_name, rect_vector));
+                (*pin_shape).rect_map.insert(pair<string, vector<Rect>>(layer_name, rect_vector));
                 rect_vector.clear();
             }
             layer_name = lef_content_array[1];
@@ -768,7 +805,7 @@ void getPortOfPin(ifstream *lef_file, string lef_content, Pin *pin)
             rect.top_x_location = lef_content_array[3];
             rect.top_y_location = lef_content_array[4];
             // cout << "====================" << endl;
-            if (isPinAccessNameAndLayer(layer_name, pin->pin_name))
+            if (isPinAccessNameAndLayer(layer_name, pin_shape->pin_name))
             {
                 // cout << lef_content << endl;
                 getPinAccessFromRect(&rect);
@@ -780,7 +817,7 @@ void getPortOfPin(ifstream *lef_file, string lef_content, Pin *pin)
         {
             if (rect_vector.size() > 0)
             {
-                (*pin).rect_map.insert(pair<string, vector<Rect>>(layer_name, rect_vector));
+                (*pin_shape).rect_map.insert(pair<string, vector<Rect>>(layer_name, rect_vector));
                 rect_vector.clear();
             }
             // cout << lef_content << endl;
@@ -822,7 +859,7 @@ void getPinAccessFromRect(Rect *rect)
     float bottom_y_location_float = stof((*rect).bottom_y_location);
     float top_x_location_float = stof((*rect).top_x_location);
     float top_y_location_float = stof((*rect).top_y_location);
-    vector<PinAcess> pin_access_vector;
+    vector<PinAccessShape> pin_access_shape_vector;
     // step 1: 判斷是 垂直還是水平
     if (isVertical(&(*rect)))
     {
@@ -837,23 +874,23 @@ void getPinAccessFromRect(Rect *rect)
             float left_bottom_y_location = i;
             float right_top_x_location = top_x_location_float;
             float right_top_y_location = i + 0.072;
-            PinAcess pin_access;
+            PinAccessShape pin_access_shape;
 
-            pin_access.middle_x_location = floatToString(middle_x_location);
-            pin_access.middle_y_location = floatToString(middle_y_location);
-            pin_access.left_bottom_x_location = floatToString(left_bottom_x_location);
-            pin_access.left_bottom_y_location = floatToString(left_bottom_y_location);
-            pin_access.right_top_x_location = floatToString(right_top_x_location);
-            pin_access.right_top_y_location = floatToString(right_top_y_location);
+            pin_access_shape.middle_x_location = floatToString(middle_x_location);
+            pin_access_shape.middle_y_location = floatToString(middle_y_location);
+            pin_access_shape.left_bottom_x_location = floatToString(left_bottom_x_location);
+            pin_access_shape.left_bottom_y_location = floatToString(left_bottom_y_location);
+            pin_access_shape.right_top_x_location = floatToString(right_top_x_location);
+            pin_access_shape.right_top_y_location = floatToString(right_top_y_location);
             if (right_top_y_location < top_y_location_float || floatIsEqual(right_top_y_location, top_y_location_float))
             {
-                pin_access_vector.push_back(pin_access);
+                pin_access_shape_vector.push_back(pin_access_shape);
             }
 
             // cout << " middle " << middle_x_location << " " << middle_y_location;
             // cout <<" vertical " << " left_bottom_x_location : " << pin_access.left_bottom_x_location << " left_bottom_y_location : " << pin_access.left_bottom_y_location << " right_top_x_location : " << pin_access.right_top_x_location << " right_top_y_location : " << pin_access.right_top_y_location << endl;
         }
-        (*rect).pin_access_vector = pin_access_vector;
+        (*rect).pin_access_shape_vector = pin_access_shape_vector;
         // cout << "" << endl;
     }
     else
@@ -871,20 +908,20 @@ void getPinAccessFromRect(Rect *rect)
             float right_top_x_location = i + 0.072;
             float right_top_y_location = top_y_location_float;
 
-            PinAcess pin_access;
-            pin_access.middle_x_location = floatToString(middle_x_locaiton);
-            pin_access.middle_y_location = floatToString(middle_y_location);
-            pin_access.left_bottom_x_location = floatToString(left_bottom_x_location);
-            pin_access.left_bottom_y_location = floatToString(left_bottom_y_location);
-            pin_access.right_top_x_location = floatToString(right_top_x_location);
-            pin_access.right_top_y_location = floatToString(right_top_y_location);
+            PinAccessShape pin_access_shape;
+            pin_access_shape.middle_x_location = floatToString(middle_x_locaiton);
+            pin_access_shape.middle_y_location = floatToString(middle_y_location);
+            pin_access_shape.left_bottom_x_location = floatToString(left_bottom_x_location);
+            pin_access_shape.left_bottom_y_location = floatToString(left_bottom_y_location);
+            pin_access_shape.right_top_x_location = floatToString(right_top_x_location);
+            pin_access_shape.right_top_y_location = floatToString(right_top_y_location);
             if (right_top_x_location < top_x_location_float || floatIsEqual(right_top_x_location, top_x_location_float))
             {
-                pin_access_vector.push_back(pin_access);
+                pin_access_shape_vector.push_back(pin_access_shape);
             }
             // cout << " horizontal " << " left_bottom_x_location : " << pin_access.left_bottom_x_location << " left_bottom_y_location : " << pin_access.left_bottom_y_location << " right_top_x_location : " << pin_access.right_top_x_location << " right_top_y_location : " << pin_access.right_top_y_location << endl;
         }
-        (*rect).pin_access_vector = pin_access_vector;
+        (*rect).pin_access_shape_vector = pin_access_shape_vector;
         // cout << "" << endl;
     }
 }
@@ -1007,3 +1044,21 @@ string floatToString(const float value)
     out << value;
     return out.str();
 }
+
+// for (auto cellInfo : cell_info_map)
+// {
+//     cout << "cell name : " << cellInfo.first << endl;
+//     map<string, PinShape> pin_shape_map = cellInfo.second.pin_shape_map;
+//     for (auto pin_shape : pin_shape_map)
+//     {
+//         cout << pin_shape.second.pin_name << " " << pin_shape.second.rect_map.size() << endl;
+//         for (auto rect : pin_shape.second.rect_map)
+//         {
+//             cout << rect.first << endl;
+//             for (int i = 0; i < rect.second.size(); i++)
+//             {
+//                 cout << rect.second[i].bottom_x_location << " " << rect.second[i].bottom_y_location << " " << rect.second[i].top_x_location << " " << rect.second[i].top_y_location << " "  << rect.second[i].pin_access_vector.size() << endl;
+//             }
+//         }
+//     }
+// }

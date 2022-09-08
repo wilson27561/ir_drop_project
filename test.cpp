@@ -21,6 +21,33 @@ int getStrlength(string resource_str, int pos_int);
 int main()
 {
 
+    vector<int> num_vector;
+    num_vector.push_back(1);
+    num_vector.push_back(2);
+    num_vector.push_back(3);
+    num_vector.push_back(4);
+    num_vector.push_back(5);
+    num_vector.push_back(6);
+    num_vector.push_back(7);
+    num_vector.push_back(8);
+    num_vector.push_back(9);
+    cout << "check 1: " << num_vector.size() << endl;
+    for (int i = 0; i < num_vector.size(); i++)
+    {
+        if (num_vector[i] == 4)
+        {
+            cout << num_vector[i] << endl;
+            num_vector.erase(num_vector.begin() + i);
+        }
+    }
+ 
+    cout << "check 2: " << num_vector.size() << endl;
+    for (int i = 0; i < num_vector.size(); i++)
+    {
+
+        cout << num_vector[i] << endl;
+    }
+
     //  string str = "    NEW M1 288 + SHAPE FOLLOWPIN ( 40320 1153152 ) ( 1581696 * )";
     //  string str = "SHAPE FOLLOWPIN";
     //  string temp_string;
@@ -90,10 +117,10 @@ int main()
     //     }
     // }
 
-    for (int i = 0; i < 10; i+=4)
-    {
-        cout << i << endl;
-    }
+    // for (int i = 0; i < 10; i += 4)
+    // {
+    //     cout << i << endl;
+    // }
 
     return 0;
 }
