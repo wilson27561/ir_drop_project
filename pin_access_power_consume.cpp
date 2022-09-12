@@ -112,6 +112,7 @@ struct TrackPoint
     float y_point;
     vector<string> power_cell_id_vector;
     bool isRoutingTrack;
+    float total_pin_access_power_consum_cost;
 };
 
 // main function
@@ -136,17 +137,21 @@ void setRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
 void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map, string m3_x_start, string m3_x_pitch, string m2_y_start, string m2_y_pitch, CoreSite *core_site);
 void setPinAccessPointFromTrack(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void setRoutingTrackPowerConsuming(string power_stripe_width, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+float getPinAccessPointOfPlaced(float power_stripe_width, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
+void setRoutingTrackNumberOfPinAccess(string power_stripe_width, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 //判斷
 bool isVertical(Rect *rect);
 bool isPinAccessNameAndLayer(string layer_name, string pin_name);
 bool isPowerStripe(Stripe *stripe, CoreSite *core_site);
 bool isInTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width);
+bool isCoverPinAccess(PinAccess *pin_access, TrackPoint *track_point, float power_stripe_width);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
 bool floatIsEqual(float a, float b);
 string floatToString(const float value);
 int stringToInt(string num);
+float convertInnovusPoint(int number);
 int main()
 {
     string LEF_FILE = "tech_lef_file/test.lef";
@@ -173,9 +178,21 @@ int main()
     // getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
     // getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
     // setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site);
-    setPinAccessPointFromTrack(&m2_track_point_map, &m3_track_point_map, &cell_placed_map);
-    setRoutingTrackPowerConsuming("0.224", &m3_track_point_map, &cell_placed_map);
+    // for (auto cell_place : cell_placed_map["U148369"].pin_map)
+    // {
+    //     cout << cell_place.first << endl;
 
+    //     for (auto cell_layer : cell_place.second.layer_pin_access_map)
+    //     {
+    //         for (int i = 0; i < cell_layer.second.size(); i++)
+    //         {
+    //             cout << cell_place.first << "  " << cell_layer.second[i].middle_x_location_def << "  " << cell_layer.second[i].middle_y_location_def << endl;
+    //         }
+    //     }
+    // }
+    // setPinAccessPointFromTrack(&m2_track_point_map, &m3_track_point_map, &cell_placed_map);
+    // setRoutingTrackPowerConsuming("0.224", &m3_track_point_map, &cell_placed_map);
+    // setRoutingTrackNumberOfPinAccess("0.224", &m3_track_point_map, &cell_placed_map, &cell_ip_map);
     // step 4 : 取得每一條routing track 蓋到多少cell 的 power 及 蓋到多少 cell的pin access point
 
     // a. power stripe 在每條power stripe 上 各經過多少 power consuming 跟多少cell 需要牽扯到 power stripe 的 width 還有track 的部分
@@ -201,6 +218,19 @@ int main()
     //     }
     // }
 
+    // for (auto cell_place : cell_placed_map["U148369"].pin_map)
+    // {
+    //     cout << cell_place.first << endl;
+
+    //     for (auto cell_layer : cell_place.second.layer_pin_access_map)
+    //     {
+    //         for (int i = 0; i < cell_layer.second.size(); i++)
+    //         {
+    //             cout << cell_place.first << "  (" << cell_layer.second[i].middle_x_location_def << " " << cell_layer.second[i].middle_y_location_def << ")" << endl;
+    //         }
+    //     }
+    // }
+
     // for (auto m3_track_point : m3_track_point_map)
     // {
     //     if (m3_track_point.second.power_cell_id_vector.size() > 0)
@@ -217,7 +247,8 @@ int main()
     return 0;
 }
 
-void setRoutingTrackNumberOfPinAccess(string power_stripe_width, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
+//每條routint track 占用多少pin access point --- 1
+void setRoutingTrackNumberOfPinAccess(string power_stripe_width, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
 {
     float power_stripe_width_float = stof(power_stripe_width);
     for (auto m3_track_point_iter = (*m3_track_point_map).begin(); m3_track_point_iter != (*m3_track_point_map).end(); ++m3_track_point_iter)
@@ -229,34 +260,113 @@ void setRoutingTrackNumberOfPinAccess(string power_stripe_width, unordered_map<s
             {
                 string cell_id = track_point.power_cell_id_vector[i];
                 CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+                float pin_access_power_consume_cost = getPinAccessPointOfPlaced(power_stripe_width_float, &(m3_track_point_iter->second), &cell_placed_info, &(*cell_ip_map));
             }
         }
     }
 }
 
-float getPinAccessPointOfPlaced(float power_stripe_width, TrackPoint *track_point, CellPlacedInfo *cell_placed_info)
+//每條routing track 占用多少pin access pint 在一個cell 裡面 --- 2
+float getPinAccessPointOfPlaced(float power_stripe_width, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
 {
 
+    float pin_access_cost = 0;
+    if (floatIsEqual((*track_point).x_point, 196.308) && (*cell_placed_info).cell_id == "U148369")
+    {
+        cout << "cell id : " << (*cell_placed_info).cell_id << " " << (*track_point).x_point << endl;
+    }
+    // cell的每個pin
     for (auto pin_iter = (*cell_placed_info).pin_map.begin(); pin_iter != (*cell_placed_info).pin_map.end(); ++pin_iter)
     {
         string pin_name = pin_iter->first;
+
         map<string, vector<PinAccess>> layer_pin_access_map = pin_iter->second.layer_pin_access_map;
+        //每個pin所在的layer層數
         for (auto layer_pin_access_iter = layer_pin_access_map.begin(); layer_pin_access_iter != layer_pin_access_map.end(); ++layer_pin_access_iter)
         {
-            string pin_layer = pin_layer;
-            vector<PinAccess> pin_access_vector;
+            string pin_layer = layer_pin_access_iter->first;
+            vector<PinAccess> layer_pin_access_vector = layer_pin_access_iter->second;
+            //是否有重疊
             if (pin_layer == "M1" || pin_layer == "M2")
             {
-                for (int i = 0; i < pin_access_vector.size(); i++)
+                bool isCoverPin = false;
+                float cover_pin_access = 0;
+                for (int i = 0; i < layer_pin_access_vector.size(); i++)
                 {
-            
-                    
+                    if (floatIsEqual((*track_point).x_point, 196.308) && (*cell_placed_info).cell_id == "U148369")
+                    {
+                        cout << "pin name : " << pin_name << endl;
+                    }
+                    if (isCoverPinAccess(&layer_pin_access_vector[i], &(*track_point), power_stripe_width))
+                    {
+
+                        isCoverPin = true;
+                        cover_pin_access += 1;
+                    }
+                }
+                if (isCoverPin)
+                {
+                    float cost = (cover_pin_access / layer_pin_access_vector.size());
+                    pin_access_cost += cost;
                 }
             }
         }
     }
+
+    // power_consume * pin_access
+    float power_consume = (*cell_ip_map)[(*cell_placed_info).cell_id].instance_total_power;
+    power_consume = power_consume * pin_access_cost;
+    return power_consume;
 }
 
+bool isCoverPinAccess(PinAccess *pin_access, TrackPoint *track_point, float power_stripe_width)
+{
+    float pin_access_x_location = stof((*pin_access).middle_x_location_def);
+    float pin_access_y_location = stof((*pin_access).middle_y_location_def);
+
+    float track_point_x = (*track_point).x_point;
+
+    float track_point_x_left = (*track_point).x_point - (power_stripe_width / 2);
+    float track_point_x_right = (*track_point).x_point + (power_stripe_width / 2);
+
+    float pin_access_x_left = pin_access_x_location - (0.072 / 2);
+    float pin_access_x_right = pin_access_x_location + (0.072 / 2);
+
+    if (track_point_x_left >= pin_access_x_left && track_point_x_left <= pin_access_x_right && track_point_x_right <= pin_access_x_right)
+    {
+        if (floatIsEqual((*track_point).x_point, 196.308))
+        {
+            cout << "track_point_x_left : " << track_point_x_left << "  track_point_x_right :  " << track_point_x_right << "  pin_access_x_left : " << pin_access_x_left << " pin_access_x_right : " << pin_access_x_right << " 1st " << endl;
+        }
+        return true;
+    }
+    else if (track_point_x_left <= pin_access_x_left && track_point_x_left <= pin_access_x_right && track_point_x_right >= pin_access_x_left && track_point_x_right <= pin_access_x_right)
+    {
+        if (floatIsEqual((*track_point).x_point, 196.308))
+        {
+            cout << "track_point_x_left : " << track_point_x_left << "  track_point_x_right :  " << track_point_x_right << " pin_access_x_left " << pin_access_x_left << " pin_access_x_right : " << pin_access_x_right << " 2nd " << endl;
+        }
+        return true;
+    }
+    else if (track_point_x_left >= pin_access_x_left && track_point_x_left <= pin_access_x_right && track_point_x_right >= pin_access_x_right)
+    {
+        if (floatIsEqual((*track_point).x_point, 196.308))
+        {
+            cout << "track_point_x_left : " << track_point_x_left << "  track_point_x_right :  " << track_point_x_right << " pin_access_x_left " << pin_access_x_left << " pin_access_x_right : " << pin_access_x_right << " 3rd " << endl;
+        }
+        return true;
+    }
+    else
+    {
+        if (floatIsEqual((*track_point).x_point, 196.308))
+        {
+            cout << "track_point_x_left : " << track_point_x_left << "  track_point_x_right :  " << track_point_x_right << " pin_access_x_left " << pin_access_x_left << " pin_access_x_right : " << pin_access_x_right << " 4th " << endl;
+        }
+        return false;
+    }
+}
+
+//一條routing track 占用多少cell
 void setRoutingTrackPowerConsuming(string power_stripe_width, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
 {
     float power_stripe_width_float = stof(power_stripe_width);
@@ -687,48 +797,48 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
         (*cell_placed_info).up_y_location = to_string(up_y_float);
         // cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
 
-        // if ((*cell_placed_info).cell_id == "U145431")
-        // {
-
-        map<string, PinShape> pin_shape_map = (*cell_info_map)[cell_name].pin_shape_map;
-        map<string, Pin> pin_map;
-        // 將 pin access 放入 cell placed imformation
-        for (auto pin_shape : pin_shape_map)
+        if ((*cell_placed_info).cell_id == "U145431")
         {
-            Pin pin;
-            map<string, vector<Rect>> rect_map = pin_shape.second.rect_map;
-            // cout << pin_shape.first << endl;
-            string pin_name = pin_shape.first;
-            map<string, vector<PinAccess>> pin_access_layer_map;
-            for (auto rect : rect_map)
+            cout << "cell_place_left_x : " << (*cell_placed_info).left_x_location << " cell_place_down_y : " << (*cell_placed_info).down_y_location << endl;
+            map<string, PinShape> pin_shape_map = (*cell_info_map)[cell_name].pin_shape_map;
+            map<string, Pin> pin_map;
+            // 將 pin access 放入 cell placed imformation
+            for (auto pin_shape : pin_shape_map)
             {
-                string layer_name = rect.first;
-                vector<Rect> rect_vector = rect.second;
-                vector<PinAccess> pin_access_vector;
-                for (int i = 0; i < rect_vector.size(); i++)
+                Pin pin;
+                map<string, vector<Rect>> rect_map = pin_shape.second.rect_map;
+                // cout << pin_shape.first << endl;
+                string pin_name = pin_shape.first;
+                map<string, vector<PinAccess>> pin_access_layer_map;
+                for (auto rect : rect_map)
                 {
-                    vector<PinAccessShape> pin_access_shape_vector = rect_vector[i].pin_access_shape_vector;
-                    if (pin_access_shape_vector.size() > 0)
+                    string layer_name = rect.first;
+                    vector<Rect> rect_vector = rect.second;
+                    vector<PinAccess> pin_access_vector;
+                    for (int i = 0; i < rect_vector.size(); i++)
                     {
-                        for (int i = 0; i < pin_access_shape_vector.size(); i++)
+                        vector<PinAccessShape> pin_access_shape_vector = rect_vector[i].pin_access_shape_vector;
+                        if (pin_access_shape_vector.size() > 0)
                         {
-                            PinAccess pin_access;
-                            // cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
-                            // cout << pin_access_shape_vector[i].left_bottom_x_location << " " << pin_access_shape_vector[i].left_bottom_y_location << " " << pin_access_shape_vector[i].right_top_x_location << " " << pin_access_shape_vector[i].right_top_y_location << endl;
-                            getPinAccessLocationFromDef(&(pin_access_shape_vector[i]), &(*cell_placed_info), cell_width, cell_height, &pin_access);
-                            pin_access_vector.push_back(pin_access);
+                            for (int i = 0; i < pin_access_shape_vector.size(); i++)
+                            {
+                                PinAccess pin_access;
+                                // cout << cell_name << " " << left_x_float << " " << down_y_float << " " << right_x_float << " " << up_y_float << " " << (*cell_placed_info).direction << endl;
+                                // cout << pin_access_shape_vector[i].left_bottom_x_location << " " << pin_access_shape_vector[i].left_bottom_y_location << " " << pin_access_shape_vector[i].right_top_x_location << " " << pin_access_shape_vector[i].right_top_y_location << endl;
+                               cout << pin_name << endl;
+                                getPinAccessLocationFromDef(&(pin_access_shape_vector[i]), &(*cell_placed_info), cell_width, cell_height, &pin_access);
+                                pin_access_vector.push_back(pin_access);
+                            }
+                            // cout << "" << endl;
                         }
-                        // cout << "" << endl;
                     }
+                    pin_access_layer_map.insert(pair<string, vector<PinAccess>>(layer_name, pin_access_vector));
                 }
-                pin_access_layer_map.insert(pair<string, vector<PinAccess>>(layer_name, pin_access_vector));
+                pin.layer_pin_access_map = pin_access_layer_map;
+                pin_map.insert(pair<string, Pin>(pin_name, pin));
             }
-            pin.layer_pin_access_map = pin_access_layer_map;
-            pin_map.insert(pair<string, Pin>(pin_name, pin));
+            (*cell_placed_info).pin_map = pin_map;
         }
-        (*cell_placed_info).pin_map = pin_map;
-
-        // }
     }
     else
     {
@@ -736,6 +846,7 @@ void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, Cel
     }
 }
 
+// pin shape 轉成 def
 void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInfo *cell_placed_info, string cell_width, string cell_height, PinAccess *pin_access)
 {
     float cell_place_left_x = stof((*cell_placed_info).left_x_location);
@@ -756,6 +867,7 @@ void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInf
 
         float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
         float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
+        // cout << "middle : " << middle_x_location_float << " " << middle_y_location_float << endl;
 
         (*pin_access).middle_x_location_def = floatToString(cell_place_left_x + middle_x_location_float);
         (*pin_access).middle_y_location_def = floatToString(cell_place_down_y + middle_y_location_float);
@@ -766,6 +878,9 @@ void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInf
     }
     else if ((*cell_placed_info).direction == "S")
     {
+        cout << "pin : "
+              << " " <<"(" << (*pin_access_shape).left_bottom_x_location << " " << (*pin_access_shape).left_bottom_y_location << ")" << endl;
+
         float middle_x_location_float = stof((*pin_access_shape).middle_x_location);
         float middle_y_location_float = stof((*pin_access_shape).middle_y_location);
 
@@ -774,6 +889,11 @@ void getPinAccessLocationFromDef(PinAccessShape *pin_access_shape, CellPlacedInf
 
         (*pin_access).middle_x_location_def = floatToString(cell_place_left_x + left_bottom_x_distance);
         (*pin_access).middle_y_location_def = floatToString(cell_place_down_y + right_top_y_distance);
+
+        float left_bottom_x_location_float = stof((*pin_access_shape).left_bottom_x_location);
+        float left_bottom_y_location_float = stof((*pin_access_shape).left_bottom_y_location);
+        float right_top_x_location_float = stof((*pin_access_shape).right_top_x_location);
+        float right_top_y_location_float = stof((*pin_access_shape).right_top_y_location);
 
         // cout << "pin : "
         //      << "(" << (*pin_access).middle_x_location_def << " " << (*pin_access).middle_y_location_def << ")" << endl;
@@ -1070,6 +1190,83 @@ void getPinAccessFromRect(Rect *rect)
         (*rect).pin_access_shape_vector = pin_access_shape_vector;
         // cout << "" << endl;
     }
+}
+// void getPinAccessFromRect(Rect *rect)
+// {
+//     int bottom_x_location_int = (stof((*rect).bottom_x_location) * 1000) / 4;
+//     int bottom_y_location_int = (stof((*rect).bottom_y_location) * 1000) / 4;
+//     int top_x_location_int = (stof((*rect).top_x_location) * 1000) / 4;
+//     int top_y_location_int = (stof((*rect).top_y_location) * 1000) / 4;
+//     vector<PinAccessShape> pin_access_shape_vector;
+//     // step 1: 判斷是 垂直還是水平
+//     if (isVertical(&(*rect)))
+//     {
+//         for (int i = bottom_y_location_int; i < top_y_location_int; i += 18)
+//         {
+//             // cout << " i " << i;
+
+//             int middle_x_location = (abs(bottom_x_location_int - top_x_location_int) / 2) + bottom_x_location_int;
+//             int middle_y_location = i + (18 / 2);
+
+//             int left_bottom_x_location = bottom_x_location_int;
+//             int left_bottom_y_location = i;
+//             int right_top_x_location = top_x_location_int;
+//             int right_top_y_location = i + 18;
+//             PinAccessShape pin_access_shape;
+
+//             pin_access_shape.middle_x_location = floatToString(convertInnovusPoint(middle_x_location));
+//             pin_access_shape.middle_y_location = floatToString(convertInnovusPoint(middle_y_location));
+//             pin_access_shape.left_bottom_x_location = floatToString(convertInnovusPoint(left_bottom_x_location));
+//             pin_access_shape.left_bottom_y_location = floatToString(convertInnovusPoint(left_bottom_y_location));
+//             pin_access_shape.right_top_x_location = floatToString(convertInnovusPoint(right_top_x_location));
+//             pin_access_shape.right_top_y_location = floatToString(convertInnovusPoint(right_top_y_location));
+//             if (right_top_y_location <= top_y_location_int)
+//             {
+//                 pin_access_shape_vector.push_back(pin_access_shape);
+//             }
+
+//             // cout << " middle " << middle_x_location << " " << middle_y_location;
+//             // cout <<" vertical " << " left_bottom_x_location : " << pin_access.left_bottom_x_location << " left_bottom_y_location : " << pin_access.left_bottom_y_location << " right_top_x_location : " << pin_access.right_top_x_location << " right_top_y_location : " << pin_access.right_top_y_location << endl;
+//         }
+//         (*rect).pin_access_shape_vector = pin_access_shape_vector;
+//         // cout << "" << endl;
+//     }
+//     else
+//     {
+//         for (int i = bottom_x_location_int; i < top_x_location_int; i += 18)
+//         {
+//             // cout << " i " << i;
+
+//             int middle_x_locaiton = i + (18 / 2);
+//             int middle_y_location = (abs(bottom_y_location_int - top_y_location_int) / 2) + bottom_y_location_int;
+//             // cout << " middle " << middle_x_locaiton << " " << middle_y_location;
+
+//             int left_bottom_x_location = i;
+//             int left_bottom_y_location = bottom_y_location_int;
+//             int right_top_x_location = i +18;
+//             int right_top_y_location = top_y_location_int;
+
+//             PinAccessShape pin_access_shape;
+//             pin_access_shape.middle_x_location = floatToString(convertInnovusPoint(middle_x_locaiton));
+//             pin_access_shape.middle_y_location = floatToString(convertInnovusPoint(middle_y_location));
+//             pin_access_shape.left_bottom_x_location = floatToString(convertInnovusPoint(left_bottom_x_location));
+//             pin_access_shape.left_bottom_y_location = floatToString(convertInnovusPoint(left_bottom_y_location));
+//             pin_access_shape.right_top_x_location = floatToString(convertInnovusPoint(right_top_x_location));
+//             pin_access_shape.right_top_y_location = floatToString(convertInnovusPoint(right_top_y_location));
+//             if (right_top_x_location <= top_x_location_int)
+//             {
+//                 pin_access_shape_vector.push_back(pin_access_shape);
+//             }
+//             // cout << " horizontal " << " left_bottom_x_location : " << pin_access.left_bottom_x_location << " left_bottom_y_location : " << pin_access.left_bottom_y_location << " right_top_x_location : " << pin_access.right_top_x_location << " right_top_y_location : " << pin_access.right_top_y_location << endl;
+//         }
+//         (*rect).pin_access_shape_vector = pin_access_shape_vector;
+//         // cout << "" << endl;
+//     }
+// }
+
+float convertInnovusPoint(int number)
+{
+    return (number * 4) / 1000.0;
 }
 
 bool isVertical(Rect *rect)
