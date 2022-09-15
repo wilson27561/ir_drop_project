@@ -56,6 +56,9 @@ int main()
     int x4 = 10;
 
 
+
+    cout << ((float)x1)/x2 << endl;
+
   
 
 
