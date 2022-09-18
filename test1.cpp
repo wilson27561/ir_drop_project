@@ -4,20 +4,37 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
 int getdir(string dir, vector<string> &files);
+
+string floatToString(const float value)
+{
+    std::ostringstream out;
+    out.precision(6);
+    out << value;
+    return out.str();
+}
+
+string check(float a){
+    std::stringstream buf;
+    buf.precision(3);
+    buf.setf(std::ios::fixed);
+    buf<<a;
+    string str = buf.str();
+    buf.clear();
+    return str;
+}
+
 int main(){
-    string dir = string("D:/ir_drop_project/congest_area_file");//資料夾路徑(絕對位址or相對位址)
-    vector<string> files = vector<string>();
-    getdir(dir, files);
-	//輸出資料夾和檔案名稱於螢幕
-    for(int i=0; i<files.size(); i++){
-        cout << files[i] << endl;
-    }
-    system("pause");
+
+    
+    // cout << floatToString(0.0359802) << endl;
+    check(0.0359802); 
+ cout <<  check(0.0359802) << endl;
     return 0;
 }
 int getdir(string dir, vector<string> &files){
