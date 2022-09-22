@@ -1,23 +1,25 @@
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#include <vector>
-#include <string>
+using namespace std;
 #include <iostream>
+#include <vector>
+#include <set>
+#include <unordered_map>
+#include <map>
 #include <fstream>
 #include <sstream>
-
-using namespace std;
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <time.h>
 
 int getdir(string dir, vector<string> &files);
 
-string floatToString(const float value)
-{
-    std::ostringstream out;
-    out.precision(6);
-    out << value;
-    return out.str();
-}
+// string floatToString(const float value)
+// {
+//     std::ostringstream out;
+//     out.precision(6);
+//     out << value;
+//     return out.str();
+// }
 
 string check(float a){
     std::stringstream buf;
@@ -28,25 +30,35 @@ string check(float a){
     buf.clear();
     return str;
 }
+string floatToString(const float value)
+{
+    std::stringstream buf;
+    std::ostringstream oss;
+
+    buf.precision(3);
+    buf.setf(std::ios::fixed);
+    buf << value;
+    string str = buf.str();
+    buf.clear();
+
+    return str;
+}
+
 
 int main(){
 
+string num= "32.0100"; 
+ float num_flo= stof(num);
+
+ cout << num << endl;
+// std::ostringstream oss; 
+// oss<<num; 
+// std::cout<<oss.str()<<std::endl; 
+
+
     
-    // cout << floatToString(0.0359802) << endl;
-    check(0.0359802); 
- cout <<  check(0.0359802) << endl;
-    return 0;
-}
-int getdir(string dir, vector<string> &files){
-    DIR *dp;//創立資料夾指標
-    struct dirent *dirp;
-    if((dp = opendir(dir.c_str())) == NULL){
-        cout << "Error(" << errno << ") opening " << dir << endl;
-        return errno;
-    }
-    while((dirp = readdir(dp)) != NULL){//如果dirent指標非空
-        files.push_back(string(dirp->d_name));//將資料夾和檔案名放入vector
-    }
-    closedir(dp);//關閉資料夾指標
+//     // cout << floatToString(0.0359802) << endl;
+//     check(0.0359802); 
+//  cout <<  check(0.0359802) << endl;
     return 0;
 }

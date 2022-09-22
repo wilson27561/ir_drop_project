@@ -15,11 +15,11 @@ int main()
     // system(innovus_voltus_generate_str);
 
 
-    // string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
-    // const char *command_def = def_stripe_transform_command.c_str();
-    // cout << "Compiling file using " << command_def << endl;
-    // system(command_def);
-    // system("def_stripe_transform.exe");
+    string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
+    const char *command_def = def_stripe_transform_command.c_str();
+    cout << "Compiling file using " << command_def << endl;
+    system(command_def);
+    system("def_stripe_transform.exe");
 
     // 產生power pad tcl
     // string generate_power_pad_tcl_command = "g++ generate_power_pad_tcl.cpp -o generate_power_pad_tcl";
@@ -28,11 +28,11 @@ int main()
     // system(command_power_pad);
     // system("generate_power_pad_tcl.exe");
 
-    string generate_power_pad_tcl_command = "g++ estimate_number_of_power_stripe_by_partition_power_pad.cpp -o estimate_number_of_power_stripe_by_partition_power_pad";
-    const char *command_power_pad = generate_power_pad_tcl_command.c_str();
-    cout << "Compiling file using " << command_power_pad << endl;
-    system(command_power_pad);
-    system("estimate_number_of_power_stripe_by_partition_power_pad.exe");
+    // string generate_power_pad_tcl_command = "g++ estimate_number_of_power_stripe_by_partition_power_pad.cpp -o estimate_number_of_power_stripe_by_partition_power_pad";
+    // const char *command_power_pad = generate_power_pad_tcl_command.c_str();
+    // cout << "Compiling file using " << command_power_pad << endl;
+    // system(command_power_pad);
+    // system("estimate_number_of_power_stripe_by_partition_power_pad.exe");
 
     // 統計有多少條power stripe
     // string ir_drop_summary_command = "g++ ir_drop_summary.cpp -o ir_drop_summary";
