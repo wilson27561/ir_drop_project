@@ -116,6 +116,16 @@ int main()
     setShapeRingSide(&vdd_shape_ring_vector, &vss_shape_ring_vector, &die_area);
 
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
+
+    for (auto shape : vdd_shape_map)
+    {
+      cout << shape.first << endl;
+      cout << shape.second.start_x_location << " " << shape.second.start_y_location << endl;
+      cout << shape.second.end_x_location << " " << shape.second.end_y_location << endl;
+    }
+    
+
+
     generatePowerPadTcl(POWER_PAD_SRIPE_FILE, &vdd_shape_map, &vss_shape_map, &vdd_power_pad_vector, &vss_power_pad_vector);
 
     return 0;

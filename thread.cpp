@@ -25,10 +25,10 @@ int main()
     {
         threads[i].join();
     }
-    for (int i = 0; i < 100000; i++)
-    {
-        threads[i].detach();
-    }
+    // for (int i = 0; i < 100000; i++)
+    // {
+    //     threads[i].detach();
+    // }
 
     std::cout << "main() exit.\n";
 

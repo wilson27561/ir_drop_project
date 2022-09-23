@@ -9,15 +9,14 @@ int main()
     // Build command to execute.  For example if the input
     // file name is a.cpp, then str holds "gcc -o a.out a.cpp"
     // Here -o is used to specify executable file name
-    
+
     // string innovus_voltus_generate = "innovus -batch -file innovus_voltus_generate_pad_location.tcl";
     // const char *innovus_voltus_generate_str = innovus_voltus_generate.c_str();
     // system(innovus_voltus_generate_str);
 
-
     string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
     const char *command_def = def_stripe_transform_command.c_str();
-    cout << "Compiling file using " << command_def << endl;
+    // cout << "Compiling file using " << command_def << endl;
     system(command_def);
     system("def_stripe_transform.exe");
 
@@ -27,6 +26,13 @@ int main()
     // cout << "Compiling file using " << command_power_pad << endl;
     // system(command_power_pad);
     // system("generate_power_pad_tcl.exe");
+
+    // 產生pin access algorithm tcl
+    string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
+    const char *pin_access_power = pin_access_power_consume_command.c_str();
+    cout << "Compiling file using " << pin_access_power << endl;
+    system(pin_access_power);
+    system("pin_access_power_consume.exe");
 
     // string generate_power_pad_tcl_command = "g++ estimate_number_of_power_stripe_by_partition_power_pad.cpp -o estimate_number_of_power_stripe_by_partition_power_pad";
     // const char *command_power_pad = generate_power_pad_tcl_command.c_str();

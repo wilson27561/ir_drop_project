@@ -128,15 +128,24 @@ struct TrackOfCell
     string pitch;
 };
 
+struct CellRange
+{
+    vector<string> cell_id_vector;
+    string start_x_location;
+    string end_x_location;
+
+    /* data */
+};
+
 // main function
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_info_map);
 void getDefPlacedImformation(string DEF_TRANSFER_FILE, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
 
 // sub function
+int getCoverTrack(float power_stripe_width);
 void getSizeOfCell(string lef_content, CellInfo *cell_info);
 void getPinShapeOfCell(ifstream *lef_file, string left_content, PinShape *pin_shape);
 void getPortOfPinShape(ifstream *lef_file, string lef_content, PinShape *pin_shape);
-void getLayerOfPinShape(ifstream *lef_file, string lef_content, PinShape *pin_shape);
 void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map);
 void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
 void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_placed_info);
@@ -158,8 +167,10 @@ void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAcces
 float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info);
 void setCellStripeRange(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void generateLogFile(vector<Stripe> *stripe_vector, string log_file_name);
+void setCellRange(string power_stripe_width, CoreSite *core_site, vector<CellRange> *cell_range_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 
 bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+
 bool isVertical(Rect *rect);
 bool isOddTrackCell(string x_location, TrackInfo *m3_track_info);
 bool isPinAccessNameAndLayer(string layer_name, string pin_name);
@@ -169,6 +180,7 @@ bool isCoverPinAccess(float pin_access_point_x_def_float, float track_point_x_fl
 bool floatIsEqualOrLess(float a, float b);
 bool floatIsEqualOrMore(float a, float b);
 bool floatIsEqual(float a, float b);
+bool isInCellRange(CellRange *cell_range, CellPlacedInfo *cell_place_info, string power_stripe_width);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
@@ -177,10 +189,7 @@ int stringToInt(string num);
 float convertInnovusPoint(int number);
 int main()
 {
-    string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
-    string DEF_TRANSFER_FILE = "def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_44_9_transfer.def";
-    string IP_REPORT_FILE = "power_report/activity_0.2/print_ip_b19.report";
-    string ADD_STRIPE_TCL = "stripe_tcl/addStripe_b19_routing_pin_access_power_conuming.tcl";
+
     string v1_width = "0.072";
     string m2_y_pitch = "0.072";
     string m2_y_start = "1.44";
@@ -189,6 +198,7 @@ int main()
     CoreSite core_site;
     vector<Stripe> vdd_stripe_vector;
     vector<Stripe> vss_stripe_vector;
+    vector<CellRange> cell_range_vector;
     unordered_map<string, CellInstancePowerInfo> cell_ip_map;
     unordered_map<string, CellInfo> cell_info_map;
     unordered_map<string, CellPlacedInfo> cell_placed_map;
@@ -203,6 +213,38 @@ int main()
     m2_track_info.start = m2_y_start;
     m2_track_info.pitch = m2_y_pitch;
 
+    string LEF_FILE = "";
+    string IP_REPORT_FILE = "";
+    string ADD_STRIPE_TCL = "";
+    string DEF_TRANSFER_FILE = "";
+    string config_file = "config.txt";
+    ifstream config(config_file);
+    string config_content;
+    if (config)
+    {
+        while (getline(config, config_content))
+        {
+            vector<string> config_content_array = splitByPattern(config_content, " ");
+            std::cout << config_content_array[0] << " " << config_content_array[2] << std::endl;
+            if (config_content_array[0] == "DEF_TRANSFER_FILE")
+            {
+                DEF_TRANSFER_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "LEF_FILE")
+            {
+                LEF_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "IP_REPORT_FILE")
+            {
+                IP_REPORT_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "ADD_STRIPE_TCL")
+            {
+                ADD_STRIPE_TCL = config_content_array[2];
+            }
+        }
+    }
+
     double START, END;
     START = clock();
 
@@ -211,7 +253,7 @@ int main()
     getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
     setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site, &m3_track_info);
 
-    setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
+    // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getLeftCellPinAccessPoint(&cell_info_map);
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
@@ -270,7 +312,7 @@ int main()
 
 void generateLogFile(vector<Stripe> *stripe_vector, string log_file_name)
 {
-   cout << "========== generateLogFile start ==========" << endl;
+    cout << "========== generateLogFile start ==========" << endl;
     ofstream myfile;
     myfile.open(log_file_name);
     for (int i = 0; i < (*stripe_vector).size(); i++)
@@ -298,6 +340,7 @@ void setRoutingTrackPowerConsuming(string power_stripe_width, vector<Stripe> *st
         float m3_x_pitch_float = (stof((*m3_track_info).pitch) * 1000) / 4;
 
         int m3_x_start_int = (int)m3_x_start_float;
+        m3_x_pitch_float = m3_x_pitch_float * 2;
         int m3_x_pitch_int = (int)m3_x_pitch_float;
 
         cout << " ----- moving range start -----" << endl;
@@ -496,7 +539,6 @@ void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vec
 {
     cout << "========== getAddStripeCost start ==========" << endl;
     float track_pitch = stof((*track_info).pitch) * 2;
-    cout << track_pitch << endl;
 
     for (int i = 0; i < (*stripe_vector).size(); i++)
     {
@@ -507,7 +549,6 @@ void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vec
 
 void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_track_point_map, float track_pitch)
 {
-
 
     float vdd_stripe_cost = 100000.0;
     float vss_stripe_cost = 100000.0;
@@ -524,8 +565,7 @@ void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_tr
             vdd_track = (*stripe).track_point_vector[i].x_point;
         }
     }
- 
- 
+
     // ====== TODO 左右兩條不使用 ========
     float vdd_track_float = stof(vdd_track);
     float left_track_float = vdd_track_float - track_pitch;
@@ -559,12 +599,13 @@ void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name
 
     for (int i = 0; i < (*stripe_vector).size(); i++)
     {
-        cout << "vdd track cost " << (*stripe_vector)[i].vdd_track_x_cost << endl;
-        cout << "vss track cost " << (*stripe_vector)[i].vss_track_x_cost << endl;
-
+        cout << "========== range " << i << "  start ==========" << endl;
         float vdd_track_cost = stof((*stripe_vector)[i].vdd_track_x_cost);
         float vdd_left_track_cost = vdd_track_cost - (power_stripe_width_float / 2);
         float vdd_right_track_cost = vdd_track_cost + (power_stripe_width_float / 2);
+        cout << "vdd_track_cost : " << vdd_track_cost << endl;
+        cout << "vdd_left_track_cost : " << vdd_left_track_cost << endl;
+        cout << "vdd_right_track_cost : " << vdd_right_track_cost << endl;
 
         string vdd_left_track_cost_str = floatToString(vdd_left_track_cost);
         string vdd_right_track_cost_str = floatToString(vdd_right_track_cost);
@@ -573,9 +614,13 @@ void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name
         float vss_left_track_cost = vss_track_x_cost - (power_stripe_width_float / 2);
         float vss_right_track_cost = vss_track_x_cost + (power_stripe_width_float / 2);
 
+        cout << "vss_track_cost : " << vdd_track_cost << endl;
+        cout << "vss_left_track_cost : " << vdd_left_track_cost << endl;
+        cout << "vss_right_track_cost : " << vdd_right_track_cost << endl;
+
         string vss_left_track_cost_str = floatToString(vss_left_track_cost);
         string vss_right_track_cost_str = floatToString(vss_right_track_cost);
-
+        cout << "========== range " << i << "  end ==========" << endl;
         myfile << "addStripe -nets { VDDX } -layer "
                << "M3"
                << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vdd_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
@@ -680,7 +725,8 @@ float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_t
             // cout << "pin cost : " << pin_access_cost << endl;
         }
     }
-    if(total_pin_access_cost == 0){
+    if (total_pin_access_cost == 0)
+    {
         total_pin_access_cost = 1;
     }
 
@@ -689,8 +735,11 @@ float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_t
 
 bool isCoverPinAccess(float pin_access_point_x_def_float, float track_point_x_float, float power_stripe_width)
 {
-    float track_point_x_left = track_point_x_float - (power_stripe_width / 2);
-    float track_point_x_right = track_point_x_float + (power_stripe_width / 2);
+    // cover_track + 0.036
+    int cover_track = getCoverTrack(power_stripe_width);
+    float cover_distance = (cover_track * 0.144) + 0.036;
+    float track_point_x_left = track_point_x_float - cover_distance;
+    float track_point_x_right = track_point_x_float + cover_distance;
 
     float pin_access_x_left = pin_access_point_x_def_float - (0.072 / 2);
     float pin_access_x_right = pin_access_point_x_def_float + (0.072 / 2);
@@ -709,6 +758,23 @@ bool isCoverPinAccess(float pin_access_point_x_def_float, float track_point_x_fl
     }
 };
 
+int getCoverTrack(float power_stripe_width)
+{
+    float half_power_stripe_width = power_stripe_width / 2;
+    int temp_pitch = (int)(half_power_stripe_width / 0.144);
+    int track = 0;
+    float temp_width = temp_pitch * 0.144;
+    temp_width = half_power_stripe_width - temp_width;
+    if (floatIsEqualOrLess(temp_width, 0.036))
+    {
+        track = temp_pitch;
+    }
+    else
+    {
+        track = temp_pitch + 1;
+    }
+    return track;
+}
 void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAccessPoint *pin_access_point, PinAccessPoint *pin_access_point_def, string cell_width, string cell_height)
 {
 

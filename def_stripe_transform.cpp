@@ -52,6 +52,7 @@ int main()
         }
     }
 
+
     ifstream def_file(DEF_FILE);
     string def_content;
     ofstream myfile;
@@ -385,6 +386,7 @@ vector<string> splitByPattern(string content, string pattern)
     }
     return words;
 }
+
 
 //去掉首尾全部空格
 // string &trim(string &str)

@@ -18,8 +18,69 @@ string floatToString(const float value, unsigned int precision);
 float ipPowerStringToFloat(string number);
 float rounding(float num, int index);
 int getStrlength(string resource_str, int pos_int);
+string floatToString(const float value)
+{
+    std::stringstream buf;
+    std::ostringstream oss;
+
+    buf.precision(3);
+    buf.setf(std::ios::fixed);
+    buf << value;
+    string str = buf.str();
+    buf.clear();
+
+    return str;
+}
+bool floatIsEqual(float a, float b)
+{
+    string a_str = floatToString(a);
+    string b_str = floatToString(b);
+    if (a_str == b_str)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+bool floatIsEqualOrLess(float a, float b)
+{
+    if (floatIsEqual(a, b))
+    {
+        return true;
+    }
+    else if (a < b)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+int getCoverTrack(float power_stripe_width)
+{
+    float half_power_stripe_width = power_stripe_width / 2;
+    int temp_pitch = (int)(half_power_stripe_width / 0.144);
+    int track = 0;
+    float temp_width = temp_pitch * 0.144;
+    temp_width = half_power_stripe_width - temp_width;
+    if (floatIsEqualOrLess(temp_width,0.036))
+    {
+        track = temp_pitch;
+    }
+    else
+    {
+        track = temp_pitch + 1;
+    }
+    return track;
+}
 int main()
 {
+
+    cout << getCoverTrack(0.224) << endl;
+
 
     // vector<int> num_vector;
     // num_vector.push_back(1);
@@ -48,19 +109,30 @@ int main()
     //     cout << num_vector[i] << endl;
     // }
 
-    int x1 = 5;
+    // int x1 = 5;
 
-    int x2 = 15;
+    // int x2 = 15;
 
-    int x3 = 7;
-    int x4 = 10;
+    // int x3 = 7;
+    // int x4 = 10;
 
+    // cout << ((float)x1)/x2 << endl;
+    float power_stripe_width = 0.36;
 
-
-    cout << ((float)x1)/x2 << endl;
-
-  
-
+    float half_power_stripe_width = power_stripe_width / 2;
+    int temp_pitch = (int)(half_power_stripe_width / 0.144);
+    // int track = 0;
+    float temp_width = temp_pitch * 0.144;
+    temp_width = half_power_stripe_width - temp_width;
+    cout << temp_width << endl;
+    // if (temp_width <= 0.036)
+    // {
+    //     track = temp_pitch;
+    // }
+    // else
+    // {
+    //     track = temp_pitch + 1;
+    // }
 
     return 0;
 }
