@@ -1,5 +1,5 @@
 DEF_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0.def
-DEF_TRANSFER_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0_transfer.def
+DEF_TRANSFER_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0_9_transfer.def
 POWER_PAD_SRIPE_FILE : power_pad_tcl/6t32_run0_b19_power_pad.tcl
 LEF_FILE : tech_lef_file/characterization_6T_ALL_20200610area_4x.lef
 IP_REPORT_FILE : power_report/activity_0.6/print_ip_b19.report

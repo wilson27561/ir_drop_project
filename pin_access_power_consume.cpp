@@ -11,6 +11,7 @@ using namespace std;
 #include <algorithm>
 #include <time.h>
 const double esp = 1e-6;
+const float COEFFICIENT = 3.8;
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 
@@ -168,6 +169,7 @@ float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_t
 void setCellStripeRange(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void generateLogFile(vector<Stripe> *stripe_vector, string log_file_name);
 void setCellRange(string power_stripe_width, CoreSite *core_site, vector<CellRange> *cell_range_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
+void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 
 bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 
@@ -261,6 +263,9 @@ int main()
     setCellStripeRange(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
     setRoutingTrackPowerConsuming("0.224", &vdd_stripe_vector, &m3_track_point_map, &cell_placed_map, &m3_track_info);
 
+    // test
+    // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
+
     setRoutingTrackNumberOfPinAccess("0.224", &vdd_stripe_vector, &cell_placed_map, &cell_ip_map, &cell_info_map, &m3_track_info);
     getAddStripeCost(&m3_track_point_map, &vdd_stripe_vector, &m3_track_info);
     generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL, "0.224");
@@ -269,61 +274,45 @@ int main()
     cout << endl
          << "程式執行所花費：" << (double)clock() / CLOCKS_PER_SEC << " S";
 
-    // for (auto cellInfo : cell_info_map)
-    // {
-    //     cout << "cell name : " << cellInfo.first << endl;
-    //     map<string, vector<PinAccessPoint>> pin_access_map = cellInfo.second.even_pin_access_point_map;
-    //     for (auto pin_access : pin_access_map)
-    //     {
-    //         vector<PinAccessPoint> pin_access_vector = pin_access.second;
-    //         for (int i = 0; i < pin_access_vector.size(); i++)
-    //         {
-    //             if (cellInfo.first == "A2O1A1Ixp33_ASAP7_6t_fix")
-    //             {
-    //                 cout << "(" << floatToString(stof(pin_access_vector[i].middle_x_location_def) + 561.96) << " " << floatToString(stof(pin_access_vector[i].middle_y_location_def) + 78.336) << ")" << endl;
-    //             }
-    //         }
-    //     }
-    // }
-
-    // int total_track = 0;
-    // int total_track_cell_id = 0;
-    // for (int i = 0; i < vdd_stripe_vector.size(); i++)
-    // {
-    //     for (int j = 0; j < vdd_stripe_vector[i].track_point_vector.size(); j++)
-    //     {
-    //         TrackPoint track_point = vdd_stripe_vector[i].track_point_vector[j];
-    //         cout << "track poin cost : " << track_point.x_point << "  " << track_point.total_pin_access_power_consum_cost << endl;
-    //     }
-    // }
-
-    // cout << "track size : " << total_track << endl;
-    // cout << "total_track_cell_id : " << total_track_cell_id << endl;
-
-    // for (auto cell_place : cell_placed_map)
-    // {
-    //     cout << "cell id :" << cell_place.first << endl;
-
-    //     cout << cell_place.second.left_x_location << " " << cell_place.second.down_y_location << " " << cell_place.second.right_x_location << " " << cell_place.second.up_y_location << endl;
-    // }
-
     return 0;
 }
 
-void generateLogFile(vector<Stripe> *stripe_vector, string log_file_name)
+void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
 {
-    cout << "========== generateLogFile start ==========" << endl;
     ofstream myfile;
-    myfile.open(log_file_name);
+    myfile.open("track_power");
     for (int i = 0; i < (*stripe_vector).size(); i++)
     {
-        myfile << "vdd track cost : " << (*stripe_vector)[i].vdd_track_x_cost << endl;
-        myfile << "vss track cost : " << (*stripe_vector)[i].vss_track_x_cost << endl;
-    }
+        cout << " ======== stripe range " << i << " ===========" << endl;
 
+        for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
+        {
+            TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
+            if (track_point.x_point == "164.772" || track_point.x_point == "306.468")
+            {
+                float total_power_consume = 0;
+                float total_cell = 0;
+                for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
+                {
+                    string cell_id = track_point.power_cell_id_vector[k];
+                    CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+                    float y_location = stof(cell_placed_info.down_y_location);
+                    if (y_location >= 162.144)
+                    {
+                        
+                        float power = (*cell_ip_map)[cell_id].instance_total_power;
+                        total_power_consume += power;
+                        total_cell+=1;
+                    }
+                }
+                  myfile << "track_point.x_point : " << track_point.x_point << endl;
+                  myfile << "total_power_consume : " << total_power_consume << endl;
+                  myfile << "number of cell      : " << total_cell << endl;
+            }
+        }
+    }
     myfile.close();
-    cout << "========== generateLogFile close ==========" << endl;
-};
+}
 
 //一條routing track 通過多少cell 只剩這裡有問題
 void setRoutingTrackPowerConsuming(string power_stripe_width, vector<Stripe> *stripe_vector, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *m3_track_info)
@@ -550,8 +539,8 @@ void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vec
 void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_track_point_map, float track_pitch)
 {
 
-    float vdd_stripe_cost = 100000.0;
-    float vss_stripe_cost = 100000.0;
+    float vdd_stripe_cost = 0;
+    float vss_stripe_cost = 0;
     string vdd_track = "0";
     string vss_track = "0";
     map<string, float> track_map;
@@ -559,7 +548,7 @@ void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_tr
     for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
     {
         float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
-        if (total_pin_access_power_consum_cost < vdd_stripe_cost)
+        if (total_pin_access_power_consum_cost > vdd_stripe_cost)
         {
             vdd_stripe_cost = total_pin_access_power_consum_cost;
             vdd_track = (*stripe).track_point_vector[i].x_point;
@@ -580,7 +569,7 @@ void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_tr
     {
         float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
         string x_track = (*stripe).track_point_vector[i].x_point;
-        if (total_pin_access_power_consum_cost < vss_stripe_cost && (!(track_map).count(x_track)))
+        if (total_pin_access_power_consum_cost > vss_stripe_cost && (!(track_map).count(x_track)))
         {
             vss_stripe_cost = total_pin_access_power_consum_cost;
             vss_track = (*stripe).track_point_vector[i].x_point;
@@ -603,9 +592,9 @@ void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name
         float vdd_track_cost = stof((*stripe_vector)[i].vdd_track_x_cost);
         float vdd_left_track_cost = vdd_track_cost - (power_stripe_width_float / 2);
         float vdd_right_track_cost = vdd_track_cost + (power_stripe_width_float / 2);
-        cout << "vdd_track_cost : " << vdd_track_cost << endl;
-        cout << "vdd_left_track_cost : " << vdd_left_track_cost << endl;
-        cout << "vdd_right_track_cost : " << vdd_right_track_cost << endl;
+        // cout << "vdd_track_cost : " << vdd_track_cost << endl;
+        // cout << "vdd_left_track_cost : " << vdd_left_track_cost << endl;
+        // cout << "vdd_right_track_cost : " << vdd_right_track_cost << endl;
 
         string vdd_left_track_cost_str = floatToString(vdd_left_track_cost);
         string vdd_right_track_cost_str = floatToString(vdd_right_track_cost);
@@ -614,35 +603,43 @@ void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name
         float vss_left_track_cost = vss_track_x_cost - (power_stripe_width_float / 2);
         float vss_right_track_cost = vss_track_x_cost + (power_stripe_width_float / 2);
 
-        cout << "vss_track_cost : " << vdd_track_cost << endl;
-        cout << "vss_left_track_cost : " << vdd_left_track_cost << endl;
-        cout << "vss_right_track_cost : " << vdd_right_track_cost << endl;
+        // cout << "vss_track_cost : " << vdd_track_cost << endl;
+        // cout << "vss_left_track_cost : " << vdd_left_track_cost << endl;
+        // cout << "vss_right_track_cost : " << vdd_right_track_cost << endl;
 
         string vss_left_track_cost_str = floatToString(vss_left_track_cost);
         string vss_right_track_cost_str = floatToString(vss_right_track_cost);
-        cout << "========== range " << i << "  end ==========" << endl;
+        // cout << "========== range " << i << "  end ==========" << endl;
         myfile << "addStripe -nets { VDDX } -layer "
                << "M3"
                << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vdd_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
-        myfile << "addStripe -nets { VSSX } -layer "
-               << "M3"
-               << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
+        // myfile << "addStripe -nets { VSSX } -layer "
+        //        << "M3"
+        //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
     }
     myfile.close();
 };
 
 void setRoutingTrackNumberOfPinAccess(string power_stripe_width, vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info)
 {
+    ofstream myfile;
+    myfile.open("track_info_number_average.txt");
     cout << "========== setRoutingTrackNumberOfPinAccess start ==========" << endl;
     float power_stripe_width_float = stof(power_stripe_width);
+    float total_power_cost = 0;
+    float access_cost = 0;
+    int number_of_track = 0;
 
     for (int i = 0; i < (*stripe_vector).size(); i++)
     {
         cout << " ======== stripe range " << i << " ===========" << endl;
+
         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
         {
             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
             float total_cell_pin_access_power_consume_cost = 0;
+            float total_track_pin_access_cost = 0;
+            float total_track_power_consuming_cost = 0;
 
             for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
             {
@@ -653,14 +650,34 @@ void setRoutingTrackNumberOfPinAccess(string power_stripe_width, vector<Stripe> 
                 float cell_pin_access_cost = getPinAccessPointOfPlaced(power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*m3_track_info));
 
                 float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
-                power_consuming_cost = 1 / power_consuming_cost;
-
-                float pin_access_power_consuming_cost = cell_pin_access_cost * power_consuming_cost;
+                cell_pin_access_cost = cell_pin_access_cost * COEFFICIENT;
+                float pin_access_power_consuming_cost = cell_pin_access_cost + power_consuming_cost;
                 total_cell_pin_access_power_consume_cost += pin_access_power_consuming_cost;
+
+                total_track_pin_access_cost += cell_pin_access_cost;
+                total_track_power_consuming_cost += power_consuming_cost;
             }
+            number_of_track+=1;
+            total_power_cost+=total_track_power_consuming_cost;
+            access_cost+=total_track_pin_access_cost;
+
             (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = total_cell_pin_access_power_consume_cost;
+            // myfile << "-----------------------------------" << endl;
+            // myfile << "track point                      : " << track_point.x_point << endl;
+            // myfile << "track point of cost              : " << total_cell_pin_access_power_consume_cost << endl;
+            // myfile << "total_track_pin_access_cost      : " << total_track_pin_access_cost << endl;
+            // myfile << "total_track_power_consuming_cost : " << total_track_power_consuming_cost << endl;
+            // myfile << "number of cell                   : " << track_point.power_cell_id_vector.size() << endl;
         }
     }
+
+    float average_power_cost = total_power_cost / number_of_track;
+    float average_access_cost = access_cost / number_of_track;
+    myfile << "number of track     : " << number_of_track << endl;
+    myfile << "average_power_cost  : " << average_power_cost << endl;
+    myfile << "average_access_cost : " << average_access_cost << endl;
+
+    myfile.close();
 
     cout << "========== setRoutingTrackNumberOfPinAccess end ==========" << endl;
 }
@@ -1001,12 +1018,11 @@ void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_strip
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
         // cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << " " << endl;
-
         float move_range_x_left_float = stof((*vdd_stripe_vector)[i].move_range_x_left);
         float move_range_x_right_float = stof((*vdd_stripe_vector)[i].move_range_x_right);
 
         float move_range_left_x_float_temp = move_range_x_left_float - track_start;
-        float temp_pitch_start = move_range_x_left_float / track_pitch;
+        float temp_pitch_start = move_range_left_x_float_temp / track_pitch;
         int temp_pitch_start_int = (int)temp_pitch_start;
         float start_x = (temp_pitch_start_int * track_pitch) + track_start;
 
@@ -1755,4 +1771,41 @@ string floatToString(const float value)
 //             }
 //         }
 //     }
+// }
+// for (auto cellInfo : cell_info_map)
+// {
+//     cout << "cell name : " << cellInfo.first << endl;
+//     map<string, vector<PinAccessPoint>> pin_access_map = cellInfo.second.even_pin_access_point_map;
+//     for (auto pin_access : pin_access_map)
+//     {
+//         vector<PinAccessPoint> pin_access_vector = pin_access.second;
+//         for (int i = 0; i < pin_access_vector.size(); i++)
+//         {
+//             if (cellInfo.first == "A2O1A1Ixp33_ASAP7_6t_fix")
+//             {
+//                 cout << "(" << floatToString(stof(pin_access_vector[i].middle_x_location_def) + 561.96) << " " << floatToString(stof(pin_access_vector[i].middle_y_location_def) + 78.336) << ")" << endl;
+//             }
+//         }
+//     }
+// }
+
+// int total_track = 0;
+// int total_track_cell_id = 0;
+// for (int i = 0; i < vdd_stripe_vector.size(); i++)
+// {
+//     for (int j = 0; j < vdd_stripe_vector[i].track_point_vector.size(); j++)
+//     {
+//         TrackPoint track_point = vdd_stripe_vector[i].track_point_vector[j];
+//         cout << "track poin cost : " << track_point.x_point << "  " << track_point.total_pin_access_power_consum_cost << endl;
+//     }
+// }
+
+// cout << "track size : " << total_track << endl;
+// cout << "total_track_cell_id : " << total_track_cell_id << endl;
+
+// for (auto cell_place : cell_placed_map)
+// {
+//     cout << "cell id :" << cell_place.first << endl;
+
+//     cout << cell_place.second.left_x_location << " " << cell_place.second.down_y_location << " " << cell_place.second.right_x_location << " " << cell_place.second.up_y_location << endl;
 // }
