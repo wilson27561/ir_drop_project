@@ -16,6 +16,7 @@ const string RIGHT = "RIGHT";
 const string MIDDLE = "middle";
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
+const string WIRE_STRIPE = "4";
 
 struct FollowPin
 {
@@ -29,14 +30,6 @@ struct CoreSite
     string right_x_location;
     string up_y_location;
     string down_y_location;
-};
-struct PowerGround
-{
-    //¥ª¤U¥k¤W
-    string start_x_location;
-    string end_x_location;
-    string start_y_location;
-    string end_y_location;
 };
 
 struct CellInfo
@@ -61,6 +54,14 @@ struct CellInstancePowerInfo
     string cell_name;
     double instance_total_power;
 };
+struct IrDropPoint
+{
+    string ir_drop;
+    string layer;
+    string x_location;
+    string y_location;
+};
+
 struct Stripe
 {
     string net_name;
@@ -71,17 +72,12 @@ struct Stripe
     string move_range_x_left;
     string move_range_x_right;
     string width;
-    string vdd_track_x_cost;
-    string vss_track_x_cost;
+    string height;
     vector<string> ip_power_vector;
     vector<string> filler_vector;
-    long double range_total_power;
-};
-struct TrackInfo
-{
-    string layer;
-    string start;
-    string pitch;
+    long double delta_ir_drop;
+    float range_total_power;
+    float power_consuming_cost;
 };
 
 void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site);
@@ -104,7 +100,16 @@ void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_strip
 void setRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
 bool isInStripeRangeFiller(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *filler_placed_map);
 void setFillerIStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *filler_placed_map);
-
+void caculatePowerStripeCost(vector<Stripe> *stripe_vector);
+bool sortStripeVector(Stripe stripe_a, Stripe stripe_b);
+void resizePowerStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector);
+void setIrDropReport(string ir_drop_report_file, vector<IrDropPoint> *ir_drop_point_vector);
+bool isInPowerStripeWidth(Stripe *stripe, string power_stripe_width, IrDropPoint *ir_drop_point);
+void setIrInPowerStripe(vector<Stripe> *resize_vdd_stripe_vector, vector<IrDropPoint> *ir_drop_point_vector);
+int wirePowerStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector);
+bool sortDeltaIrDrop(Stripe stripe_a, Stripe stripe_b);
+void generateDecreaseStripeTcl(vector<Stripe> *resize_power_stripe, vector<Stripe> *vss_stripe_vector, string stripe_tcl);
+void generateWireStripeTcl(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, string stripe_tcl,  int number_of_power_stripe_wire);
 int main()
 {
     CoreSite core_site;
@@ -112,15 +117,19 @@ int main()
     unordered_map<string, CellPlacedInfo> cell_placed_map;
     unordered_map<string, CellPlacedInfo> filler_placed_map;
     unordered_map<string, CellInstancePowerInfo> cell_ip_map;
+    vector<IrDropPoint> ir_drop_point_vector;
     vector<Stripe> vdd_stripe_vector;
     vector<Stripe> vss_stripe_vector;
+    vector<Stripe> resize_vdd_stripe_vector;
     vector<FollowPin> follow_pin_vdd_vector;
     vector<FollowPin> follow_pin_vss_vector;
 
     string DEF_TRANSFER_FILE = "";
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
-    string ADD_STRIPE_ESTIMATE = "";
+    string DECREASE_STRIPE_TCL = "";
+    string DECREASE_WIRE_STRIPE_TCL = "";
+    string IR_REPORT_FILE = "";
     string config_file = "config.txt";
 
     ifstream config(config_file);
@@ -143,9 +152,17 @@ int main()
             {
                 IP_REPORT_FILE = config_content_array[2];
             }
-            if (config_content_array[0] == "ADD_STRIPE_ESTIMATE")
+            if (config_content_array[0] == "DECREASE_WIRE_STRIPE_TCL")
             {
-                ADD_STRIPE_ESTIMATE = config_content_array[2];
+                DECREASE_WIRE_STRIPE_TCL = config_content_array[2];
+            }
+            if (config_content_array[0] == "DECREASE_STRIPE_TCL")
+            {
+                DECREASE_STRIPE_TCL = config_content_array[2];
+            }
+            if (config_content_array[0] == "IR_REPORT_FILE")
+            {
+                IR_REPORT_FILE = config_content_array[2];
             }
         }
     }
@@ -159,21 +176,227 @@ int main()
     setIpPowerInStripe(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
     getFollowPin(DEF_TRANSFER_FILE, &follow_pin_vdd_vector, &follow_pin_vss_vector);
     setFillerIStripe(&vdd_stripe_vector, &filler_placed_map);
+    caculatePowerStripeCost(&vdd_stripe_vector);
+    resizePowerStripe(&vdd_stripe_vector, &resize_vdd_stripe_vector);
+    // generateDecreaseStripeTcl(&resize_vdd_stripe_vector, &vss_stripe_vector, DECREASE_STRIPE_TCL);
+    setIrDropReport(IR_REPORT_FILE, &ir_drop_point_vector);
+    setIrInPowerStripe(&resize_vdd_stripe_vector, &ir_drop_point_vector);
+    int number_of_power_stripe_wire = wirePowerStripe(&vdd_stripe_vector, &resize_vdd_stripe_vector);
 
-    
+    generateWireStripeTcl(&resize_vdd_stripe_vector, &vss_stripe_vector, DECREASE_WIRE_STRIPE_TCL, number_of_power_stripe_wire);
 
-
-
-    float total_power = 0;
-    for (int i = 0; i < vdd_stripe_vector.size(); i++)
-    {
-        total_power += vdd_stripe_vector[i].range_total_power;
-        // vdd_stripe_vector[i].filler_vector.size();
-        cout << "filler size : " << vdd_stripe_vector[i].filler_vector.size() << endl;
-        cout << "range_total_power : " << vdd_stripe_vector[i].range_total_power * 1000 << endl;
-    }
-    cout << "total power : " << total_power << endl;
+    // float total_power = 0;
+    // for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
+    // {
+    //     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
+    // }
 }
+
+int wirePowerStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector)
+{
+    //get power stripe width
+    string power_stripe_width = (*resize_vdd_stripe_vector)[0].width;
+
+    //ç¸½å…±æœ‰å¹¾æ¢ power stripe å¯ä»¥è¢«åŠ å¯¬
+    int decreas_size = (*vdd_stripe_vector).size() - (*resize_vdd_stripe_vector).size();
+    float wide_wire_float = stof(WIRE_STRIPE);
+    float power_stripe_width_float = stof(power_stripe_width);
+    float width = power_stripe_width_float * wide_wire_float;
+
+    float temp_wire = width - power_stripe_width_float;
+    float total_width = decreas_size * power_stripe_width_float;
+
+    float number_of_power_stripe = (total_width / temp_wire);
+    string number_of_power_stripe_str = floatToString(number_of_power_stripe);
+    int number_of_power_stripe_int = stoi(number_of_power_stripe_str);
+    sort((*resize_vdd_stripe_vector).begin(), (*resize_vdd_stripe_vector).end(), sortDeltaIrDrop);
+
+    return number_of_power_stripe_int;
+}
+
+bool sortIrDropPoint(IrDropPoint ir_drop_point_a, IrDropPoint ir_drop_point_b)
+{
+    return (stof(ir_drop_point_a.ir_drop) > stof(ir_drop_point_b.ir_drop));
+}
+bool sortDeltaIrDrop(Stripe stripe_a, Stripe stripe_b)
+{
+    return (stripe_a.delta_ir_drop > stripe_b.delta_ir_drop);
+}
+
+void setIrInPowerStripe(vector<Stripe> *resize_vdd_stripe_vector, vector<IrDropPoint> *ir_drop_point_vector)
+{
+    for (int i = 0; i < (*resize_vdd_stripe_vector).size(); i++)
+    {
+        vector<IrDropPoint> sort_ir_drop_point_vector;
+        for (int j = 0; j < (*ir_drop_point_vector).size(); j++)
+        {
+            if (isInPowerStripeWidth(&(*resize_vdd_stripe_vector)[i], (*resize_vdd_stripe_vector)[i].width, &(*ir_drop_point_vector)[j]))
+            {
+                sort_ir_drop_point_vector.push_back((*ir_drop_point_vector)[j]);
+            }
+        }
+        sort(sort_ir_drop_point_vector.begin(), sort_ir_drop_point_vector.end(), sortIrDropPoint);
+        int last_index = sort_ir_drop_point_vector.size() - 1;
+        float delta_ir_drop = stof(sort_ir_drop_point_vector[0].ir_drop) - stof(sort_ir_drop_point_vector[last_index].ir_drop);
+        (*resize_vdd_stripe_vector)[i].delta_ir_drop = delta_ir_drop;
+    }
+}
+
+bool isInPowerStripeWidth(Stripe *stripe, string power_stripe_width, IrDropPoint *ir_drop_point)
+{
+    string start_x_location = (*stripe).start_x_location;
+    float power_stripe_width_float = stof(power_stripe_width);
+    float x_left_float = stof(start_x_location) - power_stripe_width_float;
+    float x_right_float = stof(start_x_location) + power_stripe_width_float;
+
+    float ir_drop_point_x_location = stof((*ir_drop_point).x_location);
+
+    if (ir_drop_point_x_location >= x_left_float && ir_drop_point_x_location <= x_right_float)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void resizePowerStripe(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector)
+{
+    vector<Stripe> sort_cost_vector;
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        sort_cost_vector.push_back((*vdd_stripe_vector)[i]);
+    }
+    sort(sort_cost_vector.begin(), sort_cost_vector.end(), sortStripeVector);
+
+    int decrease_power_stripe = (*vdd_stripe_vector).size() * 0.2;
+
+    for (int i = 0; i < decrease_power_stripe; i++)
+    {
+        sort_cost_vector.pop_back();
+    };
+
+    for (int i = 0; i < sort_cost_vector.size(); i++)
+    {
+        (*resize_vdd_stripe_vector).push_back(sort_cost_vector[i]);
+    }
+}
+
+void generateDecreaseStripeTcl(vector<Stripe> *resize_power_stripe, vector<Stripe> *vss_stripe_vector, string stripe_tcl)
+{
+
+    ofstream myfile;
+    myfile.open(stripe_tcl);
+    for (int i = 0; i < (*resize_power_stripe).size(); i++)
+    {
+
+        float power_stripe_width_float = stof((*resize_power_stripe)[i].width);
+        string power_stripe_width = floatToString(power_stripe_width_float);
+        float vdd_start_x_location_float = stof((*resize_power_stripe)[i].start_x_location) - (power_stripe_width_float / 2);
+        float vdd_end_x_location_float = stof((*resize_power_stripe)[i].start_x_location) + (power_stripe_width_float / 2);
+        string vdd_start_x_location = floatToString(vdd_start_x_location_float);
+        string vdd_end_x_location = floatToString(vdd_end_x_location_float);
+        myfile << "addStripe -nets { VDDX } -layer "
+               << "M3"
+               << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << (*resize_power_stripe)[i].start_y_location << " " << vdd_end_x_location << " " << (*resize_power_stripe)[i].end_y_location << " }" << endl;
+    }
+
+    for (int i = 0; i < (*vss_stripe_vector).size(); i++)
+    {
+        float power_stripe_width_float = stof((*vss_stripe_vector)[i].width);
+        string power_stripe_width = floatToString(power_stripe_width_float);
+        float vss_start_x_location_float = stof((*vss_stripe_vector)[i].start_x_location) - (power_stripe_width_float / 2);
+        float vss_end_x_location_float = stof((*vss_stripe_vector)[i].end_x_location) + (power_stripe_width_float / 2);
+        string vss_start_x_location = floatToString(vss_start_x_location_float);
+        string vss_end_x_location = floatToString(vss_end_x_location_float);
+
+        myfile << "addStripe -nets { VSSX } -layer "
+               << "M3"
+               << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_start_x_location << " " << (*vss_stripe_vector)[i].start_y_location << " " << vss_end_x_location << " " << (*vss_stripe_vector)[i].end_y_location << " }" << endl;
+    }
+    myfile.close();
+}
+
+void generateWireStripeTcl(vector<Stripe> *resize_power_stripe, vector<Stripe> *vss_stripe_vector, string stripe_tcl, int number_of_power_stripe_wire)
+{
+    //get power stripe width
+    string power_stripe_width = (*resize_power_stripe)[0].width;
+
+
+    float wire_multiples = stof(WIRE_STRIPE);
+    float power_stripe_width_float = stof(power_stripe_width);
+    float wire_power_stripe_width_float = power_stripe_width_float * wire_multiples;
+    string wire_power_stripe_width_str = floatToString(wire_power_stripe_width_float);
+    wire_power_stripe_width_float = stof(wire_power_stripe_width_str);
+
+    ofstream myfile;
+    myfile.open(stripe_tcl);
+
+    for (int i = 0; i < (*resize_power_stripe).size(); i++)
+    {
+        if (number_of_power_stripe_wire != 0)
+        {
+            float vdd_start_x_location_float = stof((*resize_power_stripe)[i].start_x_location) - (wire_power_stripe_width_float / 2);
+            float vdd_end_x_location_float = stof((*resize_power_stripe)[i].start_x_location) + (wire_power_stripe_width_float / 2);
+            string vdd_start_x_location = floatToString(vdd_start_x_location_float);
+            string vdd_end_x_location = floatToString(vdd_end_x_location_float);
+            myfile << "addStripe -nets { VDDX } -layer "
+                   << "M3"
+                   << " -direction vertical -width " << wire_power_stripe_width_float << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << (*resize_power_stripe)[i].start_y_location << " " << vdd_end_x_location << " " << (*resize_power_stripe)[i].end_y_location << " }" << endl;
+
+            number_of_power_stripe_wire -= 1;
+        }
+        else
+        {
+            float vdd_start_x_location_float = stof((*resize_power_stripe)[i].start_x_location) - (power_stripe_width_float / 2);
+            float vdd_end_x_location_float = stof((*resize_power_stripe)[i].start_x_location) + (power_stripe_width_float / 2);
+            string vdd_start_x_location = floatToString(vdd_start_x_location_float);
+            string vdd_end_x_location = floatToString(vdd_end_x_location_float);
+            myfile << "addStripe -nets { VDDX } -layer "
+                   << "M3"
+                   << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << (*resize_power_stripe)[i].start_y_location << " " << vdd_end_x_location << " " << (*resize_power_stripe)[i].end_y_location << " }" << endl;
+        }
+    }
+
+    for (int i = 0; i < (*vss_stripe_vector).size(); i++)
+    {
+        float vss_start_x_location_float = stof((*vss_stripe_vector)[i].start_x_location) - (power_stripe_width_float / 2);
+        float vss_end_x_location_float = stof((*vss_stripe_vector)[i].end_x_location) + (power_stripe_width_float / 2);
+        string vss_start_x_location = floatToString(vss_start_x_location_float);
+        string vss_end_x_location = floatToString(vss_end_x_location_float);
+
+        myfile << "addStripe -nets { VSSX } -layer "
+               << "M3"
+               << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_start_x_location << " " << (*vss_stripe_vector)[i].start_y_location << " " << vss_end_x_location << " " << (*vss_stripe_vector)[i].end_y_location << " }" << endl;
+    }
+
+    myfile.close();
+};
+
+bool sortStripeVector(Stripe stripe_a, Stripe stripe_b)
+{
+    return stripe_a.power_consuming_cost > stripe_b.power_consuming_cost;
+}
+
+void caculatePowerStripeCost(vector<Stripe> *stripe_vector)
+{
+
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+
+
+        float power_consume_cost = (*stripe_vector)[i].range_total_power * 10.0;
+
+       
+
+        (*stripe_vector)[i].power_consuming_cost = power_consume_cost;
+        // sort_cost_vector.push_back((*stripe_vector)[i]);
+
+        cout << "range_total_power : " << power_consume_cost << endl;
+    }
+}
+
 void setFillerIStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *filler_placed_map)
 {
     for (int i = 0; i < (*stripe_vector).size(); i++)
@@ -222,7 +445,7 @@ bool isInStripeRangeFiller(Stripe *stripe_vector, string cell_id, unordered_map<
         // cout << " over stripe moving location " << endl;
         return true;
     }
-    // case 4 : out side
+    // case 5 : out side
     else
     {
         // cout << " out side " << endl;
@@ -230,7 +453,6 @@ bool isInStripeRangeFiller(Stripe *stripe_vector, string cell_id, unordered_map<
     }
 }
 
-//¯à°÷¶i¦æÀu¤Æ ºÉ¶q´î¤Ö¶]ªº¦¸¼Æ
 void setIpPowerInStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
 {
 
@@ -352,7 +574,7 @@ void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string
                 {
                     if (def_content.find("PLACED") != string::npos)
                     {
-                        // TODO ³o¸Ì¥i¥H¤Ulog
+                        
                         vector<string> def_content_array = splitByPattern(def_content, " ");
                         CellPlacedInfo cell_placed_info;
                         cell_placed_info.cell_id = def_content_array[1];
@@ -553,6 +775,9 @@ void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_strip
     setRange(&(*vss_stripe_vector), &(*core_site));
 
     cout << "========== setStripeRange end ==========" << endl;
+
+
+    
 }
 
 void setRange(vector<Stripe> *stripe_vector, CoreSite *core_site)
@@ -693,7 +918,44 @@ bool isPowerStripe(Stripe *stripe, CoreSite *core_site)
         cout << " isPowerStripe error  << " << endl;
     }
 }
-//¼È¥B¬ö¿ýM1
+void setIrDropReport(string ir_drop_report_file, vector<IrDropPoint> *ir_drop_point_vector)
+{
+    ifstream ir_file(ir_drop_report_file);
+    string ir_content;
+    int log = 0;
+    double power = 0;
+    if (ir_file)
+    {
+        while (getline(ir_file, ir_content))
+        {
+            if (ir_content.find("ir") != string::npos && ir_content.find("layer") != string::npos)
+            {
+                continue;
+            }
+            else if (ir_content.find("Range") != string::npos && ir_content.find("Total") != string::npos)
+            {
+                break;
+            }
+            else
+            {
+                vector<string> ir_content_array = splitByPattern(ir_content, " ");
+                IrDropPoint ir_drop_point;
+                ir_drop_point.ir_drop = ir_content_array[0];
+                ir_drop_point.layer = ir_content_array[1];
+                ir_drop_point.x_location = ir_content_array[2];
+                ir_drop_point.y_location = ir_content_array[3];
+                (*ir_drop_point_vector).push_back(ir_drop_point);
+
+                log++;
+                if (log % 1000 == 0)
+                {
+                    cout << "ir data : " << log << endl;
+                }
+            }
+        }
+    }
+}
+
 void getFollowPin(string def_transfer_file_name, vector<FollowPin> *follow_pin_vdd_vector, vector<FollowPin> *follow_pin_vss_vector)
 {
     ifstream def_transfer_file(def_transfer_file_name);
@@ -748,7 +1010,7 @@ void getFollowPin(string def_transfer_file_name, vector<FollowPin> *follow_pin_v
     def_transfer_file.close();
 }
 
-//®Ú¾Úpattern¤Á¦r¦ê
+//ï¿½Ú¾ï¿½patternï¿½ï¿½ï¿½rï¿½ï¿½
 vector<string> splitByPattern(string content, string pattern)
 {
     vector<string> words;
@@ -769,7 +1031,7 @@ vector<string> splitByPattern(string content, string pattern)
     return words;
 }
 
-//¥h±¼­º§À¥þ³¡ªÅ®æ
+//ï¿½hï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å®ï¿½
 string &trim(string &str)
 {
     if (str.empty())

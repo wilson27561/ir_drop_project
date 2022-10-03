@@ -1,7 +1,10 @@
-DEF_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0.def
-DEF_TRANSFER_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0_9_transfer.def
+DEF_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0_17.def
+DEF_TRANSFER_FILE : def_file/gpu_nerualNetwork_ricsv_aes_afterRouting/6t49_b19_routing_run0_17_transfer.def
 POWER_PAD_SRIPE_FILE : power_pad_tcl/6t32_run0_b19_power_pad.tcl
 LEF_FILE : tech_lef_file/characterization_6T_ALL_20200610area_4x.lef
-IP_REPORT_FILE : power_report/activity_0.6/print_ip_b19.report
+IP_REPORT_FILE : power_report/activity_0.6/b19_print_ip_17.report
 ADD_STRIPE_ESTIMATE : stripe_tcl/addStripe_6t49_b19_routing_run0.tcl
-ADD_STRIPE_TCL : stripe_tcl/aaddStripe_b19_routing_pin_access_power_conuming.tcl
+ADD_STRIPE_TCL : stripe_tcl/addStripe_b19_routing_pin_access_power_conuming_17.tcl
+DECREASE_WIRE_STRIPE_TCL : stripe_tcl/decrease_wire_b19_routing_4.tcl
+DECREASE_STRIPE_TCL : stripe_tcl/decrease_b19_routing_4.tcl
+IR_REPORT_FILE : ir_report/power_rail_ir.rpt

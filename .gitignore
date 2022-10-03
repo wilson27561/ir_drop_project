@@ -34,6 +34,7 @@ def_file/*
 power_report/*
 ir_drop_report/*
 ip_report/*
+ir_report/*
 congest_area_file/*
 effr_file/*
 io/*

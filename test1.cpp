@@ -47,13 +47,14 @@ string floatToString(const float value)
 
 int main(){
 
-string num= "32.0100"; 
- float num_flo= stof(num);
+// string num= "32.0100"; 
+//  float num_flo= stof(num);
 
- cout << num << endl;
+//  cout << num << endl;
 // std::ostringstream oss; 
 // oss<<num; 
 // std::cout<<oss.str()<<std::endl; 
+
 
 
     

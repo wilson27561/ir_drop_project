@@ -49,6 +49,7 @@
         "typeinfo": "cpp",
         "xstring": "cpp",
         "xutility": "cpp",
-        "xiosbase": "cpp"
+        "xiosbase": "cpp",
+        "unordered_set": "cpp"
     }
 }

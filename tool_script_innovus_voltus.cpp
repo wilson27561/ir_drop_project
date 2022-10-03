@@ -28,11 +28,11 @@ int main()
     // system("generate_power_pad_tcl.exe");
 
     // 產生pin access algorithm tcl
-    string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
-    const char *pin_access_power = pin_access_power_consume_command.c_str();
-    cout << "Compiling file using " << pin_access_power << endl;
-    system(pin_access_power);
-    system("pin_access_power_consume.exe");
+    // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
+    // const char *pin_access_power = pin_access_power_consume_command.c_str();
+    // cout << "Compiling file using " << pin_access_power << endl;
+    // system(pin_access_power);
+    // system("pin_access_power_consume.exe");
 
     // string generate_power_pad_tcl_command = "g++ estimate_number_of_power_stripe_by_partition_power_pad.cpp -o estimate_number_of_power_stripe_by_partition_power_pad";
     // const char *command_power_pad = generate_power_pad_tcl_command.c_str();
