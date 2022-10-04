@@ -259,7 +259,7 @@ int main()
     sort(vss_stripe_vector.begin(), vss_stripe_vector.end(), sortStripeLocationVector);
 
     setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site, &m3_track_info);
-  
+
     // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getLeftCellPinAccessPoint(&cell_info_map);
@@ -267,19 +267,40 @@ int main()
 
     setCellStripeRange(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
     setRoutingTrackPowerConsuming(&vdd_stripe_vector, &m3_track_point_map, &cell_placed_map, &m3_track_info);
-
     // test
     // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
-
     setRoutingTrackNumberOfPinAccess(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map, &cell_info_map, &m3_track_info);
     getAddStripeCost(&m3_track_point_map, &vdd_stripe_vector, &m3_track_info);
     generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL);
-    // generateLogFile(&vdd_stripe_vector, "pin_access_log_file.txt");
+    generateLogFile(&vdd_stripe_vector, "track_cost_position.txt");
 
     cout << endl
          << "程式執行所花費：" << (double)clock() / CLOCKS_PER_SEC << " S";
 
     return 0;
+}
+void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
+{
+    ofstream myfile;
+    myfile.open(log_file);
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        myfile << "---------------------------------------------" << endl;
+        myfile << "original position : " << (*vdd_stripe_vector)[i].start_x_location << endl;
+        myfile << "new      position : " << (*vdd_stripe_vector)[i].vdd_track_x_cost << endl;
+        for (int j = 0; j < (*vdd_stripe_vector)[i].track_point_vector.size(); j++)
+        {
+            if ((*vdd_stripe_vector)[i].track_point_vector[j].x_point == (*vdd_stripe_vector)[i].start_x_location)
+            {
+                myfile << "original cost     : " << (*vdd_stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
+            }
+            else if ((*vdd_stripe_vector)[i].track_point_vector[j].x_point == (*vdd_stripe_vector)[i].vdd_track_x_cost)
+            {
+                myfile << "new      cost     : " << (*vdd_stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
+            }
+        }
+    }
+    myfile.close();
 }
 
 void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
@@ -293,25 +314,25 @@ void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<
         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
         {
             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
-          
-                float total_power_consume = 0;
-                float total_cell = 0;
-                for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
-                {
-                    string cell_id = track_point.power_cell_id_vector[k];
-                    CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
-                    float y_location = stof(cell_placed_info.down_y_location);
-                    if (y_location >= 162.144)
-                    {
 
-                        float power = (*cell_ip_map)[cell_id].instance_total_power;
-                        total_power_consume += power;
-                        total_cell += 1;
-                    }
+            float total_power_consume = 0;
+            float total_cell = 0;
+            for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
+            {
+                string cell_id = track_point.power_cell_id_vector[k];
+                CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+                float y_location = stof(cell_placed_info.down_y_location);
+                if (y_location >= 162.144)
+                {
+
+                    float power = (*cell_ip_map)[cell_id].instance_total_power;
+                    total_power_consume += power;
+                    total_cell += 1;
                 }
+            }
         }
     }
-    // myfile.close();
+    myfile.close();
 }
 
 //一條routing track 通過多少cell 只剩這裡有問題
@@ -540,8 +561,8 @@ void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vec
 void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_track_point_map, float track_pitch)
 {
 
-    float vdd_stripe_cost = 0;
-    float vss_stripe_cost = 0;
+    float vdd_stripe_cost = 1000000000000;
+    float vss_stripe_cost = 1000000000000;
     string vdd_track = "0";
     string vss_track = "0";
     map<string, float> track_map;
@@ -549,7 +570,7 @@ void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_tr
     for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
     {
         float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
-        if (total_pin_access_power_consum_cost > vdd_stripe_cost)
+        if (total_pin_access_power_consum_cost < vdd_stripe_cost && total_pin_access_power_consum_cost != 0)
         {
             vdd_stripe_cost = total_pin_access_power_consum_cost;
             vdd_track = (*stripe).track_point_vector[i].x_point;
@@ -570,7 +591,7 @@ void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_tr
     {
         float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
         string x_track = (*stripe).track_point_vector[i].x_point;
-        if (total_pin_access_power_consum_cost > vss_stripe_cost && (!(track_map).count(x_track)))
+        if (total_pin_access_power_consum_cost < vss_stripe_cost && (!(track_map).count(x_track)) && total_pin_access_power_consum_cost != 0)
         {
             vss_stripe_cost = total_pin_access_power_consum_cost;
             vss_track = (*stripe).track_point_vector[i].x_point;
@@ -653,7 +674,8 @@ void setRoutingTrackNumberOfPinAccess(vector<Stripe> *stripe_vector, unordered_m
                 float cell_pin_access_cost = getPinAccessPointOfPlaced(power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*m3_track_info));
 
                 float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
-                cell_pin_access_cost = cell_pin_access_cost * COEFFICIENT;
+                // cell_pin_access_cost = cell_pin_access_cost * COEFFICIENT;
+                power_consuming_cost = 1 / power_consuming_cost;
                 float pin_access_power_consuming_cost = cell_pin_access_cost + power_consuming_cost;
                 total_cell_pin_access_power_consume_cost += pin_access_power_consuming_cost;
 
@@ -665,20 +687,20 @@ void setRoutingTrackNumberOfPinAccess(vector<Stripe> *stripe_vector, unordered_m
             access_cost += total_track_pin_access_cost;
 
             (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = total_cell_pin_access_power_consume_cost;
-            // myfile << "-----------------------------------" << endl;
-            // myfile << "track point                      : " << track_point.x_point << endl;
-            // myfile << "track point of cost              : " << total_cell_pin_access_power_consume_cost << endl;
-            // myfile << "total_track_pin_access_cost      : " << total_track_pin_access_cost << endl;
-            // myfile << "total_track_power_consuming_cost : " << total_track_power_consuming_cost << endl;
-            // myfile << "number of cell                   : " << track_point.power_cell_id_vector.size() << endl;
+            myfile << "-----------------------------------" << endl;
+            myfile << "track point                      : " << track_point.x_point << endl;
+            myfile << "track point of cost              : " << (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
+            myfile << "total_track_pin_access_cost      : " << total_track_pin_access_cost << endl;
+            myfile << "total_track_power_consuming_cost : " << total_track_power_consuming_cost << endl;
+            myfile << "number of cell                   : " << track_point.power_cell_id_vector.size() << endl;
         }
     }
 
-    float average_power_cost = total_power_cost / number_of_track;
-    float average_access_cost = access_cost / number_of_track;
-    myfile << "number of track     : " << number_of_track << endl;
-    myfile << "average_power_cost  : " << average_power_cost << endl;
-    myfile << "average_access_cost : " << average_access_cost << endl;
+    // float average_power_cost = total_power_cost / number_of_track;
+    // float average_access_cost = access_cost / number_of_track;
+    // myfile << "number of track     : " << number_of_track << endl;
+    // myfile << "average_power_cost  : " << average_power_cost << endl;
+    // myfile << "average_access_cost : " << average_access_cost << endl;
 
     myfile.close();
 
