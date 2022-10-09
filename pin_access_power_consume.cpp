@@ -101,6 +101,7 @@ struct Stripe
     string width;
     string vdd_track_x_cost;
     string vss_track_x_cost;
+    string layer;
     vector<string> ip_power_vector;
     vector<TrackPoint> track_point_vector;
 };
@@ -190,7 +191,7 @@ string floatToString(const float value);
 int stringToInt(string num);
 float convertInnovusPoint(int number);
 bool sortStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
-
+float standardDeviation(vector<float> *num_vec);
 int main()
 {
 
@@ -271,7 +272,7 @@ int main()
     // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
     setRoutingTrackNumberOfPinAccess(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map, &cell_info_map, &m3_track_info);
     getAddStripeCost(&m3_track_point_map, &vdd_stripe_vector, &m3_track_info);
-    generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL);
+    // generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL);
     generateLogFile(&vdd_stripe_vector, "track_cost_position.txt");
 
     cout << endl
@@ -281,26 +282,54 @@ int main()
 }
 void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
 {
+    //平均移動距離 最大距離移動多少 最小距離移動多少 標準差多少
     ofstream myfile;
     myfile.open(log_file);
+    vector<float> distance_vector;
+    float total_distance = 0;
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
         myfile << "---------------------------------------------" << endl;
-        myfile << "original position : " << (*vdd_stripe_vector)[i].start_x_location << endl;
-        myfile << "new      position : " << (*vdd_stripe_vector)[i].vdd_track_x_cost << endl;
-        for (int j = 0; j < (*vdd_stripe_vector)[i].track_point_vector.size(); j++)
-        {
-            if ((*vdd_stripe_vector)[i].track_point_vector[j].x_point == (*vdd_stripe_vector)[i].start_x_location)
-            {
-                myfile << "original cost     : " << (*vdd_stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
-            }
-            else if ((*vdd_stripe_vector)[i].track_point_vector[j].x_point == (*vdd_stripe_vector)[i].vdd_track_x_cost)
-            {
-                myfile << "new      cost     : " << (*vdd_stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
-            }
-        }
+        myfile << "stripe index       : " << i << endl;
+        float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
+        float track_cost_float = stof((*vdd_stripe_vector)[i].vdd_track_x_cost);
+        float migration_distance = abs((start_x_location_float - track_cost_float));
+        total_distance+=migration_distance;
+        myfile << "migration distance : " << migration_distance << endl;
+        distance_vector.push_back(migration_distance);
     }
+    sort(distance_vector.begin(), distance_vector.end());
+    int last_index = distance_vector.size() -1;
+    float average = total_distance/distance_vector.size();
+    float standard_deviation =  standardDeviation(&distance_vector);
+    myfile << "================================================" << endl;
+    myfile << "number of stripe       : " << distance_vector.size() << endl;
+    myfile << "total_distance         : " << total_distance << endl;
+    myfile << "The shortest distance  : " << distance_vector[0] << endl;
+    myfile << "The logest distance    : " << distance_vector[last_index] << endl;
+    myfile << "The average distance   : " << average << endl;
+    myfile << "The standard deviation : " << standard_deviation << endl;
+
+
     myfile.close();
+}
+float standardDeviation(vector<float> *num_vec)
+{
+    float sum = 0;
+    float std1 = 0; // 標準差 平均值
+    float mean = 0;
+    for (int i = 0; i < (*num_vec).size(); i++)
+    {
+        sum+= (*num_vec)[i];
+    };
+    mean = sum / (*num_vec).size();
+    for (int i = 0; i < (*num_vec).size(); i++)
+    {
+        std1 += ((*num_vec)[i] - mean) * ((*num_vec)[i] - mean);
+    }
+    std1 /= (*num_vec).size();
+    std1 = sqrt(std1);
+    return std1;
 }
 
 void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
@@ -1144,9 +1173,10 @@ void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe
                             Stripe stripe;
                             stripe.start_x_location = def_content_array[7];
                             stripe.start_y_location = def_content_array[8];
-                            stripe.end_x_location = def_content_array[7];
+                            stripe.end_x_location = def_content_array[11];
                             stripe.end_y_location = def_content_array[12];
                             stripe.width = def_content_array[2];
+                            stripe.layer = def_content_array[1];
                             stripe.net_name = NET_NAME_VDD;
 
                             if (isPowerStripe(&stripe, &(*core_site)))
@@ -1172,9 +1202,10 @@ void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe
                             Stripe stripe;
                             stripe.start_x_location = def_content_array[7];
                             stripe.start_y_location = def_content_array[8];
-                            stripe.end_x_location = def_content_array[7];
+                            stripe.end_x_location = def_content_array[11];
                             stripe.end_y_location = def_content_array[12];
                             stripe.width = def_content_array[2];
+                            stripe.layer = def_content_array[1];
                             stripe.net_name = NET_NAME_VSS;
                             if (isPowerStripe(&stripe, &(*core_site)))
                             {

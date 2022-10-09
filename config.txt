@@ -5,6 +5,7 @@ LEF_FILE : tech_lef_file/characterization_6T_ALL_20200610area_4x.lef
 IP_REPORT_FILE : power_report/activity_0.6/b19_print_ip_15.report
 ADD_STRIPE_ESTIMATE : stripe_tcl/addStripe_6t49_b19_routing_run0.tcl
 ADD_STRIPE_TCL : stripe_tcl/addStripe_b19_routing_pin_access_power_conuming_15.tcl
-DECREASE_WIRE_STRIPE_TCL : stripe_tcl/decrease_wire_b19_routing_4.tcl
-DECREASE_STRIPE_TCL : stripe_tcl/decrease_b19_routing_4.tcl
-IR_REPORT_FILE : ir_report/power_rail_ir.rpt
+DECREASE_WIRE_STRIPE_TCL : stripe_tcl/decrease_wire_b19_routing_17.tcl
+DECREASE_STRIPE_TCL : stripe_tcl/decrease_b19_routing_17.tcl
+IR_REPORT_FILE : ir_report/power_rail_17_ir_M3_rpt
+IR_REPORT_FILE : ir_report/power_rail_17_ir_M4_rpt
