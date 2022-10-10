@@ -258,61 +258,28 @@ int main()
     getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
     sort(vdd_stripe_vector.begin(), vdd_stripe_vector.end(), sortStripeLocationVector);
     sort(vss_stripe_vector.begin(), vss_stripe_vector.end(), sortStripeLocationVector);
-
     setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site, &m3_track_info);
 
-    // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getLeftCellPinAccessPoint(&cell_info_map);
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
 
     setCellStripeRange(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
     setRoutingTrackPowerConsuming(&vdd_stripe_vector, &m3_track_point_map, &cell_placed_map, &m3_track_info);
-    // test
-    // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
+
     setRoutingTrackNumberOfPinAccess(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map, &cell_info_map, &m3_track_info);
     getAddStripeCost(&m3_track_point_map, &vdd_stripe_vector, &m3_track_info);
     // generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL);
-    generateLogFile(&vdd_stripe_vector, "track_cost_position.txt");
+    // generateLogFile(&vdd_stripe_vector, "track_cost_position.txt");
 
     cout << endl
          << "程式執行所花費：" << (double)clock() / CLOCKS_PER_SEC << " S";
-
+    // test
+    // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
+    // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
     return 0;
 }
-void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
-{
-    //平均移動距離 最大距離移動多少 最小距離移動多少 標準差多少
-    ofstream myfile;
-    myfile.open(log_file);
-    vector<float> distance_vector;
-    float total_distance = 0;
-    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
-    {
-        myfile << "---------------------------------------------" << endl;
-        myfile << "stripe index       : " << i << endl;
-        float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
-        float track_cost_float = stof((*vdd_stripe_vector)[i].vdd_track_x_cost);
-        float migration_distance = abs((start_x_location_float - track_cost_float));
-        total_distance+=migration_distance;
-        myfile << "migration distance : " << migration_distance << endl;
-        distance_vector.push_back(migration_distance);
-    }
-    sort(distance_vector.begin(), distance_vector.end());
-    int last_index = distance_vector.size() -1;
-    float average = total_distance/distance_vector.size();
-    float standard_deviation =  standardDeviation(&distance_vector);
-    myfile << "================================================" << endl;
-    myfile << "number of stripe       : " << distance_vector.size() << endl;
-    myfile << "total_distance         : " << total_distance << endl;
-    myfile << "The shortest distance  : " << distance_vector[0] << endl;
-    myfile << "The logest distance    : " << distance_vector[last_index] << endl;
-    myfile << "The average distance   : " << average << endl;
-    myfile << "The standard deviation : " << standard_deviation << endl;
 
-
-    myfile.close();
-}
 float standardDeviation(vector<float> *num_vec)
 {
     float sum = 0;
@@ -320,7 +287,7 @@ float standardDeviation(vector<float> *num_vec)
     float mean = 0;
     for (int i = 0; i < (*num_vec).size(); i++)
     {
-        sum+= (*num_vec)[i];
+        sum += (*num_vec)[i];
     };
     mean = sum / (*num_vec).size();
     for (int i = 0; i < (*num_vec).size(); i++)
@@ -1704,7 +1671,38 @@ string floatToString(const float value)
 
     return str;
 }
+void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
+{
+    //平均移動距離 最大距離移動多少 最小距離移動多少 標準差多少
+    ofstream myfile;
+    myfile.open(log_file);
+    vector<float> distance_vector;
+    float total_distance = 0;
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        myfile << "---------------------------------------------" << endl;
+        myfile << "stripe index       : " << i << endl;
+        float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
+        float track_cost_float = stof((*vdd_stripe_vector)[i].vdd_track_x_cost);
+        float migration_distance = abs((start_x_location_float - track_cost_float));
+        total_distance += migration_distance;
+        myfile << "migration distance : " << migration_distance << endl;
+        distance_vector.push_back(migration_distance);
+    }
+    sort(distance_vector.begin(), distance_vector.end());
+    int last_index = distance_vector.size() - 1;
+    float average = total_distance / distance_vector.size();
+    float standard_deviation = standardDeviation(&distance_vector);
+    myfile << "================================================" << endl;
+    myfile << "number of stripe       : " << distance_vector.size() << endl;
+    myfile << "total_distance         : " << total_distance << endl;
+    myfile << "The shortest distance  : " << distance_vector[0] << endl;
+    myfile << "The logest distance    : " << distance_vector[last_index] << endl;
+    myfile << "The average distance   : " << average << endl;
+    myfile << "The standard deviation : " << standard_deviation << endl;
 
+    myfile.close();
+}
 // for (auto cellInfo : cell_info_map)
 // {
 //     cout << "cell name : " << cellInfo.first << endl;
