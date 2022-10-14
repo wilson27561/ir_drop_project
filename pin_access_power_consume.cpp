@@ -98,9 +98,14 @@ struct Stripe
     string end_y_location;
     string move_range_x_left;
     string move_range_x_right;
+    string move_range_y_down;
+    string move_range_y_up;
     string width;
-    string vdd_track_x_cost;
-    string vss_track_x_cost;
+    string length;
+    string vdd_track_x_location;
+    string vss_track_x_location;
+    string vdd_track_y_location;
+    string vss_track_y_location;
     string layer;
     vector<string> ip_power_vector;
     vector<TrackPoint> track_point_vector;
@@ -153,53 +158,65 @@ void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string
 void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_placed_info);
 void getIpPowerReport(string ip_report, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site);
-void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site, TrackInfo *track_info);
+void setStripeRange(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, CoreSite *core_site);
 void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site);
 void setRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
 void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map, string m3_x_start, string m3_x_pitch, string m2_y_start, string m2_y_pitch, CoreSite *core_site);
-void setRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *m3_track_info);
+void setRoutingTrackPowerConsuming(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, TrackInfo> *track_info_map);
 void setRoutingTrackNumberOfPinAccess(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info);
 void isOnTrackPin(map<string, PinShape> *pin_shape_map, map<string, vector<PinAccessPoint>> *pin_access_point_map, string track_point_x, string track_point_y);
-void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vector<Stripe> *stripe_vector, TrackInfo *track_info);
+void getAddStripeCost(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
 void getLeftCellPinAccessPoint(unordered_map<string, CellInfo> *cell_info_map);
 void setCellPinAccessPoint(CellInfo *cell_info);
-void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_track_point_map, float track_pitch);
-void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name);
+void getStripeRangeCost(Stripe *stripe, string layer, float track_pitch);
+void generateAddStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map, string move_stripe_name);
 void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAccessPoint *pin_access_point, PinAccessPoint *pin_access_point_def, string cell_width, string cell_height);
 float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info);
-void setCellStripeRange(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
 void generateLogFile(vector<Stripe> *stripe_vector, string log_file_name);
 void setCellRange(string power_stripe_width, CoreSite *core_site, vector<CellRange> *cell_range_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
-
+void setStripeLength(Stripe *stripe);
+void transferStripeToMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector);
+void generateTrackInfoMap(unordered_map<string, TrackInfo> *track_info_map);
+void setOddLayerRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
+void setEvenLayerRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
+void transferMovingRangeToTrack(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
+void setOddTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info);
+void setEvenTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info);
+float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
 bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
-
+bool isOddLayer(string layer);
 bool isVertical(Rect *rect);
 bool isOddTrackCell(string x_location, TrackInfo *m3_track_info);
 bool isPinAccessNameAndLayer(string layer_name, string pin_name);
 bool isPowerStripe(Stripe *stripe, CoreSite *core_site);
-bool isInTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width);
-bool isCoverPinAccess(float pin_access_point_x_def_float, float track_point_x_float, float power_stripe_width);
+bool isInOddTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width);
+bool isCoverPinAccess(string layer, PinAccessPoint *pin_access_point_def, TrackPoint *track_point, float power_stripe_width);
 bool floatIsEqualOrLess(float a, float b);
 bool floatIsEqualOrMore(float a, float b);
 bool floatIsEqual(float a, float b);
 bool isInCellRange(CellRange *cell_range, CellPlacedInfo *cell_place_info, string power_stripe_width);
+bool isInEvenStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
+bool isInOddStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
+void setEvenTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *track_info);
+void setCellStripeRange(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+bool isInEvenTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width);
+void setOddTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *track_info);
+void setRoutingTrackNumberOfPinAccess(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, unordered_map<string, TrackInfo> *track_info_map);
+void setOddTrackPinAccessCost(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
+void setTrackPinAccessCost(ofstream *myfile,string layer, vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
 string floatToString(const float value);
 int stringToInt(string num);
 float convertInnovusPoint(int number);
-bool sortStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
+bool sortOddStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
+bool sortEvenStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
 float standardDeviation(vector<float> *num_vec);
 int main()
 {
 
-    string v1_width = "0.072";
-    string m2_y_pitch = "0.072";
-    string m2_y_start = "1.44";
-    string m3_x_pitch = "0.072";
-    string m3_x_start = "0.18";
     CoreSite core_site;
     vector<Stripe> vdd_stripe_vector;
     vector<Stripe> vss_stripe_vector;
@@ -209,14 +226,9 @@ int main()
     unordered_map<string, CellPlacedInfo> cell_placed_map;
     unordered_map<string, TrackPoint> m3_track_point_map;
     unordered_map<string, TrackPoint> m2_track_point_map;
-    TrackInfo m3_track_info;
-    TrackInfo m2_track_info;
-    m3_track_info.layer = "M3";
-    m3_track_info.start = m3_x_start;
-    m3_track_info.pitch = m3_x_pitch;
-    m2_track_info.layer = "M2";
-    m2_track_info.start = m2_y_start;
-    m2_track_info.pitch = m2_y_pitch;
+    unordered_map<string, vector<Stripe>> vdd_stripe_map;
+    unordered_map<string, vector<Stripe>> vss_stripe_map;
+    unordered_map<string, TrackInfo> track_info_map;
 
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
@@ -254,30 +266,1004 @@ int main()
     START = clock();
 
     getCoreSite(DEF_TRANSFER_FILE, &core_site);
+    generateTrackInfoMap(&track_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
     getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
-    sort(vdd_stripe_vector.begin(), vdd_stripe_vector.end(), sortStripeLocationVector);
-    sort(vss_stripe_vector.begin(), vss_stripe_vector.end(), sortStripeLocationVector);
-    setStripeRange(&vdd_stripe_vector, &vss_stripe_vector, &core_site, &m3_track_info);
+    transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
+
+    setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
+    transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
 
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getLeftCellPinAccessPoint(&cell_info_map);
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
+    setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
+    setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
+    setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
 
-    setCellStripeRange(&vdd_stripe_vector, &cell_ip_map, &cell_placed_map);
-    setRoutingTrackPowerConsuming(&vdd_stripe_vector, &m3_track_point_map, &cell_placed_map, &m3_track_info);
-
-    setRoutingTrackNumberOfPinAccess(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map, &cell_info_map, &m3_track_info);
-    getAddStripeCost(&m3_track_point_map, &vdd_stripe_vector, &m3_track_info);
-    // generateAddStripeTcl(&vdd_stripe_vector, ADD_STRIPE_TCL);
-    // generateLogFile(&vdd_stripe_vector, "track_cost_position.txt");
+    getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    generateAddStripeTcl(&vdd_stripe_map, ADD_STRIPE_TCL);
 
     cout << endl
          << "程式執行所花費：" << (double)clock() / CLOCKS_PER_SEC << " S";
     // test
     // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
     // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
+    // generateLogFile(&vdd_stripe_map["M3"], "track_cost_position.txt");
     return 0;
+}
+
+void generateAddStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map, string move_stripe_name)
+{
+    ofstream myfile;
+    myfile.open(move_stripe_name);
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+
+        for (int i = 0; i < vdd_stripe_map_it->second.size(); i++)
+        {
+            if (isOddLayer(layer))
+            {
+                Stripe stripe = vdd_stripe_map_it->second[i];
+                float power_stripe_width_float = stof(stripe.width);
+                float vdd_track_cost = stof(stripe.vdd_track_x_location);
+                float vdd_left_track_cost = vdd_track_cost - (power_stripe_width_float / 2);
+                float vdd_right_track_cost = vdd_track_cost + (power_stripe_width_float / 2);
+
+                string vdd_left_track_cost_str = floatToString(vdd_left_track_cost);
+                string vdd_right_track_cost_str = floatToString(vdd_right_track_cost);
+
+                float vss_track_x_cost = stof(stripe.vss_track_x_location);
+                float vss_left_track_cost = vss_track_x_cost - (power_stripe_width_float / 2);
+                float vss_right_track_cost = vss_track_x_cost + (power_stripe_width_float / 2);
+
+                string vss_left_track_cost_str = floatToString(vss_left_track_cost);
+                string vss_right_track_cost_str = floatToString(vss_right_track_cost);
+                cout << "========== range " << i << "  end ==========" << endl;
+                myfile << "addStripe -nets { VDDX } -layer "
+                       << layer
+                       << " -direction vertical -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_left_track_cost_str << " " << stripe.start_y_location << " " << vdd_right_track_cost_str << " " << stripe.end_y_location << " }" << endl;
+                // myfile << "addStripe -nets { VSSX } -layer "
+                //        << "M3"
+                //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
+            }
+            else
+            {
+                Stripe stripe = vdd_stripe_map_it->second[i];
+                float power_stripe_width_float = stof(stripe.width);
+                float vdd_track_cost = stof(stripe.vdd_track_y_location);
+                float vdd_down_track_cost = vdd_track_cost - (power_stripe_width_float / 2);
+                float vdd_up_track_cost = vdd_track_cost + (power_stripe_width_float / 2);
+
+                string vdd_down_track_cost_str = floatToString(vdd_down_track_cost);
+                string vdd_up_track_cost_str = floatToString(vdd_up_track_cost);
+
+                float vss_track_y_cost = stof(stripe.vss_track_y_location);
+                float vss_down_track_cost = vss_track_y_cost - (power_stripe_width_float / 2);
+                float vss_up_track_cost = vss_track_y_cost + (power_stripe_width_float / 2);
+
+                string vss_down_track_cost_str = floatToString(vss_down_track_cost);
+                string vss_up_track_cost_str = floatToString(vss_up_track_cost);
+
+                myfile << "addStripe -nets { VDDX } -layer "
+                       << layer
+                       << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vss_down_track_cost_str << " " << stripe.end_x_location << " " << vss_up_track_cost_str << " }" << endl;
+                // myfile << "addStripe -nets { VSSX } -layer "
+                //        << "M3"
+                //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
+            }
+        }
+    }
+
+    myfile.close();
+}
+
+void getAddStripeCost(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
+{
+    cout << "========== getAddStripeCost start ==========" << endl;
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+        float track_pitch_float = stof((*track_info_map)[layer].pitch);
+        for (int i = 0; i < vdd_stripe_map_it->second.size(); i++)
+        {
+            getStripeRangeCost(&(vdd_stripe_map_it->second[i]), layer, track_pitch_float);
+        }
+    }
+    cout << "========== getAddStripeCost end ==========" << endl;
+}
+
+void getStripeRangeCost(Stripe *stripe, string layer, float track_pitch)
+{
+
+    if (isOddLayer(layer))
+    {
+        float vdd_stripe_cost = 1000000000000;
+        float vss_stripe_cost = 1000000000000;
+        string vdd_track = "0";
+        string vss_track = "0";
+        map<string, float> track_map;
+        for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
+        {
+            float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
+            if (total_pin_access_power_consum_cost < vdd_stripe_cost && total_pin_access_power_consum_cost != 0)
+            {
+                vdd_stripe_cost = total_pin_access_power_consum_cost;
+                vdd_track = (*stripe).track_point_vector[i].x_point;
+            }
+        }
+        // ====== TODO 左右兩條不使用 ========
+        float vdd_track_float = stof(vdd_track);
+        float left_track_float = vdd_track_float - track_pitch;
+        float right_track_float = vdd_track_float + track_pitch;
+        string left_track = floatToString(left_track_float);
+        string right_track = floatToString(right_track_float);
+        track_map.insert(pair<string, float>(left_track, left_track_float));
+        track_map.insert(pair<string, float>(right_track, right_track_float));
+        // ====== TODO 左右兩條不使用 ========
+        for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
+        {
+            float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
+            string x_track = (*stripe).track_point_vector[i].x_point;
+            if (total_pin_access_power_consum_cost < vss_stripe_cost && (!(track_map).count(x_track)) && total_pin_access_power_consum_cost != 0)
+            {
+                vss_stripe_cost = total_pin_access_power_consum_cost;
+                vss_track = (*stripe).track_point_vector[i].x_point;
+            }
+        }
+        (*stripe).vdd_track_x_location = vdd_track;
+        (*stripe).vss_track_x_location = vss_track;
+    }
+    else
+    {
+        float vdd_stripe_cost = 1000000000000;
+        float vss_stripe_cost = 1000000000000;
+        string vdd_track = "0";
+        string vss_track = "0";
+        map<string, float> track_map;
+        for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
+        {
+            float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
+            if (total_pin_access_power_consum_cost < vdd_stripe_cost && total_pin_access_power_consum_cost != 0)
+            {
+                vdd_stripe_cost = total_pin_access_power_consum_cost;
+                vdd_track = (*stripe).track_point_vector[i].y_point;
+            }
+        }
+        // ====== TODO 上下兩條不使用 ========
+        float vdd_track_float = stof(vdd_track);
+        float down_track_float = vdd_track_float - track_pitch;
+        float up_track_float = vdd_track_float + track_pitch;
+        string down_track = floatToString(down_track_float);
+        string up_track = floatToString(up_track_float);
+        track_map.insert(pair<string, float>(down_track, down_track_float));
+        track_map.insert(pair<string, float>(up_track, up_track_float));
+        // ====== TODO 上下兩條不使用 ========
+        for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
+        {
+            float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
+            string y_track = (*stripe).track_point_vector[i].y_point;
+            if (total_pin_access_power_consum_cost < vss_stripe_cost && (!(track_map).count(y_track)) && total_pin_access_power_consum_cost != 0)
+            {
+                vss_stripe_cost = total_pin_access_power_consum_cost;
+                vss_track = (*stripe).track_point_vector[i].y_point;
+            }
+        }
+        (*stripe).vdd_track_y_location = vdd_track;
+        (*stripe).vss_track_y_location = vss_track;
+    };
+}
+
+void setRoutingTrackNumberOfPinAccess(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, unordered_map<string, TrackInfo> *track_info_map)
+{
+    cout << "========== setRoutingTrackNumberOfPinAccess start ==========" << endl;
+    ofstream myfile;
+    myfile.open("stripe_cost.txt");
+    for (auto stripe_map_it = (*stripe_map).begin(); stripe_map_it != (*stripe_map).end(); ++stripe_map_it)
+    {
+        string layer = stripe_map_it->first;
+
+        setTrackPinAccessCost(&myfile, layer, &(*stripe_map)[layer], &(*cell_placed_map), &(*cell_ip_map), &(*cell_info_map), &(*track_info_map)[layer]);
+    }
+    myfile.close();
+    cout << "========== setRoutingTrackNumberOfPinAccess end ==========" << endl;
+}
+void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+{
+
+    cout << "========== setTrackPinAccessCost start ==========" << endl;
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        cout << "========== " << (*stripe_vector)[i].layer << " "
+             << "stripe" << i << " start ========== " << endl;
+        (*myfile) << "---------- " << (*stripe_vector)[i].layer << " "
+                  << " stripe " << i << " start ---------- " << endl;
+        for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
+        {
+            TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
+            float total_cell_pin_access_power_consume_cost = 0;
+            float power_stripe_width_float = stof((*stripe_vector)[i].width);
+            if ((*stripe_vector)[i].layer == "M3")
+            {
+                (*myfile) << "track_point_x                             : " << track_point.x_point << endl;
+            }
+            else
+            {
+                (*myfile) << "track_point_y                             : " << track_point.y_point << endl;
+            }
+
+            float total_pin_access_cost = 0;
+            float total_power_consuming = 0;
+            for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
+            {
+                string cell_id = track_point.power_cell_id_vector[k];
+                CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+
+                // cost function
+                float cell_pin_access_cost = getTrackPinAccessPointCost(layer, power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*track_info));
+                total_pin_access_cost += cell_pin_access_cost;
+
+                float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
+                power_consuming_cost = 1 / power_consuming_cost;
+                total_power_consuming += power_consuming_cost;
+                float pin_access_power_consuming_cost = cell_pin_access_cost + power_consuming_cost;
+                total_cell_pin_access_power_consume_cost += pin_access_power_consuming_cost;
+            }
+            (*myfile) << "total_pin_access_cost                    : " << total_pin_access_cost << endl;
+            (*myfile) << "total_power_consuming                    : " << total_power_consuming << endl;
+            (*myfile) << "total_cell_pin_access_power_consume_cost : " << total_cell_pin_access_power_consume_cost << endl;
+            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = total_cell_pin_access_power_consume_cost;
+        }
+        cout << "========== stripe " << i << " end ==========" << endl;
+    }
+    cout << "========== setTrackPinAccessCost end ==========" << endl;
+}
+float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+{
+    // float m3_track_point_middle_float = stof((*track_point).x_point);
+    string cell_placed_left_x_location = (*cell_placed_info).left_x_location;
+    string cell_placed_right_x_location = (*cell_placed_info).right_x_location;
+
+    string cell_name = (*cell_placed_info).cell_name;
+    string direction = (*cell_placed_info).direction;
+    string cell_width = (*cell_info_map)[cell_name].width;
+    string cell_height = (*cell_info_map)[cell_name].height;
+    float total_pin_access_cost = 0;
+
+    if (isOddTrackCell(cell_placed_left_x_location, &(*track_info)))
+    {
+
+        for (auto odd_pin_access_point_iter = ((*cell_info_map)[cell_name].odd_pin_access_point_map).begin(); odd_pin_access_point_iter != ((*cell_info_map)[cell_name].odd_pin_access_point_map).end(); ++odd_pin_access_point_iter)
+        {
+            int pin_access_point = 0;
+            for (int i = 0; i < (odd_pin_access_point_iter->second).size(); i++)
+            {
+                PinAccessPoint pin_access_point_def;
+                transferPinAccessLocationFromDef(&(*cell_placed_info), &(odd_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
+
+                // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
+                if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
+                {
+                    pin_access_point += 1;
+                }
+            }
+            float pin_access_cost = (float)pin_access_point / (odd_pin_access_point_iter->second).size();
+            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
+            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
+            // cout << "pin cost : " << pin_access_cost << endl;
+            total_pin_access_cost += pin_access_cost;
+        }
+    }
+    else
+    {
+        for (auto even_pin_access_point_iter = ((*cell_info_map)[cell_name].even_pin_access_point_map).begin(); even_pin_access_point_iter != ((*cell_info_map)[cell_name].even_pin_access_point_map).end(); ++even_pin_access_point_iter)
+        {
+            int pin_access_point = 0;
+            for (int i = 0; i < (even_pin_access_point_iter->second).size(); i++)
+            {
+                PinAccessPoint pin_access_point_def;
+                transferPinAccessLocationFromDef(&(*cell_placed_info), &(even_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
+                // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
+                if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
+                {
+                    pin_access_point += 1;
+                }
+            }
+            float pin_access_cost = (float)pin_access_point / (even_pin_access_point_iter->second).size();
+            total_pin_access_cost += pin_access_cost;
+            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
+            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
+            // cout << "pin cost : " << pin_access_cost << endl;
+        }
+    }
+    if (total_pin_access_cost == 0)
+    {
+        total_pin_access_cost = 1;
+    }
+    return total_pin_access_cost;
+}
+bool isCoverPinAccess(string layer, PinAccessPoint *pin_access_point_def, TrackPoint *track_point, float power_stripe_width)
+{
+    int cover_track = getCoverTrack(power_stripe_width);
+    float cover_distance = (cover_track * 0.144) + 0.036;
+    if (isOddLayer(layer))
+    {
+        float track_point_x_left = stof((*track_point).x_point) - cover_distance;
+        float track_point_x_right = stof((*track_point).x_point) + cover_distance;
+
+        float pin_access_x_left = stof((*pin_access_point_def).middle_x_location) - (0.072 / 2);
+        float pin_access_x_right = stof((*pin_access_point_def).middle_x_location) + (0.072 / 2);
+
+        if (track_point_x_left < pin_access_x_left && track_point_x_right < pin_access_x_left)
+        {
+            return false;
+        }
+        else if (track_point_x_left > pin_access_x_left && track_point_x_right > pin_access_x_right)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    else
+    {
+        float track_point_y_down_float = stof((*track_point).y_point) - cover_distance;
+        float track_point_y_up_float = stof((*track_point).y_point) + cover_distance;
+
+        float pin_access_y_down_float = stof((*pin_access_point_def).middle_y_location) - (0.072 / 2);
+        float pin_access_y_up_float = stof((*pin_access_point_def).middle_y_location) + (0.072 / 2);
+
+        if (track_point_y_down_float < pin_access_y_down_float && track_point_y_up_float < pin_access_y_down_float)
+        {
+            return false;
+        }
+        else if (track_point_y_down_float > pin_access_y_down_float && track_point_y_down_float > pin_access_y_up_float)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+};
+
+int getCoverTrack(float power_stripe_width)
+{
+    float half_power_stripe_width = power_stripe_width / 2;
+    int temp_pitch = (int)(half_power_stripe_width / 0.144);
+    int track = 0;
+    float temp_width = temp_pitch * 0.144;
+    temp_width = half_power_stripe_width - temp_width;
+    if (floatIsEqualOrLess(temp_width, 0.036))
+    {
+        track = temp_pitch;
+    }
+    else
+    {
+        track = temp_pitch + 1;
+    }
+    return track;
+}
+void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAccessPoint *pin_access_point, PinAccessPoint *pin_access_point_def, string cell_width, string cell_height)
+{
+
+    float cell_place_left_x = stof((*cell_placed_info).left_x_location);
+    float cell_place_down_y = stof((*cell_placed_info).down_y_location);
+
+    float cell_width_float = stof(cell_width);
+    float cell_height_float = stof(cell_height);
+
+    float pin_access_x_point = stof((*pin_access_point).middle_x_location);
+    float pin_access_y_point = stof((*pin_access_point).middle_y_location);
+
+    if ((*cell_placed_info).direction == "N")
+    {
+        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + pin_access_x_point);
+        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + pin_access_y_point);
+
+        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
+    }
+    else if ((*cell_placed_info).direction == "S")
+    {
+
+        float temp_middle_x_float = abs(cell_width_float - pin_access_x_point);
+        float temp_middle_y_float = abs(cell_height_float - pin_access_y_point);
+
+        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + temp_middle_x_float);
+        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + temp_middle_y_float);
+
+        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
+    }
+    else if ((*cell_placed_info).direction == "FN")
+    {
+
+        float temp_middle_x_float = abs(cell_width_float - pin_access_x_point);
+
+        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + temp_middle_x_float);
+        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + pin_access_y_point);
+
+        //  cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
+    }
+    else if ((*cell_placed_info).direction == "FS")
+    {
+
+        float temp_middle_y_float = abs(cell_height_float - pin_access_y_point);
+
+        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + pin_access_x_point);
+        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + temp_middle_y_float);
+
+        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
+    }
+    else
+    {
+        cout << " getPinAccessLocationFromDef error " << endl;
+    }
+};
+
+bool isOddTrackCell(string x_location, TrackInfo *m3_track_info)
+{
+
+    float m3_x_float_temp = stof(x_location) - stof((*m3_track_info).start);
+    float temp_pitch_start = m3_x_float_temp / (stof((*m3_track_info).pitch) * 2);
+    int temp_pitch_start_int = (int)temp_pitch_start;
+    temp_pitch_start_int += 1;
+
+    float start_x = (temp_pitch_start_int * (stof((*m3_track_info).pitch) * 2)) + stof((*m3_track_info).start);
+    float distance = start_x - stof(x_location);
+
+    if (floatIsEqual(distance, 0.108))
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+    return true;
+}
+
+void setRoutingTrackPowerConsuming(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, TrackInfo> *track_info_map)
+{
+
+    for (auto stripe_map_it = (*stripe_map).begin(); stripe_map_it != (*stripe_map).end(); ++stripe_map_it)
+    {
+        string layer = stripe_map_it->first;
+        if (isOddLayer(layer))
+        {
+            setOddTrackPointInStripe(&(*stripe_map)[layer], &(*cell_placed_map), &(*track_info_map)[layer]);
+        }
+        else
+        {
+            setEvenTrackPointInStripe(&(*stripe_map)[layer], &(*cell_placed_map), &(*track_info_map)[layer]);
+        };
+    }
+};
+
+void setEvenTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *track_info)
+{
+
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        // cout << "start_move_range_y_down : " << (*stripe_vector)[i].move_range_y_down << endl;
+        // cout << "start_move_range_y_up : " << (*stripe_vector)[i].move_range_y_up << endl;
+        float power_stripe_width_float = stof((*stripe_vector)[i].width);
+        float start_move_range_y_down = (stof((*stripe_vector)[i].move_range_y_down) * 1000) / 4;
+        float start_move_range_y_up = (stof((*stripe_vector)[i].move_range_y_up) * 1000) / 4;
+        // cout << "start : " << (*track_info).start << endl;
+        // cout << "pitch : " << (*track_info).pitch << endl;
+
+        float y_start_float = (stof((*track_info).start) * 1000) / 4;
+        float y_pitch_float = (stof((*track_info).pitch) * 1000) / 4;
+        // cout << "y_start_float : " << y_start_float << endl;
+        // cout << "y_pitch_float : " << y_pitch_float << endl;
+
+        int y_start_int = (int)y_start_float;
+        int y_pitch_int = (int)y_pitch_float;
+        // cout << "y_start_int : " << y_start_int << endl;
+        // cout << "y_pitch_int : " << y_pitch_int << endl;
+        cout << " ----- moving range start -----" << i << endl;
+        cout << (*stripe_vector)[i].move_range_y_down << " " << (*stripe_vector)[i].move_range_y_up << endl;
+        vector<TrackPoint> track_point_vector;
+        vector<string> ip_power_vector = (*stripe_vector)[i].ip_power_vector;
+        for (int j = start_move_range_y_down; j <= start_move_range_y_up; j += y_pitch_int)
+        {
+            float y_track_point = (j * 4) / 1000.0;
+            vector<string> power_cell_id_vector;
+            TrackPoint track_point;
+            track_point.y_point = floatToString(y_track_point);
+            // cout << "track point " << track_point.y_point << endl;
+            track_point.power_cell_id_vector = power_cell_id_vector;
+            for (int k = 0; k < ip_power_vector.size(); k++)
+            {
+                string cell_id = ip_power_vector[k];
+                if (isInEvenTrackStripeRange(&track_point, &(*cell_placed_map)[cell_id], power_stripe_width_float))
+                {
+                    track_point.power_cell_id_vector.push_back(cell_id);
+                }
+            }
+            track_point_vector.push_back(track_point);
+        };
+
+        cout << " ----- moving range end   -----" << endl;
+        (*stripe_vector)[i].track_point_vector = track_point_vector;
+    }
+}
+
+void setOddTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *track_info)
+{
+
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        float power_stripe_width_float = stof((*stripe_vector)[i].width);
+        int start_move_range_x_left = (stof((*stripe_vector)[i].move_range_x_left) * 1000) / 4;
+        int start_move_range_x_right = (stof((*stripe_vector)[i].move_range_x_right) * 1000) / 4;
+
+        float x_start_float = (stof((*track_info).start) * 1000) / 4;
+        float x_pitch_float = (stof((*track_info).pitch) * 1000) / 4;
+
+        int x_start_int = (int)x_start_float;
+        int x_pitch_int = (int)x_pitch_float;
+
+        cout << " ----- moving range start -----" << endl;
+
+        cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << endl;
+        vector<TrackPoint> track_point_vector;
+        vector<string> ip_power_vector = (*stripe_vector)[i].ip_power_vector;
+        for (int j = start_move_range_x_left; j <= start_move_range_x_right; j += x_pitch_int)
+        {
+            float x_track_point = (j * 4) / 1000.0;
+
+            vector<string> power_cell_id_vector;
+            TrackPoint track_point;
+            track_point.x_point = floatToString(x_track_point);
+            track_point.power_cell_id_vector = power_cell_id_vector;
+
+            for (int k = 0; k < ip_power_vector.size(); k++)
+            {
+                string cell_id = ip_power_vector[k];
+                if (isInOddTrackStripeRange(&track_point, &(*cell_placed_map)[cell_id], power_stripe_width_float))
+                {
+                    track_point.power_cell_id_vector.push_back(cell_id);
+                }
+            }
+            track_point_vector.push_back(track_point);
+        }
+        cout << " ----- moving range end -----" << endl;
+        (*stripe_vector)[i].track_point_vector = track_point_vector;
+    }
+};
+
+//一條routing track 通過多少cell
+bool isInEvenTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
+{
+
+    float track_point_down = stof((*track_point).y_point) - (power_stripe_width / 2);
+    float track_point_up = stof((*track_point).y_point) + (power_stripe_width / 2);
+    float cell_placed_down = stof((*cell_placed_info).down_y_location);
+    float cell_placed_up = stof((*cell_placed_info).up_y_location);
+
+    // cell in power stripe middle
+    if (cell_placed_down >= track_point_down && cell_placed_up <= track_point_up)
+    {
+        return true;
+    }
+    // cell across power stripe up
+    else if (cell_placed_down >= track_point_down && cell_placed_down <= track_point_up && cell_placed_up >= track_point_up)
+    {
+        return true;
+    }
+    // cell across power stripe down
+    else if (cell_placed_down <= track_point_down && cell_placed_up >= track_point_down && cell_placed_up <= track_point_up)
+    {
+        return true;
+
+    } // cell across all power stripe
+    else if (cell_placed_down <= track_point_down && cell_placed_up >= track_point_up)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+//一條routing track 通過多少cell 只剩這裡有問題
+bool isInOddTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
+{
+
+    float track_point_left = stof((*track_point).x_point) - (power_stripe_width / 2);
+    float track_point_right = stof((*track_point).x_point) + (power_stripe_width / 2);
+    float cell_placed_left = stof((*cell_placed_info).left_x_location);
+    float cell_placed_right = stof((*cell_placed_info).right_x_location);
+    // cout << " track_point " << track_point_left << " " << track_point_right << endl;
+    // cout << " cell_placed " << cell_placed_left << " " << cell_placed_right << endl;
+
+    // cell in power stripe middle
+    if (cell_placed_left >= track_point_left && cell_placed_right <= track_point_right)
+    {
+        return true;
+    }
+    // cell across power stripe left
+    else if (cell_placed_left <= track_point_left && cell_placed_right >= track_point_left && cell_placed_right <= track_point_right)
+    {
+        return true;
+    }
+    // cell across power stripe right
+    else if (cell_placed_left >= track_point_left && cell_placed_left <= track_point_right && cell_placed_right >= track_point_right)
+    {
+        return true;
+    }
+    // cell across all power stripe
+    else if (cell_placed_left <= track_point_left && cell_placed_right >= track_point_right)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
+    cout << "========== isInTrackStripeRange end ==========" << endl;
+}
+
+void setCellStripeRange(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
+{
+    for (auto stripe_map_it = (*stripe_map).begin(); stripe_map_it != (*stripe_map).end(); ++stripe_map_it)
+    {
+        string layer = stripe_map_it->first;
+        if (isOddLayer(layer))
+        {
+            cout << "========== start setIpPowerInStripe isOddLayer ==========" << endl;
+            for (auto cell_ip_it = (*cell_ip_map).begin(); cell_ip_it != (*cell_ip_map).end(); ++cell_ip_it)
+            {
+                string cell_id = cell_ip_it->first;
+                CellInstancePowerInfo cell_instance_power_info = cell_ip_it->second;
+                for (int i = 0; i < (*stripe_map)[layer].size(); i++)
+                {
+                    vector<string> ip_power_vector;
+                    if (isInOddStripeRange(&(*stripe_map)[layer][i], cell_id, &(*cell_placed_map), &(*cell_ip_map)))
+                    {
+
+                        (*stripe_map)[layer][i].ip_power_vector.push_back(cell_id);
+                    }
+                }
+            }
+            cout << "========== end setIpPowerInStripe isOddLayer ==========" << endl;
+        }
+        else
+        {
+            cout << "========== start setIpPowerInStripe isEvenLayer ==========" << endl;
+            for (auto cell_ip_it = (*cell_ip_map).begin(); cell_ip_it != (*cell_ip_map).end(); ++cell_ip_it)
+            {
+                string cell_id = cell_ip_it->first;
+                CellInstancePowerInfo cell_instance_power_info = cell_ip_it->second;
+                for (int i = 0; i < (*stripe_map)[layer].size(); i++)
+                {
+                    if (isInEvenStripeRange(&(*stripe_map)[layer][i], cell_id, &(*cell_placed_map), &(*cell_ip_map)))
+                    {
+                        // cout << "stripe :" << (*stripe_map)[layer][i].move_range_x_left << " " << (*stripe_map)[layer][i].move_range_x_right << endl;
+                        // cout << "cell id : " << cell_id << endl;
+                        (*stripe_map)[layer][i].ip_power_vector.push_back(cell_id);
+                    }
+                }
+            }
+            cout << "========== end setIpPowerInStripe isEvenLayer ==========" << endl;
+        }
+    }
+}
+bool isInEvenStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
+{
+
+    string up_y_location = (*cell_placed_map)[cell_id].up_y_location;
+    string down_y_location = (*cell_placed_map)[cell_id].down_y_location;
+
+    float move_range_y_down_float = stof((*stripe_vector).move_range_y_down);
+    float move_range_y_up_float = stof((*stripe_vector).move_range_y_up);
+
+    float up_y_location_float = stof(up_y_location);
+    float down_y_location_float = stof(down_y_location);
+
+    // case 1 : middle of down stripe
+    if ((up_y_location_float > move_range_y_down_float) && (down_y_location_float < move_range_y_down_float) && (up_y_location_float < move_range_y_up_float))
+    {
+        return true;
+    } // case 2 : middle of up stripe
+    else if ((up_y_location_float > move_range_y_up_float) && (down_y_location_float < move_range_y_up_float) && (down_y_location_float > move_range_y_down_float))
+    {
+        return true;
+    } // case 3 : over all of stripe range
+    else if ((up_y_location_float > move_range_y_up_float) && (down_y_location_float < move_range_y_down_float))
+    {
+
+        return true;
+    } // case 4 : in power srtripe range
+    else if (floatIsEqualOrLess(up_y_location_float, move_range_y_up_float) && floatIsEqualOrMore(up_y_location_float, move_range_y_down_float) && floatIsEqualOrLess(down_y_location_float, move_range_y_up_float) && floatIsEqualOrMore(down_y_location_float, move_range_y_down_float))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+bool isInOddStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)
+{
+    string left_x_location = (*cell_placed_map)[cell_id].left_x_location;
+    string right_x_location = (*cell_placed_map)[cell_id].right_x_location;
+
+    float move_range_x_left_float = stof((*stripe_vector).move_range_x_left);
+    float move_range_x_right_float = stof((*stripe_vector).move_range_x_right);
+
+    float left_x_location_float = stof(left_x_location);
+    float right_x_location_float = stof(right_x_location);
+
+    // case 1 : middle of left stripe
+    if ((left_x_location_float < move_range_x_left_float) && (right_x_location_float > move_range_x_left_float) && (left_x_location_float < move_range_x_right_float) && (right_x_location_float < move_range_x_right_float))
+    {
+
+        // cout << " middle of left stripe " << endl;
+        return true;
+    } // case 2 : in stripe moving location
+    else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float <= move_range_x_right_float)
+    {
+
+        // cout << " in stripe moving location " << endl;
+        return true;
+    } // case 3 : middle of right stripe
+    else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float >= move_range_x_right_float)
+    {
+
+        // cout << " middle of right stripe " << endl;
+        return true;
+    } // case4 : over stripe moving location
+    else if (left_x_location_float < move_range_x_left_float && left_x_location_float < move_range_x_right_float && right_x_location_float > move_range_x_right_float && right_x_location_float > move_range_x_left_float)
+    {
+        // cout << " over stripe moving location " << endl;
+        return true;
+    }
+    // case 4 : out side
+    else
+    {
+        // cout << " out side " << endl;
+        return false;
+    }
+}
+
+void transferMovingRangeToTrack(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
+{
+    cout << "========== transferMovingRangeToTrack start ==========" << endl;
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+        TrackInfo track_info = (*track_info_map)[layer];
+        if (isOddLayer(layer))
+        {
+            setOddTrackRange(&(*vdd_stripe_map)[layer], &(*track_info_map)[layer]);
+        }
+        else
+        {
+            setEvenTrackRange(&(*vdd_stripe_map)[layer], &(*track_info_map)[layer]);
+        }
+    }
+
+    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
+    {
+        string layer = vss_stripe_map_it->first;
+        TrackInfo track_info = (*track_info_map)[layer];
+        if (isOddLayer(layer))
+        {
+            setOddTrackRange(&(*vss_stripe_map)[layer], &(*track_info_map)[layer]);
+        }
+        else
+        {
+            setEvenTrackRange(&(*vss_stripe_map)[layer], &(*track_info_map)[layer]);
+        }
+    }
+    cout << "========== transferMovingRangeToTrack end ==========" << endl;
+}
+void setOddTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info)
+{
+    float track_start = stof((*track_info).start);
+    // float track_pitch = stof((*track_info).pitch) * 2;
+    float track_pitch = stof((*track_info).pitch);
+
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        // cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << " " << endl;
+        float move_range_x_left_float = stof((*stripe_vector)[i].move_range_x_left);
+        float move_range_x_right_float = stof((*stripe_vector)[i].move_range_x_right);
+
+        float move_range_left_x_float_temp = move_range_x_left_float - track_start;
+        float temp_pitch_start = move_range_left_x_float_temp / track_pitch;
+        int temp_pitch_start_int = (int)temp_pitch_start;
+        float start_x = (temp_pitch_start_int * track_pitch) + track_start;
+
+        float move_range_x_right_float_temp = move_range_x_right_float - track_start;
+        float temp_pitch_end = move_range_x_right_float_temp / track_pitch;
+        int temp_pitch_end_int = (int)temp_pitch_end;
+
+        temp_pitch_end_int -= 1;
+        float end_x = (temp_pitch_end_int * track_pitch) + track_start;
+
+        (*stripe_vector)[i].move_range_x_left = floatToString(start_x);
+        (*stripe_vector)[i].move_range_x_right = floatToString(end_x);
+    }
+}
+void setEvenTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info)
+{
+    float track_start = stof((*track_info).start);
+    float track_pitch = stof((*track_info).pitch);
+
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        float move_range_y_down_float = stof((*stripe_vector)[i].move_range_y_down);
+        float move_range_y_up_float = stof((*stripe_vector)[i].move_range_y_up);
+
+        float move_range_y_down_float_temp = move_range_y_down_float - track_start;
+        float temp_pitch_start = move_range_y_down_float_temp / track_pitch;
+        int temp_pitch_start_int = (int)temp_pitch_start;
+        float start_x = (temp_pitch_start_int * track_pitch) + track_start;
+
+        float move_range_y_up_float_temp = move_range_y_up_float - track_start;
+        float temp_pitch_end = move_range_y_up_float_temp / track_pitch;
+        int temp_pitch_end_int = (int)temp_pitch_end;
+
+        temp_pitch_end_int -= 1;
+        float end_x = (temp_pitch_end_int * track_pitch) + track_start;
+        (*stripe_vector)[i].move_range_x_left = floatToString(start_x);
+        (*stripe_vector)[i].move_range_x_right = floatToString(end_x);
+    }
+}
+
+void setStripeRange(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, CoreSite *core_site)
+{
+    cout << "========== setStripeRange start ==========" << endl;
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+        if (isOddLayer(layer))
+        {
+            setOddLayerRange(&((*vdd_stripe_map)[layer]), &(*core_site));
+        }
+        else
+        {
+            setEvenLayerRange(&((*vdd_stripe_map)[layer]), &(*core_site));
+        };
+    }
+    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
+    {
+        string layer = vss_stripe_map_it->first;
+        if (isOddLayer(layer))
+        {
+            setOddLayerRange(&((*vss_stripe_map)[layer]), &(*core_site));
+        }
+        else
+        {
+            setEvenLayerRange(&((*vss_stripe_map)[layer]), &(*core_site));
+        };
+    }
+    cout << "========== setStripeRange end ==========" << endl;
+};
+void setOddLayerRange(vector<Stripe> *stripe_vector, CoreSite *core_site)
+{
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+
+        if (i == 0)
+        {
+            (*stripe_vector)[i].move_range_x_left = (*core_site).left_x_location;
+            float middle_x_power_stripe = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i + 1].start_x_location)) / 2;
+            (*stripe_vector)[i].move_range_x_right = floatToString(middle_x_power_stripe);
+        }
+        else if (i == ((*stripe_vector).size() - 1))
+        {
+
+            (*stripe_vector)[i].move_range_x_right = (*core_site).right_x_location;
+            float middle_x_power_stripe = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i - 1].start_x_location)) / 2;
+            (*stripe_vector)[i].move_range_x_left = floatToString(middle_x_power_stripe);
+        }
+        else
+        {
+            float middle_x_power_stripe_right = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i + 1].start_x_location)) / 2;
+            float middle_x_power_stripe_left = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i - 1].start_x_location)) / 2;
+            (*stripe_vector)[i].move_range_x_right = floatToString(middle_x_power_stripe_right);
+            (*stripe_vector)[i].move_range_x_left = floatToString(middle_x_power_stripe_left);
+        }
+    }
+}
+void setEvenLayerRange(vector<Stripe> *stripe_vector, CoreSite *core_site)
+{
+    for (int i = 0; i < (*stripe_vector).size(); i++)
+    {
+        if (i == 0)
+        {
+            (*stripe_vector)[i].move_range_y_down = (*core_site).down_y_location;
+            float middle_y_power_stripe = (stof((*stripe_vector)[i].start_y_location) + stof((*stripe_vector)[i + 1].start_y_location)) / 2;
+            (*stripe_vector)[i].move_range_y_up = floatToString(middle_y_power_stripe);
+        }
+        else if (i == ((*stripe_vector).size() - 1))
+        {
+            (*stripe_vector)[i].move_range_y_up = (*core_site).up_y_location;
+            float middle_y_power_stripe = (stof((*stripe_vector)[i].start_y_location) + stof((*stripe_vector)[i - 1].start_y_location)) / 2;
+            (*stripe_vector)[i].move_range_y_down = floatToString(middle_y_power_stripe);
+        }
+        else
+        {
+            float middle_y_power_stripe_up = (stof((*stripe_vector)[i].start_y_location) + stof((*stripe_vector)[i + 1].start_y_location)) / 2;
+            float middle_y_power_stripe_down = (stof((*stripe_vector)[i].start_y_location) + stof((*stripe_vector)[i - 1].start_y_location)) / 2;
+            (*stripe_vector)[i].move_range_y_up = floatToString(middle_y_power_stripe_up);
+            (*stripe_vector)[i].move_range_y_down = floatToString(middle_y_power_stripe_down);
+        }
+    }
+}
+
+void transferStripeToMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector)
+{
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        if ((*vdd_stripe_map).count((*vdd_stripe_vector)[i].layer))
+        {
+            (*vdd_stripe_map)[(*vdd_stripe_vector)[i].layer].push_back((*vdd_stripe_vector)[i]);
+        }
+        else
+        {
+            vector<Stripe> layer_vdd_stripe_vector;
+            layer_vdd_stripe_vector.push_back((*vdd_stripe_vector)[i]);
+            string layer = (*vdd_stripe_vector)[i].layer;
+            (*vdd_stripe_map).insert(pair<string, vector<Stripe>>(layer, layer_vdd_stripe_vector));
+        }
+    }
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+        vector<Stripe> stripe_vector = (*vdd_stripe_map)[layer];
+        if (isOddLayer(layer))
+        {
+            sort(stripe_vector.begin(), stripe_vector.end(), sortOddStripeLocationVector);
+            (*vdd_stripe_map)[layer] = stripe_vector;
+        }
+        else
+        {
+            sort(stripe_vector.begin(), stripe_vector.end(), sortEvenStripeLocationVector);
+            (*vdd_stripe_map)[layer] = stripe_vector;
+        }
+    }
+
+    for (int i = 0; i < (*vss_stripe_vector).size(); i++)
+    {
+        if ((*vss_stripe_map).count((*vss_stripe_vector)[i].layer))
+        {
+            (*vss_stripe_map)[(*vss_stripe_vector)[i].layer].push_back((*vss_stripe_vector)[i]);
+        }
+        else
+        {
+            vector<Stripe> layer_vss_stripe_vector;
+            layer_vss_stripe_vector.push_back((*vss_stripe_vector)[i]);
+            string layer = (*vss_stripe_vector)[i].layer;
+            (*vss_stripe_map).insert(pair<string, vector<Stripe>>(layer, layer_vss_stripe_vector));
+        }
+    }
+
+    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
+    {
+        string layer = vss_stripe_map_it->first;
+        vector<Stripe> stripe_vector = (*vss_stripe_map)[layer];
+        if (isOddLayer(layer))
+        {
+            sort(stripe_vector.begin(), stripe_vector.end(), sortOddStripeLocationVector);
+            (*vss_stripe_map)[layer] = stripe_vector;
+        }
+        else
+        {
+            sort(stripe_vector.begin(), stripe_vector.end(), sortEvenStripeLocationVector);
+            (*vss_stripe_map)[layer] = stripe_vector;
+        }
+    }
 }
 
 float standardDeviation(vector<float> *num_vec)
@@ -331,107 +1317,11 @@ void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<
     myfile.close();
 }
 
-//一條routing track 通過多少cell 只剩這裡有問題
-void setRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *m3_track_info)
-{
-    cout << "========== setRoutingTrackPowerConsuming start ==========" << endl;
-
-    // float power_stripe_width_float = stof(power_stripe_width);
-    for (int i = 0; i < (*stripe_vector).size(); i++)
-    {
-        float power_stripe_width_float = stof((*stripe_vector)[i].width);
-        int start_move_range_x_left = (stof((*stripe_vector)[i].move_range_x_left) * 1000) / 4;
-        int start_move_range_x_right = (stof((*stripe_vector)[i].move_range_x_right) * 1000) / 4;
-
-        float m3_x_start_float = (stof((*m3_track_info).start) * 1000) / 4;
-        float m3_x_pitch_float = (stof((*m3_track_info).pitch) * 1000) / 4;
-
-        int m3_x_start_int = (int)m3_x_start_float;
-        m3_x_pitch_float = m3_x_pitch_float * 2;
-        int m3_x_pitch_int = (int)m3_x_pitch_float;
-
-        cout << " ----- moving range start -----" << endl;
-        cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << endl;
-        vector<TrackPoint> track_point_vector;
-        for (int j = start_move_range_x_left; j <= start_move_range_x_right; j += m3_x_pitch_float)
-        {
-            float x_track_point = (j * 4) / 1000.0;
-
-            vector<string> power_cell_id_vector;
-            TrackPoint track_point;
-            track_point.x_point = floatToString(x_track_point);
-            track_point.power_cell_id_vector = power_cell_id_vector;
-            vector<string> ip_power_vector = (*stripe_vector)[i].ip_power_vector;
-            for (int k = 0; k < ip_power_vector.size(); k++)
-            {
-                string cell_id = ip_power_vector[k];
-                if (isInTrackStripeRange(&track_point, &(*cell_placed_map)[cell_id], power_stripe_width_float))
-                {
-                    track_point.power_cell_id_vector.push_back(cell_id);
-                }
-            }
-            track_point_vector.push_back(track_point);
-        }
-        cout << " ----- moving range end -----" << endl;
-        (*stripe_vector)[i].track_point_vector = track_point_vector;
-    }
-
-    cout << "========== setRoutingTrackPowerConsuming end ==========" << endl;
-}
-
-// 將 cell 放入 stripe range 當中
-void setCellStripeRange(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
-{
-    cout << "========== setCellStripeRange start ==========" << endl;
-    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
-    {
-        for (auto iter = (*cell_ip_map).begin(); iter != (*cell_ip_map).end(); ++iter)
-        {
-            string cell_id = iter->first;
-            if (isInStripeRange((&(*vdd_stripe_vector)[i]), cell_id, &(*cell_placed_map)))
-            {
-                (*vdd_stripe_vector)[i].ip_power_vector.push_back(cell_id);
-            }
-        }
-    }
-    cout << "========== setCellStripeRange end ==========" << endl;
-}
-bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map)
-{
-    string move_range_x_left = (*vdd_stripe).move_range_x_left;
-    string move_range_x_right = (*vdd_stripe).move_range_x_right;
-    string left_x_location = (*cell_placed_map)[cell_id].left_x_location;
-    string right_x_location = (*cell_placed_map)[cell_id].right_x_location;
-    float move_range_x_left_float = stof(move_range_x_left);
-    float move_range_x_right_float = stof(move_range_x_right);
-    float left_x_location_float = stof(left_x_location);
-    float right_x_location_float = stof(right_x_location);
-
-    // case 1 : middle of left stripe
-    if ((left_x_location_float < move_range_x_left_float) && (right_x_location_float > move_range_x_left_float) && (left_x_location_float < move_range_x_right_float) && (right_x_location_float < move_range_x_right_float))
-    {
-        return true;
-    } // case 2 : in stripe moving location
-    else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float <= move_range_x_right_float)
-    {
-        return true;
-    } // case 3 : middle of right stripe
-    else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float >= move_range_x_right_float)
-    {
-        return true;
-    } // case 4 : out side
-    else
-    {
-        return false;
-    }
-}
-
 void getLeftCellPinAccessPoint(unordered_map<string, CellInfo> *cell_info_map)
 {
     cout << "========== getLeftCellPinAccessPoint start ==========" << endl;
     for (auto cell_info_iter = (*cell_info_map).begin(); cell_info_iter != (*cell_info_map).end(); ++cell_info_iter)
     {
-
         setCellPinAccessPoint(&(cell_info_iter->second));
     }
     cout << "========== getLeftCellPinAccessPoint end ==========" << endl;
@@ -542,387 +1432,6 @@ void isOnTrackPin(map<string, PinShape> *pin_shape_map, map<string, vector<PinAc
     }
 }
 
-void getAddStripeCost(unordered_map<string, TrackPoint> *m3_track_point_map, vector<Stripe> *stripe_vector, TrackInfo *track_info)
-{
-    cout << "========== getAddStripeCost start ==========" << endl;
-    float track_pitch = stof((*track_info).pitch) * 2;
-
-    for (int i = 0; i < (*stripe_vector).size(); i++)
-    {
-        getStripeRangeCost(&((*stripe_vector)[i]), &(*m3_track_point_map), track_pitch);
-    }
-    cout << "========== getAddStripeCost end ==========" << endl;
-}
-
-void getStripeRangeCost(Stripe *stripe, unordered_map<string, TrackPoint> *m3_track_point_map, float track_pitch)
-{
-
-    float vdd_stripe_cost = 1000000000000;
-    float vss_stripe_cost = 1000000000000;
-    string vdd_track = "0";
-    string vss_track = "0";
-    map<string, float> track_map;
-
-    for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
-    {
-        float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
-        if (total_pin_access_power_consum_cost < vdd_stripe_cost && total_pin_access_power_consum_cost != 0)
-        {
-            vdd_stripe_cost = total_pin_access_power_consum_cost;
-            vdd_track = (*stripe).track_point_vector[i].x_point;
-        }
-    }
-
-    // ====== TODO 左右兩條不使用 ========
-    float vdd_track_float = stof(vdd_track);
-    float left_track_float = vdd_track_float - track_pitch;
-    float right_track_float = vdd_track_float + track_pitch;
-    string left_track = floatToString(left_track_float);
-    string right_track = floatToString(right_track_float);
-    track_map.insert(pair<string, float>(left_track, left_track_float));
-    track_map.insert(pair<string, float>(right_track, right_track_float));
-    // ====== TODO 左右兩條不使用 ========
-
-    for (int i = 0; i < (*stripe).track_point_vector.size(); i++)
-    {
-        float total_pin_access_power_consum_cost = (*stripe).track_point_vector[i].total_pin_access_power_consum_cost;
-        string x_track = (*stripe).track_point_vector[i].x_point;
-        if (total_pin_access_power_consum_cost < vss_stripe_cost && (!(track_map).count(x_track)) && total_pin_access_power_consum_cost != 0)
-        {
-            vss_stripe_cost = total_pin_access_power_consum_cost;
-            vss_track = (*stripe).track_point_vector[i].x_point;
-        }
-    }
-
-    (*stripe).vdd_track_x_cost = vdd_track;
-    (*stripe).vss_track_x_cost = vss_track;
-}
-
-void generateAddStripeTcl(vector<Stripe> *stripe_vector, string move_stripe_name)
-{
-    ofstream myfile;
-    myfile.open(move_stripe_name);
-    // float power_stripe_width_float = stof(power_stripe_width);
-
-    for (int i = 0; i < (*stripe_vector).size(); i++)
-    {
-        float power_stripe_width_float = stof((*stripe_vector)[i].width);
-        cout << "========== range " << i << "  start ==========" << endl;
-        float vdd_track_cost = stof((*stripe_vector)[i].vdd_track_x_cost);
-        float vdd_left_track_cost = vdd_track_cost - (power_stripe_width_float / 2);
-        float vdd_right_track_cost = vdd_track_cost + (power_stripe_width_float / 2);
-        // cout << "vdd_track_cost : " << vdd_track_cost << endl;
-        // cout << "vdd_left_track_cost : " << vdd_left_track_cost << endl;
-        // cout << "vdd_right_track_cost : " << vdd_right_track_cost << endl;
-
-        string vdd_left_track_cost_str = floatToString(vdd_left_track_cost);
-        string vdd_right_track_cost_str = floatToString(vdd_right_track_cost);
-
-        float vss_track_x_cost = stof((*stripe_vector)[i].vss_track_x_cost);
-        float vss_left_track_cost = vss_track_x_cost - (power_stripe_width_float / 2);
-        float vss_right_track_cost = vss_track_x_cost + (power_stripe_width_float / 2);
-
-        // cout << "vss_track_cost : " << vdd_track_cost << endl;
-        // cout << "vss_left_track_cost : " << vdd_left_track_cost << endl;
-        // cout << "vss_right_track_cost : " << vdd_right_track_cost << endl;
-
-        string vss_left_track_cost_str = floatToString(vss_left_track_cost);
-        string vss_right_track_cost_str = floatToString(vss_right_track_cost);
-        // cout << "========== range " << i << "  end ==========" << endl;
-        myfile << "addStripe -nets { VDDX } -layer "
-               << "M3"
-               << " -direction vertical -width " << (*stripe_vector)[i].width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vdd_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
-        // myfile << "addStripe -nets { VSSX } -layer "
-        //        << "M3"
-        //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
-    }
-    myfile.close();
-};
-
-void setRoutingTrackNumberOfPinAccess(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info)
-{
-    ofstream myfile;
-    myfile.open("track_info_number_average.txt");
-    cout << "========== setRoutingTrackNumberOfPinAccess start ==========" << endl;
-    // float power_stripe_width_float = stof(power_stripe_width);
-    float total_power_cost = 0;
-    float access_cost = 0;
-    int number_of_track = 0;
-
-    for (int i = 0; i < (*stripe_vector).size(); i++)
-    {
-        cout << " ======== stripe range " << i << " ===========" << endl;
-
-        for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
-        {
-            TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
-            float total_cell_pin_access_power_consume_cost = 0;
-            float total_track_pin_access_cost = 0;
-            float total_track_power_consuming_cost = 0;
-            float power_stripe_width_float = stof((*stripe_vector)[i].width);
-
-            for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
-            {
-                string cell_id = track_point.power_cell_id_vector[k];
-                CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
-
-                // cost function
-                float cell_pin_access_cost = getPinAccessPointOfPlaced(power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*m3_track_info));
-
-                float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
-                // cell_pin_access_cost = cell_pin_access_cost * COEFFICIENT;
-                power_consuming_cost = 1 / power_consuming_cost;
-                float pin_access_power_consuming_cost = cell_pin_access_cost + power_consuming_cost;
-                total_cell_pin_access_power_consume_cost += pin_access_power_consuming_cost;
-
-                total_track_pin_access_cost += cell_pin_access_cost;
-                total_track_power_consuming_cost += power_consuming_cost;
-            }
-            number_of_track += 1;
-            total_power_cost += total_track_power_consuming_cost;
-            access_cost += total_track_pin_access_cost;
-
-            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = total_cell_pin_access_power_consume_cost;
-            myfile << "-----------------------------------" << endl;
-            myfile << "track point                      : " << track_point.x_point << endl;
-            myfile << "track point of cost              : " << (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << endl;
-            myfile << "total_track_pin_access_cost      : " << total_track_pin_access_cost << endl;
-            myfile << "total_track_power_consuming_cost : " << total_track_power_consuming_cost << endl;
-            myfile << "number of cell                   : " << track_point.power_cell_id_vector.size() << endl;
-        }
-    }
-
-    // float average_power_cost = total_power_cost / number_of_track;
-    // float average_access_cost = access_cost / number_of_track;
-    // myfile << "number of track     : " << number_of_track << endl;
-    // myfile << "average_power_cost  : " << average_power_cost << endl;
-    // myfile << "average_access_cost : " << average_access_cost << endl;
-
-    myfile.close();
-
-    cout << "========== setRoutingTrackNumberOfPinAccess end ==========" << endl;
-}
-
-float getPinAccessPointOfPlaced(float power_stripe_width_float, TrackPoint *m3_track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *m3_track_info)
-{
-    float m3_track_point_left = stof((*m3_track_point).x_point) - (power_stripe_width_float / 2);
-    float m3_track_point_right = stof((*m3_track_point).x_point) + (power_stripe_width_float / 2);
-    float m3_track_point_middle_float = stof((*m3_track_point).x_point);
-    string cell_placed_left_x_location = (*cell_placed_info).left_x_location;
-    string cell_placed_right_x_location = (*cell_placed_info).right_x_location;
-
-    string cell_name = (*cell_placed_info).cell_name;
-    string direction = (*cell_placed_info).direction;
-    string cell_width = (*cell_info_map)[cell_name].width;
-    string cell_height = (*cell_info_map)[cell_name].height;
-    float total_pin_access_cost = 0;
-
-    if (isOddTrackCell(cell_placed_left_x_location, &(*m3_track_info)))
-    {
-
-        for (auto odd_pin_access_point_iter = ((*cell_info_map)[cell_name].odd_pin_access_point_map).begin(); odd_pin_access_point_iter != ((*cell_info_map)[cell_name].odd_pin_access_point_map).end(); ++odd_pin_access_point_iter)
-        {
-            int pin_access_point = 0;
-            for (int i = 0; i < (odd_pin_access_point_iter->second).size(); i++)
-            {
-                PinAccessPoint pin_access_point_def;
-                transferPinAccessLocationFromDef(&(*cell_placed_info), &(odd_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
-
-                float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
-                if (isCoverPinAccess(pin_access_point_x_def_float, m3_track_point_middle_float, power_stripe_width_float))
-                {
-                    pin_access_point += 1;
-                }
-            }
-            float pin_access_cost = (float)pin_access_point / (odd_pin_access_point_iter->second).size();
-            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
-            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
-            // cout << "pin cost : " << pin_access_cost << endl;
-            total_pin_access_cost += pin_access_cost;
-        }
-    }
-    else
-    {
-        for (auto even_pin_access_point_iter = ((*cell_info_map)[cell_name].even_pin_access_point_map).begin(); even_pin_access_point_iter != ((*cell_info_map)[cell_name].even_pin_access_point_map).end(); ++even_pin_access_point_iter)
-        {
-            int pin_access_point = 0;
-            for (int i = 0; i < (even_pin_access_point_iter->second).size(); i++)
-            {
-                PinAccessPoint pin_access_point_def;
-                transferPinAccessLocationFromDef(&(*cell_placed_info), &(even_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
-                float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
-                if (isCoverPinAccess(pin_access_point_x_def_float, m3_track_point_middle_float, power_stripe_width_float))
-                {
-                    pin_access_point += 1;
-                }
-            }
-            float pin_access_cost = (float)pin_access_point / (even_pin_access_point_iter->second).size();
-            total_pin_access_cost += pin_access_cost;
-            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
-            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
-            // cout << "pin cost : " << pin_access_cost << endl;
-        }
-    }
-    if (total_pin_access_cost == 0)
-    {
-        total_pin_access_cost = 1;
-    }
-
-    return total_pin_access_cost;
-}
-
-bool isCoverPinAccess(float pin_access_point_x_def_float, float track_point_x_float, float power_stripe_width)
-{
-    // cover_track + 0.036
-    int cover_track = getCoverTrack(power_stripe_width);
-    float cover_distance = (cover_track * 0.144) + 0.036;
-    float track_point_x_left = track_point_x_float - cover_distance;
-    float track_point_x_right = track_point_x_float + cover_distance;
-
-    float pin_access_x_left = pin_access_point_x_def_float - (0.072 / 2);
-    float pin_access_x_right = pin_access_point_x_def_float + (0.072 / 2);
-
-    if (track_point_x_left < pin_access_x_left && track_point_x_right < pin_access_x_left)
-    {
-        return false;
-    }
-    else if (track_point_x_left > pin_access_x_left && track_point_x_right > pin_access_x_right)
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-};
-
-int getCoverTrack(float power_stripe_width)
-{
-    float half_power_stripe_width = power_stripe_width / 2;
-    int temp_pitch = (int)(half_power_stripe_width / 0.144);
-    int track = 0;
-    float temp_width = temp_pitch * 0.144;
-    temp_width = half_power_stripe_width - temp_width;
-    if (floatIsEqualOrLess(temp_width, 0.036))
-    {
-        track = temp_pitch;
-    }
-    else
-    {
-        track = temp_pitch + 1;
-    }
-    return track;
-}
-void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAccessPoint *pin_access_point, PinAccessPoint *pin_access_point_def, string cell_width, string cell_height)
-{
-
-    float cell_place_left_x = stof((*cell_placed_info).left_x_location);
-    float cell_place_down_y = stof((*cell_placed_info).down_y_location);
-
-    float cell_width_float = stof(cell_width);
-    float cell_height_float = stof(cell_height);
-
-    float pin_access_x_point = stof((*pin_access_point).middle_x_location);
-    float pin_access_y_point = stof((*pin_access_point).middle_y_location);
-
-    if ((*cell_placed_info).direction == "N")
-    {
-        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + pin_access_x_point);
-        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + pin_access_y_point);
-
-        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
-    }
-    else if ((*cell_placed_info).direction == "S")
-    {
-
-        float temp_middle_x_float = abs(cell_width_float - pin_access_x_point);
-        float temp_middle_y_float = abs(cell_height_float - pin_access_y_point);
-
-        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + temp_middle_x_float);
-        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + temp_middle_y_float);
-
-        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
-    }
-    else if ((*cell_placed_info).direction == "FN")
-    {
-
-        float temp_middle_x_float = abs(cell_width_float - pin_access_x_point);
-
-        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + temp_middle_x_float);
-        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + pin_access_y_point);
-
-        //  cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
-    }
-    else if ((*cell_placed_info).direction == "FS")
-    {
-
-        float temp_middle_y_float = abs(cell_height_float - pin_access_y_point);
-
-        (*pin_access_point_def).middle_x_location = floatToString(cell_place_left_x + pin_access_x_point);
-        (*pin_access_point_def).middle_y_location = floatToString(cell_place_down_y + temp_middle_y_float);
-
-        // cout << "pin : (" << (*pin_access_point_def).middle_x_location << " " << (*pin_access_point_def).middle_y_location << ")" << endl;
-    }
-    else
-    {
-        cout << " getPinAccessLocationFromDef error " << endl;
-    }
-};
-
-bool isOddTrackCell(string x_location, TrackInfo *m3_track_info)
-{
-
-    float m3_x_float_temp = stof(x_location) - stof((*m3_track_info).start);
-    float temp_pitch_start = m3_x_float_temp / (stof((*m3_track_info).pitch) * 2);
-    int temp_pitch_start_int = (int)temp_pitch_start;
-    temp_pitch_start_int += 1;
-
-    float start_x = (temp_pitch_start_int * (stof((*m3_track_info).pitch) * 2)) + stof((*m3_track_info).start);
-    float distance = start_x - stof(x_location);
-
-    if (floatIsEqual(distance, 0.108))
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-    return true;
-}
-
-bool isInTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
-{
-
-    float track_point_left = stof((*track_point).x_point) - (power_stripe_width / 2);
-    float track_point_right = stof((*track_point).x_point) + (power_stripe_width / 2);
-    float cell_placed_left = stof((*cell_placed_info).left_x_location);
-    float cell_placed_right = stof((*cell_placed_info).right_x_location);
-    // cout << " track_point " << track_point_left << " " << track_point_right << endl;
-    // cout << " cell_placed " << cell_placed_left << " " << cell_placed_right << endl;
-
-    // power stripe in middle
-    if (track_point_left >= cell_placed_left && track_point_right <= cell_placed_right)
-    {
-        return true;
-    }
-    // power stripe in left
-    else if (track_point_left <= cell_placed_left && track_point_right > cell_placed_left && track_point_right <= cell_placed_right)
-    {
-        return true;
-    }
-    // power stripe in right
-    else if (track_point_left >= cell_placed_left && track_point_left <= cell_placed_right && cell_placed_right >= cell_placed_right)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-    cout << "========== isInTrackStripeRange end ==========" << endl;
-}
-
 void setRoutingTrackPoint(unordered_map<string, TrackPoint> *m2_track_point_map, unordered_map<string, TrackPoint> *m3_track_point_map, string m3_x_start, string m3_x_pitch, string m2_y_start, string m2_y_pitch, CoreSite *core_site)
 {
     int log = 0;
@@ -1028,90 +1537,6 @@ int stringToInt(string num)
     return num_int;
 }
 
-void setStripeRange(vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site, TrackInfo *track_info)
-{
-    cout << "========== setStripeRange start ==========" << endl;
-    setRange(&(*vdd_stripe_vector), &(*core_site));
-
-    setRange(&(*vss_stripe_vector), &(*core_site));
-    float track_start = stof((*track_info).start);
-    float track_pitch = stof((*track_info).pitch) * 2;
-
-    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
-    {
-        // cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << " " << endl;
-        float move_range_x_left_float = stof((*vdd_stripe_vector)[i].move_range_x_left);
-        float move_range_x_right_float = stof((*vdd_stripe_vector)[i].move_range_x_right);
-
-        float move_range_left_x_float_temp = move_range_x_left_float - track_start;
-        float temp_pitch_start = move_range_left_x_float_temp / track_pitch;
-        int temp_pitch_start_int = (int)temp_pitch_start;
-        float start_x = (temp_pitch_start_int * track_pitch) + track_start;
-
-        float move_range_x_right_float_temp = move_range_x_right_float - track_start;
-        float temp_pitch_end = move_range_x_right_float_temp / track_pitch;
-        int temp_pitch_end_int = (int)temp_pitch_end;
-
-        temp_pitch_end_int -= 1;
-        float end_x = (temp_pitch_end_int * track_pitch) + track_start;
-
-        (*vdd_stripe_vector)[i].move_range_x_left = floatToString(start_x);
-        (*vdd_stripe_vector)[i].move_range_x_right = floatToString(end_x);
-    }
-
-    for (int i = 0; i < (*vss_stripe_vector).size(); i++)
-    {
-        // cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << " " << endl;
-
-        float move_range_x_left_float = stof((*vss_stripe_vector)[i].move_range_x_left);
-        float move_range_x_right_float = stof((*vss_stripe_vector)[i].move_range_x_right);
-
-        float move_range_left_x_float_temp = move_range_x_left_float - track_start;
-        float temp_pitch_start = move_range_x_left_float / track_pitch;
-        int temp_pitch_start_int = (int)temp_pitch_start;
-        float start_x = (temp_pitch_start_int * track_pitch) + track_start;
-
-        float move_range_x_right_float_temp = move_range_x_right_float - track_start;
-        float temp_pitch_end = move_range_x_right_float_temp / track_pitch;
-        int temp_pitch_end_int = (int)temp_pitch_end;
-
-        temp_pitch_end_int -= 1;
-        float end_x = (temp_pitch_end_int * track_pitch) + track_start;
-
-        (*vss_stripe_vector)[i].move_range_x_left = floatToString(start_x);
-        (*vss_stripe_vector)[i].move_range_x_right = floatToString(end_x);
-    }
-
-    cout << "========== setStripeRange end ==========" << endl;
-}
-
-void setRange(vector<Stripe> *stripe_vector, CoreSite *core_site)
-{
-    for (int i = 0; i < (*stripe_vector).size(); i++)
-    {
-        if (i == 0)
-        {
-            (*stripe_vector)[i].move_range_x_left = (*core_site).left_x_location;
-            float middle_x_power_stripe = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i + 1].start_x_location)) / 2;
-            (*stripe_vector)[i].move_range_x_right = floatToString(middle_x_power_stripe);
-        }
-        else if (i == ((*stripe_vector).size() - 1))
-        {
-
-            (*stripe_vector)[i].move_range_x_right = (*core_site).right_x_location;
-            float middle_x_power_stripe = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i - 1].start_x_location)) / 2;
-            (*stripe_vector)[i].move_range_x_left = floatToString(middle_x_power_stripe);
-        }
-        else
-        {
-            float middle_x_power_stripe_right = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i + 1].start_x_location)) / 2;
-            float middle_x_power_stripe_left = (stof((*stripe_vector)[i].start_x_location) + stof((*stripe_vector)[i - 1].start_x_location)) / 2;
-            (*stripe_vector)[i].move_range_x_right = floatToString(middle_x_power_stripe_right);
-            (*stripe_vector)[i].move_range_x_left = floatToString(middle_x_power_stripe_left);
-        }
-    }
-}
-
 void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site)
 {
     cout << "========== getStripeLocation start ==========" << endl;
@@ -1145,9 +1570,12 @@ void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe
                             stripe.width = def_content_array[2];
                             stripe.layer = def_content_array[1];
                             stripe.net_name = NET_NAME_VDD;
+                            vector<string> ip_power_vector;
+                            stripe.ip_power_vector = ip_power_vector;
 
                             if (isPowerStripe(&stripe, &(*core_site)))
                             {
+                                setStripeLength(&stripe);
                                 (*vdd_stripe_vector).push_back(stripe);
                             }
                         }
@@ -1174,8 +1602,11 @@ void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe
                             stripe.width = def_content_array[2];
                             stripe.layer = def_content_array[1];
                             stripe.net_name = NET_NAME_VSS;
+                            vector<string> ip_power_vector;
+                            stripe.ip_power_vector = ip_power_vector;
                             if (isPowerStripe(&stripe, &(*core_site)))
                             {
+                                setStripeLength(&stripe);
                                 (*vss_stripe_vector).push_back(stripe);
                             }
                         }
@@ -1191,10 +1622,37 @@ void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe
     def_transfer_file.close();
     cout << "========== getStripeLocation end ==========" << endl;
 }
-
+void setStripeLength(Stripe *stripe)
+{
+    if (isOddLayer((*stripe).layer))
+    {
+        float length = abs(stof((*stripe).start_y_location) - stof((*stripe).end_y_location));
+        (*stripe).length = floatToString(length);
+    }
+    else
+    {
+        float length = abs(stof((*stripe).start_x_location) - stof((*stripe).end_x_location));
+        (*stripe).length = floatToString(length);
+    }
+}
+bool isOddLayer(string layer)
+{
+    if (layer == "M3" || layer == "M5" || layer == "M7" || layer == "M9")
+    {
+        return true;
+    }
+    else if (layer == "M4" || layer == "M6" || layer == "M8")
+    {
+        return false;
+    }
+    else
+    {
+        cout << "error is Odd Layer" << endl;
+        return false;
+    }
+}
 bool isPowerStripe(Stripe *stripe, CoreSite *core_site)
 {
-
     if ((*stripe).end_x_location == "*")
     {
         (*stripe).end_x_location = (*stripe).start_x_location;
@@ -1217,9 +1675,18 @@ bool isPowerStripe(Stripe *stripe, CoreSite *core_site)
             return true;
         }
     }
-    else if ((*stripe).start_y_location == (*stripe).end_y_location)
+    else if (((*stripe).start_y_location == (*stripe).end_y_location))
     {
-        return false;
+        float x_distance = abs(stof((*stripe).start_x_location) - stof((*stripe).end_x_location));
+        float core_site_x_distance = abs(stof((*core_site).left_x_location) - stof((*core_site).right_x_location)) / 2;
+        if (x_distance < core_site_x_distance)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
     else
     {
@@ -1290,6 +1757,7 @@ void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string
                         cell_placed_info.cell_id = def_content_array[1];
                         cell_placed_info.cell_name = def_content_array[2];
                         setPlacePosition(&def_content_array, &cell_placed_info);
+
                         getCellLocation(&cell_placed_info, &(*cell_info_map));
                         (*cell_placed_map).insert(pair<string, CellPlacedInfo>(cell_placed_info.cell_id, cell_placed_info));
                         log++;
@@ -1354,9 +1822,13 @@ void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_pl
         }
     }
 }
-bool sortStripeLocationVector(Stripe stripe_a, Stripe stripe_b)
+bool sortOddStripeLocationVector(Stripe stripe_a, Stripe stripe_b)
 {
     return stof(stripe_a.start_x_location) < stof(stripe_b.start_x_location);
+}
+bool sortEvenStripeLocationVector(Stripe stripe_a, Stripe stripe_b)
+{
+    return stof(stripe_a.start_y_location) < stof(stripe_b.start_y_location);
 }
 
 void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cell_info_map)
@@ -1683,11 +2155,16 @@ void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
         myfile << "---------------------------------------------" << endl;
         myfile << "stripe index       : " << i << endl;
         float start_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
-        float track_cost_float = stof((*vdd_stripe_vector)[i].vdd_track_x_cost);
+        float track_cost_float = stof((*vdd_stripe_vector)[i].vdd_track_x_location);
         float migration_distance = abs((start_x_location_float - track_cost_float));
         total_distance += migration_distance;
         myfile << "migration distance : " << migration_distance << endl;
         distance_vector.push_back(migration_distance);
+        myfile << "moving range     : " << (*vdd_stripe_vector)[i].move_range_x_left << " " << (*vdd_stripe_vector)[i].move_range_x_right << endl;
+        if (i != ((*vdd_stripe_vector).size() - 1))
+        {
+            myfile << "spacing          : " << (stof((*vdd_stripe_vector)[i].start_x_location) - stof((*vdd_stripe_vector)[i + 1].start_x_location)) << endl;
+        }
     }
     sort(distance_vector.begin(), distance_vector.end());
     int last_index = distance_vector.size() - 1;
@@ -1702,6 +2179,26 @@ void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
     myfile << "The standard deviation : " << standard_deviation << endl;
 
     myfile.close();
+}
+void generateTrackInfoMap(unordered_map<string, TrackInfo> *track_info_map)
+{
+    // TRACKS Y 0.18 DO 0.33025 STEP 0.216 LAYER M4 ;
+    // TRACKS X 0.18 DO 0.611 STEP 0.144 LAYER M3;
+    TrackInfo m3_track_info;
+    TrackInfo m4_track_info;
+
+    string m3_x_pitch = "0.144";
+    string m3_x_start = "0.18";
+    string m4_x_pitch = "0.216";
+    string m4_x_start = "0.18";
+    m3_track_info.layer = "M3";
+    m3_track_info.start = m3_x_start;
+    m3_track_info.pitch = m3_x_pitch;
+    m4_track_info.layer = "M4";
+    m4_track_info.start = m4_x_start;
+    m4_track_info.pitch = m4_x_pitch;
+    (*track_info_map).insert(pair<string, TrackInfo>(m3_track_info.layer, m3_track_info));
+    (*track_info_map).insert(pair<string, TrackInfo>(m4_track_info.layer, m4_track_info));
 }
 // for (auto cellInfo : cell_info_map)
 // {
@@ -1868,4 +2365,99 @@ void generateLogFile(vector<Stripe> *vdd_stripe_vector, string log_file)
 //     cout << "cell id :" << cell_place.first << endl;
 
 //     cout << cell_place.second.left_x_location << " " << cell_place.second.down_y_location << " " << cell_place.second.right_x_location << " " << cell_place.second.up_y_location << endl;
+// }
+
+// // 將 cell 放入 stripe range 當中
+// void setCellStripeRange(vector<Stripe> *vdd_stripe_vector, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
+// {
+//     cout << "========== setCellStripeRange start ==========" << endl;
+//     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+//     {
+//         for (auto iter = (*cell_ip_map).begin(); iter != (*cell_ip_map).end(); ++iter)
+//         {
+//             string cell_id = iter->first;
+//             if (isInStripeRange((&(*vdd_stripe_vector)[i]), cell_id, &(*cell_placed_map)))
+//             {
+//                 (*vdd_stripe_vector)[i].ip_power_vector.push_back(cell_id);
+//             }
+//         }
+//     }
+//     cout << "========== setCellStripeRange end ==========" << endl;
+// }
+
+// bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map)
+// {
+//     string move_range_x_left = (*vdd_stripe).move_range_x_left;
+//     string move_range_x_right = (*vdd_stripe).move_range_x_right;
+//     string left_x_location = (*cell_placed_map)[cell_id].left_x_location;
+//     string right_x_location = (*cell_placed_map)[cell_id].right_x_location;
+//     float move_range_x_left_float = stof(move_range_x_left);
+//     float move_range_x_right_float = stof(move_range_x_right);
+//     float left_x_location_float = stof(left_x_location);
+//     float right_x_location_float = stof(right_x_location);
+
+//     // case 1 : middle of left stripe
+//     if ((left_x_location_float < move_range_x_left_float) && (right_x_location_float > move_range_x_left_float) && (left_x_location_float < move_range_x_right_float) && (right_x_location_float < move_range_x_right_float))
+//     {
+//         return true;
+//     } // case 2 : in stripe moving location
+//     else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float <= move_range_x_right_float)
+//     {
+//         return true;
+//     } // case 3 : middle of right stripe
+//     else if (left_x_location_float >= move_range_x_left_float && right_x_location_float >= move_range_x_left_float && left_x_location_float <= move_range_x_right_float && right_x_location_float >= move_range_x_right_float)
+//     {
+//         return true;
+//     } // case 4 : out side
+//     else
+//     {
+//         return false;
+//     }
+// }
+
+// void setRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, TrackPoint> *m3_track_point_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, TrackInfo *m3_track_info)
+// {
+//     cout << "========== setRoutingTrackPowerConsuming start ==========" << endl;
+
+//     // float power_stripe_width_float = stof(power_stripe_width);
+//     for (int i = 0; i < (*stripe_vector).size(); i++)
+//     {
+//         float power_stripe_width_float = stof((*stripe_vector)[i].width);
+//         int start_move_range_x_left = (stof((*stripe_vector)[i].move_range_x_left) * 1000) / 4;
+//         int start_move_range_x_right = (stof((*stripe_vector)[i].move_range_x_right) * 1000) / 4;
+
+//         float m3_x_start_float = (stof((*m3_track_info).start) * 1000) / 4;
+//         float m3_x_pitch_float = (stof((*m3_track_info).pitch) * 1000) / 4;
+
+//         int m3_x_start_int = (int)m3_x_start_float;
+//         m3_x_pitch_float = m3_x_pitch_float * 2;
+//         int m3_x_pitch_int = (int)m3_x_pitch_float;
+
+//         cout << " ----- moving range start -----" << endl;
+//         cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << endl;
+//         vector<TrackPoint> track_point_vector;
+//         for (int j = start_move_range_x_left; j <= start_move_range_x_right; j += m3_x_pitch_float)
+//         {
+//             float x_track_point = (j * 4) / 1000.0;
+
+//             vector<string> power_cell_id_vector;
+//             TrackPoint track_point;
+//             track_point.x_point = floatToString(x_track_point);
+//             track_point.power_cell_id_vector = power_cell_id_vector;
+//             vector<string> ip_power_vector = (*stripe_vector)[i].ip_power_vector;
+//             for (int k = 0; k < ip_power_vector.size(); k++)
+//             {
+//                 string cell_id = ip_power_vector[k];
+//                 if (isInOddTrackStripeRange(&track_point, &(*cell_placed_map)[cell_id], power_stripe_width_float))
+//                 {
+//                     track_point.power_cell_id_vector.push_back(cell_id);
+//                 }
+//             }
+//             track_point_vector.push_back(track_point);
+//         }
+//         cout << " ----- moving range end -----" << endl;
+//         (*stripe_vector)[i].track_point_vector = track_point_vector;
+//     }
+
+//     cout << "========== setRoutingTrackPowerConsuming end ==========" << endl;
 // }
