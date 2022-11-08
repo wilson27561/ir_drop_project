@@ -27,11 +27,12 @@ void subreplace(string &resource_str, string &sub_str, string &new_str);
 string floatToString(const float value);
 bool beReplace(string resource_str, string sub_str, string new_str);
 
-int main()
+int main(int argc,char* argv[])
 {
     string DEF_FILE = "";
     string DEF_TRANSFER_FILE = "";
-    string config_file = "config.txt";
+    // string config_file = "config/power_pad_config.txt";
+    string config_file = argv[1];
     ifstream config(config_file);
     string config_content;
     if (config)
@@ -40,10 +41,9 @@ int main()
         {
             vector<string> config_content_array = splitByPattern(config_content, " ");
             std::cout << config_content_array[0] << " " << config_content_array[2] << std::endl;
-            if(config_content_array[0] == "DEF_FILE")
+            if (config_content_array[0] == "DEF_FILE")
             {
                 DEF_FILE = config_content_array[2];
-
             }
             if (config_content_array[0] == "DEF_TRANSFER_FILE")
             {
@@ -51,7 +51,6 @@ int main()
             }
         }
     }
-
 
     ifstream def_file(DEF_FILE);
     string def_content;
@@ -386,7 +385,6 @@ vector<string> splitByPattern(string content, string pattern)
     }
     return words;
 }
-
 
 //去掉首尾全部空格
 // string &trim(string &str)

@@ -79,7 +79,7 @@ bool getShapeRingContent(string def_content,string pad_string);
 string generateTcl(StripeTcl stripe_tcl);
 int main()
 {
-    string config_file = "config.txt";
+    string config_file = "config/power_pad_config.txt";
     string DEF_TRANSFER_FILE = "";
     string POWER_PAD_SRIPE_FILE = "";
     ifstream config(config_file);

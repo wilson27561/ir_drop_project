@@ -72,10 +72,21 @@ struct Stripe
     string length;
     vector<string> ip_power_vector;
     vector<string> filler_vector;
+    vector<string> cell_pin_resist_vector;
     long double delta_ir_drop;
     float range_total_power;
     float power_consuming_cost;
     string estimate_width;
+};
+struct CellPinResistInfo
+{
+    string reff;
+    string cell_id;
+    string cell_type;
+    string x_location;
+    string y_location;
+    string layer;
+    string pin;
 };
 
 void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site);
@@ -105,7 +116,10 @@ void generateEstimateWidthStripeTcl(unordered_map<string, vector<Stripe>> *vdd_s
 void generateWireStripeTcl(unordered_map<string, vector<Stripe>> *resize_vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, vector<Stripe>> *vdd_stripe_map, string stripe_tcl, string log_file_tcl);
 void caculatePowerStripeWidth(unordered_map<string, vector<Stripe>> *vdd_stripe_map, string sheet_resistance, string v_goal, string v_s);
 void setStripeLength(Stripe *stripe);
-
+void setIpInLocation(string x_location, string start_y_location, string end_y_location, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+void setPinResistance(string x_location, string start_y_location, string end_y_location, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPinResistInfo> *cell_pin_resist_info_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+void getResistanceReport(string resistance_report_file_name, unordered_map<string, CellPinResistInfo> *cell_pin_resist_map);
+void setResistInStripe(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPinResistInfo> *cell_pin_resist_map);
 // bool
 bool sortOddStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
 bool sortEvenStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
@@ -123,6 +137,8 @@ bool isInStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string
 bool isInOddStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 bool isInEvenStripeRange(Stripe *stripe_vector, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 bool sortStripePowerConsumingVector(Stripe stripe_a, Stripe stripe_b);
+bool isResistInOddStripeRange(Stripe *stripe, CellPinResistInfo *cell_pin_resist_info);
+bool isResistInEvenStripeRange(Stripe *stripe, CellPinResistInfo *cell_pin_resist_info);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string floatToString(const float value);
@@ -142,12 +158,14 @@ const float RESIZE_RATIO = 0.2;
 int main(int argc, char *argv[])
 // int main()
 {
-    cout << "-------------------------- decrease_power_stripe.cpp start --------------------------" << endl;
+
     CoreSite core_site;
     unordered_map<string, CellInfo> cell_info_map;
     unordered_map<string, CellPlacedInfo> cell_placed_map;
     unordered_map<string, CellPlacedInfo> filler_placed_map;
     unordered_map<string, CellInstancePowerInfo> cell_ip_map;
+    unordered_map<string, CellPinResistInfo> cell_pin_resist_map;
+
     unordered_map<string, vector<Stripe>> vdd_stripe_map;
     unordered_map<string, vector<Stripe>> vss_stripe_map;
     unordered_map<string, vector<IrDropPoint>> ir_drop_point_map;
@@ -159,7 +177,7 @@ int main(int argc, char *argv[])
     vector<string> ir_drop_file_vector;
 
     // string config_file = argv[1];
-    string config_file = "config/config_b19.txt";
+    string config_file = "config/config_b19_9.txt";
     string DEF_TRANSFER_FILE = "";
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
@@ -168,9 +186,6 @@ int main(int argc, char *argv[])
     string IR_REPORT_FILE = "";
     string LOG_FILE = "";
     string ESTIMATE_WIDTH_STRIPE_TCL = "";
-    string v_goal = "0.05";
-    string sheet_resistance_m3 = "0.9";
-    string v_s = "0.7";
 
     ifstream config(config_file);
     string config_content;
@@ -219,330 +234,237 @@ int main(int argc, char *argv[])
     double START, END;
     START = clock();
 
-
-
-
     getCoreSite(DEF_TRANSFER_FILE, &core_site);
     getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
     transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
-
 
     setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &filler_placed_map, &cell_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
     setIpPowerInStripe(&vdd_stripe_map, &cell_ip_map, &cell_placed_map); // need revise
-                                                                         // caculatePowerStripeCost(&vdd_stripe_map)
+    getResistanceReport("resistance_report/b19_cell_pin_resist.effr", &cell_pin_resist_map);
+    setResistInStripe(&vdd_stripe_map, &cell_pin_resist_map);
+    // caculatePowerStripeCost(&vdd_stripe_map)
+    // setIpInLocation("293.508", "193.248", "278.028", &vdd_stripe_map, &cell_ip_map, &cell_placed_map);
+    setPinResistance("293.508", "193.248", "278.028", &vdd_stripe_map, &cell_pin_resist_map, &cell_placed_map);
+    for (auto stripe_map_it = vdd_stripe_map.begin(); stripe_map_it != vdd_stripe_map.end(); ++stripe_map_it)
+    {
+        string layer = stripe_map_it->first;
+        for (int i = 0; i < stripe_map_it->second.size(); i++)
+        {
+            float total_resist = 0;
+            if (stripe_map_it->second[i].start_x_location == "293.508")
+            {
+                for (int j = 0; j < stripe_map_it->second[i].cell_pin_resist_vector.size(); j++)
+                {
+                    string cell_id = stripe_map_it->second[i].cell_pin_resist_vector[j];
+                    CellPinResistInfo cell_pin_resist_info = cell_pin_resist_map[cell_id];
+                    float cell_resist_info_reff_float = stof(cell_pin_resist_info.reff);
+                    total_resist += cell_resist_info_reff_float;
+                }
+                cout << "x location : " << stripe_map_it->second[i].start_x_location << endl;
+                cout << "resist     : " << total_resist << endl;
+            }
+        }
+        cout << stripe_map_it->first << endl;
+    }
+    cout
+        << endl
+        << "Program excute time : " << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
+}
+bool isResistInOddStripeRange(Stripe *stripe, CellPinResistInfo *cell_pin_resist_info)
+{
+    float stirpe_left_x_location = stof((*stripe).move_range_x_left);
+    float stripe_right_x_location = stof((*stripe).move_range_x_right);
 
-    // method 1 : estimate power_stripe_width
-    // caculatePowerStripeWidth(&vdd_stripe_map, sheet_resistance_m3, v_goal, v_s);
-    // generateEstimateWidthStripeTcl(&vdd_stripe_map, &vss_stripe_map, ESTIMATE_WIDTH_STRIPE_TCL);
+    float resist_x_location = stof((*cell_pin_resist_info).x_location);
 
-    // method 2 : decrease power_stripe_width
-    // resizePowerMap(&vdd_stripe_map, &resize_vdd_stripe_map);
-    // generateDecreaseStripeTcl(&resize_vdd_stripe_map, &vss_stripe_map, DECREASE_STRIPE_TCL);
-    // for (auto resize_vdd_stripe_map_it = resize_vdd_stripe_map.begin(); resize_vdd_stripe_map_it != resize_vdd_stripe_map.end(); ++resize_vdd_stripe_map_it)
-    // {
-    //     string layer = resize_vdd_stripe_map_it->first;
-    //     cout << "original layer : " << layer << " size : " << resize_vdd_stripe_map_it->second.size() << endl;
-    // }
-
-    // // method 3 : wire power_stripe width
-    // setIrDropReport(&ir_drop_file_vector, &ir_drop_point_map);
-    // setIrInPowerStripe(&resize_vdd_stripe_map, &ir_drop_point_map);
-    // generateWireStripeTcl(&resize_vdd_stripe_map, &vss_stripe_map, &vdd_stripe_map, DECREASE_WIRE_STRIPE_TCL, LOG_FILE);
-
-    cout << endl
-         << "Program excute time : " << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
-
-    cout << "-------------------------- decrease_power_stripe.cpp end --------------------------" << endl;
-
-    // float total_power = 0;
-    // for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
-    // {
-    //     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
-    // }
-    // for (auto vdd_stripe_map_iter = vdd_stripe_map.begin(); vdd_stripe_map_iter != vdd_stripe_map.end(); ++vdd_stripe_map_iter)
-    // {
-    //     cout << "layer : " << vdd_stripe_map_iter->first << endl;
-    //     int total_ip_cell = 0;
-    //     for (int i = 0; i < vdd_stripe_map_iter->second.size(); i++)
-    //     {
-    //         cout << " ----- moving range start -----" << endl;
-    //         cout << vdd_stripe_map_iter->second[i].start_y_location << endl;
-    //         cout << vdd_stripe_map_iter->second[i].move_range_y_down << " " << vdd_stripe_map_iter->second[i].move_range_y_up << endl;
-    //         // cout << vdd_stripe_map_iter->second[i].ip_power_vector.size() << endl;
-    //         // total_ip_cell += vdd_stripe_map_iter->second[i].ip_power_vector.size();
-    //         cout << " ----- moving range end -----" << endl;
-    //     }
-    //     cout << "ip size : " << total_ip_cell << endl;
-    // }
+    if (stirpe_left_x_location <= resist_x_location && stripe_right_x_location >= resist_x_location)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
-void generateEstimateWidthStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, string stripe_tcl)
+bool isResistInEvenStripeRange(Stripe *stripe, CellPinResistInfo *cell_pin_resist_info)
 {
-    ofstream myfile;
-    myfile.open(stripe_tcl);
+    float stirpe_down_y_location = stof((*stripe).move_range_y_down);
+    float stripe_up_y_location = stof((*stripe).move_range_y_up);
 
-    for (auto resize_vdd_stripe_it = (*vdd_stripe_map).begin(); resize_vdd_stripe_it != (*vdd_stripe_map).end(); ++resize_vdd_stripe_it)
+    float resist_y_location = stof((*cell_pin_resist_info).y_location);
+
+    if (stirpe_down_y_location <= resist_y_location && stripe_up_y_location >= resist_y_location)
     {
-        string layer = resize_vdd_stripe_it->first;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void setResistInStripe(unordered_map<string, vector<Stripe>> *stripe_map, unordered_map<string, CellPinResistInfo> *cell_pin_resist_map)
+{
+    cout << "========== start setResistInStripe ==========" << endl;
+    for (auto stripe_map_it = (*stripe_map).begin(); stripe_map_it != (*stripe_map).end(); ++stripe_map_it)
+    {
+        string layer = stripe_map_it->first;
         if (isOddLayer(layer))
         {
-            for (int i = 0; i < (*vdd_stripe_map)[layer].size(); i++)
+            cout << "========== start setResistInStripe isOddLayer ==========" << endl;
+            for (auto cell_pin_resist_it = (*cell_pin_resist_map).begin(); cell_pin_resist_it != (*cell_pin_resist_map).end(); ++cell_pin_resist_it)
             {
-                Stripe stripe = (*vdd_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.estimate_width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vdd_start_x_location_float = stof(stripe.start_x_location) - (power_stripe_width_float / 2);
-                float vdd_end_x_location_float = stof(stripe.start_x_location) + (power_stripe_width_float / 2);
-                string vdd_start_x_location = floatToString(vdd_start_x_location_float);
-                string vdd_end_x_location = floatToString(vdd_end_x_location_float);
-
-                myfile << "addStripe -nets { VDDX } -layer "
-                       << layer
-                       << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << stripe.start_y_location << " " << vdd_end_x_location << " " << stripe.end_y_location << " }" << endl;
+                string cell_id = cell_pin_resist_it->first;
+                CellPinResistInfo cell_pin_resist_info = cell_pin_resist_it->second;
+                for (int i = 0; i < (*stripe_map)[layer].size(); i++)
+                {
+                    if (isResistInOddStripeRange(&(*stripe_map)[layer][i], &cell_pin_resist_info))
+                    {
+                        (*stripe_map)[layer][i].cell_pin_resist_vector.push_back(cell_pin_resist_info.cell_id);
+                    }
+                }
             }
+            cout << "========== end setResistInStripe isOddLayer ==========" << endl;
         }
         else
         {
-            for (int i = 0; i < (*vdd_stripe_map)[layer].size(); i++)
+            cout << "========== start setResistInStripe isEvenLayer ==========" << endl;
+            for (auto cell_pin_resist_it = (*cell_pin_resist_map).begin(); cell_pin_resist_it != (*cell_pin_resist_map).end(); ++cell_pin_resist_it)
             {
-                Stripe stripe = (*vdd_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.estimate_width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vdd_start_y_location_float = stof(stripe.start_y_location) - (power_stripe_width_float / 2);
-                float vdd_end_y_location_float = stof(stripe.start_y_location) + (power_stripe_width_float / 2);
-                string vdd_start_y_location = floatToString(vdd_start_y_location_float);
-                string vdd_end_y_location = floatToString(vdd_end_y_location_float);
-
-                myfile << "addStripe -nets { VDDX } -layer "
-                       << layer
-                       << " -direction horizontal -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vdd_start_y_location << " " << stripe.end_x_location << " " << vdd_end_y_location << " }" << endl;
+                string cell_id = cell_pin_resist_it->first;
+                CellPinResistInfo cell_pin_resist_info = cell_pin_resist_it->second;
+                for (int i = 0; i < (*stripe_map)[layer].size(); i++)
+                {
+                    if (isResistInEvenStripeRange(&(*stripe_map)[layer][i], &cell_pin_resist_info))
+                    {
+                        (*stripe_map)[layer][i].cell_pin_resist_vector.push_back(cell_pin_resist_info.cell_id);
+                    }
+                }
             }
+            cout << "========== end setResistInStripe isEvenLayer ==========" << endl;
         }
     }
-
-    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
-    {
-        string layer = vss_stripe_map_it->first;
-
-        for (int i = 0; i < (*vss_stripe_map)[layer].size(); i++)
-        {
-            if (isOddLayer(layer))
-            {
-                Stripe stripe = (*vss_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vss_start_x_location_float = stof(stripe.start_x_location) - (power_stripe_width_float / 2);
-                float vss_end_x_location_float = stof(stripe.start_x_location) + (power_stripe_width_float / 2);
-                string vss_start_x_location = floatToString(vss_start_x_location_float);
-                string vss_end_x_location = floatToString(vss_end_x_location_float);
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_start_x_location << " " << stripe.start_y_location << " " << vss_end_x_location << " " << stripe.end_y_location << " }" << endl;
-            }
-            else
-            {
-                Stripe stripe = (*vss_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vss_start_y_location_float = stof(stripe.start_y_location) - (power_stripe_width_float / 2);
-                float vss_end_y_location_float = stof(stripe.start_y_location) + (power_stripe_width_float / 2);
-                string vss_start_y_location = floatToString(vss_start_y_location_float);
-                string vss_end_y_location = floatToString(vss_end_y_location_float);
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction horizontal -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vss_start_y_location << " " << stripe.end_x_location << " " << vss_end_y_location << " }" << endl;
-            }
-        }
-    }
-
-    myfile.close();
+    cout << "========== end setResistInStripe ==========" << endl;
 }
 
-void caculatePowerStripeWidth(unordered_map<string, vector<Stripe>> *vdd_stripe_map, string sheet_resistance, string v_goal, string v_s)
+void getResistanceReport(string resistance_report_file_name, unordered_map<string, CellPinResistInfo> *cell_pin_resist_map)
 {
-    float v_goal_float = stof(v_goal);
-    float v_s_float = stof(v_s);
-    float sheet_resistance_float = stof(sheet_resistance);
-    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
-    {
-        string layer = vdd_stripe_map_it->first;
 
+    ifstream cell_pin_resist_file(resistance_report_file_name);
+    string cell_pin_resist_content;
+    int log = 0;
+    double power = 0;
+    if (cell_pin_resist_file)
+    {
+        while (getline(cell_pin_resist_file, cell_pin_resist_content))
+        {
+
+            vector<string> cell_pin_resist_vector = splitByPattern(cell_pin_resist_content, " ");
+            // cout << cell_pin_resist_content << " " << cell_pin_resist_vector.size() << endl;
+            if (cell_pin_resist_content.find("Date") != string::npos)
+            {
+                continue;
+            }
+            if (cell_pin_resist_vector.size() == 9)
+            {
+                // cout << cell_pin_resist_content << endl;
+                CellPinResistInfo cell_pin_resist_info;
+                cell_pin_resist_info.cell_id = cell_pin_resist_vector[2];
+                cell_pin_resist_info.reff = cell_pin_resist_vector[1];
+                cell_pin_resist_info.cell_type = cell_pin_resist_vector[4];
+                cell_pin_resist_info.x_location = cell_pin_resist_vector[5];
+                cell_pin_resist_info.y_location = cell_pin_resist_vector[6];
+                cell_pin_resist_info.layer = cell_pin_resist_vector[7];
+                cell_pin_resist_info.pin = cell_pin_resist_vector[3];
+                (*cell_pin_resist_map).insert(pair<string, CellPinResistInfo>(cell_pin_resist_info.cell_id, cell_pin_resist_info));
+                // break;
+            }
+        }
+    }
+    // cout << "total : " << power << endl;
+    cout << " count power consuming of total ip report : " << power << endl;
+}
+
+//給定兩個點，計算在這條線上的電阻
+void setPinResistance(string x_location, string start_y_location, string end_y_location, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPinResistInfo> *cell_pin_resist_info_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
+{
+    for (auto vdd_stripe_map_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_map_it)
+    {
+        string layer = vdd_stripe_map_map_it->first;
         for (int i = 0; i < (*vdd_stripe_map)[layer].size(); i++)
         {
+            cout << (*vdd_stripe_map)[layer][i].start_x_location << " " << (*vdd_stripe_map)[layer][i].start_y_location << " " << (*vdd_stripe_map)[layer][i].end_x_location << " " << (*vdd_stripe_map)[layer][i].end_y_location << endl;
+            if ((*vdd_stripe_map)[layer][i].start_x_location == x_location)
+            {
+                vector<string> cell_pin_resist_vector = (*vdd_stripe_map)[layer][i].cell_pin_resist_vector;
+                float total_pin_resist = 0;
+                for (int j = 0; j < cell_pin_resist_vector.size(); j++)
+                {
+                    string cell_id = cell_pin_resist_vector[j];
+                    CellPinResistInfo cell_pin_resist_info = (*cell_pin_resist_info_map)[cell_id];
 
-            float length_float = stof((*vdd_stripe_map)[layer][i].length) / 2;
-            float power_consume_cost = (*vdd_stripe_map)[layer][i].range_total_power;
-            power_consume_cost = power_consume_cost * 0.001;
-            float temp = (power_consume_cost / v_s_float) * sheet_resistance_float * length_float;
-            float width = temp / v_goal_float;
-            (*vdd_stripe_map)[layer][i].estimate_width = floatToString(width);
+                    float down_y_locaton_float = stof(cell_pin_resist_info.y_location);
+                    float start_y_location_float = stof(start_y_location);
+                    float end_y_location_float = stof(end_y_location);
 
-            // cout << "x location  : " << (*vdd_stripe_map)[layer][i].start_x_location << endl;
-            // cout << "delta ir    : " << (*vdd_stripe_map)[layer][i].delta_ir_drop << endl;
-            // cout << "width       : " << width << endl;
+                    if (start_y_location_float < down_y_locaton_float && down_y_locaton_float < end_y_location_float)
+                    {
+                        //電阻寫在這邊
+                        float resist_float = stof(cell_pin_resist_info.reff);
+                        total_pin_resist += resist_float;
+                    }
+                }
+                cout << " ======== total_pin_resist : " << total_pin_resist << " ================" << endl;
+            }
         }
     }
 }
 
-void generateWireStripeTcl(unordered_map<string, vector<Stripe>> *resize_vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, vector<Stripe>> *vdd_stripe_map, string stripe_tcl, string log_file_tcl)
+//給定兩個點，計算在這條線上佔的power
+void setIpInLocation(string x_location, string start_y_location, string end_y_location, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellPlacedInfo> *cell_placed_map)
 {
-    ofstream myfile;
-    myfile.open(stripe_tcl);
-    ofstream logfile;
-    logfile.open(log_file_tcl);
-    for (auto resize_vdd_stripe_map_it = (*resize_vdd_stripe_map).begin(); resize_vdd_stripe_map_it != (*resize_vdd_stripe_map).end(); ++resize_vdd_stripe_map_it)
+
+    for (auto vdd_stripe_map_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_map_it)
     {
-        string layer = resize_vdd_stripe_map_it->first;
-        vector<Stripe> resize_vdd_stripe_vector = resize_vdd_stripe_map_it->second;
-        vector<Stripe> vdd_stripe_vector = (*vdd_stripe_map)[layer];
-        int number_of_power_stripe_wire = wirePowerStripe(&logfile, &vdd_stripe_vector, &resize_vdd_stripe_vector);
-        if (isOddLayer(layer))
+        string layer = vdd_stripe_map_map_it->first;
+        for (int i = 0; i < (*vdd_stripe_map)[layer].size(); i++)
         {
-            // get power stripe width
-            string power_stripe_width = resize_vdd_stripe_vector[0].width;
+            cout << (*vdd_stripe_map)[layer][i].start_x_location << " " << (*vdd_stripe_map)[layer][i].start_y_location << " " << (*vdd_stripe_map)[layer][i].end_x_location << " " << (*vdd_stripe_map)[layer][i].end_y_location << endl;
 
-            float wire_multiples = stof(WIRE_STRIPE);
-            float power_stripe_width_float = stof(power_stripe_width);
-            float wire_power_stripe_width_float = power_stripe_width_float * wire_multiples;
-            string wire_power_stripe_width_str = floatToString(wire_power_stripe_width_float);
-            wire_power_stripe_width_float = stof(wire_power_stripe_width_str);
-
-            for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
+            if ((*vdd_stripe_map)[layer][i].start_x_location == x_location)
             {
-                if (number_of_power_stripe_wire != 0)
-                {
-                    float vdd_start_x_location_float = stof(resize_vdd_stripe_vector[i].start_x_location) - (wire_power_stripe_width_float / 2);
-                    float vdd_end_x_location_float = stof(resize_vdd_stripe_vector[i].start_x_location) + (wire_power_stripe_width_float / 2);
-                    string vdd_start_x_location = floatToString(vdd_start_x_location_float);
-                    string vdd_end_x_location = floatToString(vdd_end_x_location_float);
-                    myfile << "addStripe -nets { VDDX } -layer "
-                           << layer
-                           << " -direction vertical -width " << wire_power_stripe_width_float << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << resize_vdd_stripe_vector[i].start_y_location << " " << vdd_end_x_location << " " << resize_vdd_stripe_vector[i].end_y_location << " }" << endl;
 
-                    number_of_power_stripe_wire -= 1;
-                }
-                else
+                vector<string> ip_power_vector = (*vdd_stripe_map)[layer][i].ip_power_vector;
+                double total_power = 0;
+                cout << "check in side " << ip_power_vector.size() << endl;
+                for (int j = 0; j < ip_power_vector.size(); j++)
                 {
-                    float vdd_start_x_location_float = stof(resize_vdd_stripe_vector[i].start_x_location) - (power_stripe_width_float / 2);
-                    float vdd_end_x_location_float = stof(resize_vdd_stripe_vector[i].start_x_location) + (power_stripe_width_float / 2);
-                    string vdd_start_x_location = floatToString(vdd_start_x_location_float);
-                    string vdd_end_x_location = floatToString(vdd_end_x_location_float);
-                    myfile << "addStripe -nets { VDDX } -layer "
-                           << "M3"
-                           << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_start_x_location << " " << resize_vdd_stripe_vector[i].start_y_location << " " << vdd_end_x_location << " " << resize_vdd_stripe_vector[i].end_y_location << " }" << endl;
-                }
-            }
-        }
-        else
-        {
-            string power_stripe_width = resize_vdd_stripe_vector[0].width;
+                    string cell_id = ip_power_vector[j];
+                    CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
 
-            float wire_multiples = stof(WIRE_STRIPE);
-            float power_stripe_width_float = stof(power_stripe_width);
-            float wire_power_stripe_width_float = power_stripe_width_float * wire_multiples;
-            string wire_power_stripe_width_str = floatToString(wire_power_stripe_width_float);
-            wire_power_stripe_width_float = stof(wire_power_stripe_width_str);
+                    float down_y_locaton_float = stof(cell_placed_info.down_y_location);
+                    float start_y_location_float = stof(start_y_location);
+                    float end_y_location_float = stof(end_y_location);
 
-            for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
-            {
-                if (number_of_power_stripe_wire != 0)
-                {
-                    float vdd_start_y_location_float = stof(resize_vdd_stripe_vector[i].start_y_location) - (wire_power_stripe_width_float / 2);
-                    float vdd_end_y_location_float = stof(resize_vdd_stripe_vector[i].start_y_location) + (wire_power_stripe_width_float / 2);
-                    string vdd_start_y_location = floatToString(vdd_start_y_location_float);
-                    string vdd_end_y_location = floatToString(vdd_end_y_location_float);
-                    myfile << "addStripe -nets { VDDX } -layer "
-                           << layer
-                           << " -direction horizontal -width " << wire_power_stripe_width_float << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << resize_vdd_stripe_vector[i].start_x_location << " " << vdd_start_y_location << " " << resize_vdd_stripe_vector[i].end_x_location << " " << vdd_end_y_location << " }" << endl;
-
-                    number_of_power_stripe_wire -= 1;
-                }
-                else
-                {
-                    float vdd_start_y_location_float = stof(resize_vdd_stripe_vector[i].start_y_location) - (power_stripe_width_float / 2);
-                    float vdd_end_y_location_float = stof(resize_vdd_stripe_vector[i].start_y_location) + (power_stripe_width_float / 2);
-                    string vdd_start_y_location = floatToString(vdd_start_y_location_float);
-                    string vdd_end_y_location = floatToString(vdd_end_y_location_float);
-                    myfile << "addStripe -nets { VDDX } -layer "
-                           << layer
-                           << " -direction horizontal -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << resize_vdd_stripe_vector[i].start_x_location << " " << vdd_start_y_location << " " << resize_vdd_stripe_vector[i].end_x_location << " " << vdd_end_y_location << " }" << endl;
-                }
+                    if (start_y_location_float < down_y_locaton_float && down_y_locaton_float < end_y_location_float)
+                    {
+                        total_power += (*cell_ip_map)[cell_id].instance_total_power;
+                    }
+                };
+                cout << "============ start x_location  :" << (*vdd_stripe_map)[layer][i].start_x_location << endl;
+                cout << "============ total power :" << total_power << endl;
             }
         }
     }
+}
 
-    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
-    {
-        string layer = vss_stripe_map_it->first;
-
-        for (int i = 0; i < (*vss_stripe_map)[layer].size(); i++)
-        {
-            if (isOddLayer(layer))
-            {
-                Stripe stripe = (*vss_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vss_start_x_location_float = stof(stripe.start_x_location) - (power_stripe_width_float / 2);
-                float vss_end_x_location_float = stof(stripe.start_x_location) + (power_stripe_width_float / 2);
-                string vss_start_x_location = floatToString(vss_start_x_location_float);
-                string vss_end_x_location = floatToString(vss_end_x_location_float);
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_start_x_location << " " << stripe.start_y_location << " " << vss_end_x_location << " " << stripe.end_y_location << " }" << endl;
-            }
-            else
-            {
-                Stripe stripe = (*vss_stripe_map)[layer][i];
-                float power_stripe_width_float = stof(stripe.width);
-                string power_stripe_width = floatToString(power_stripe_width_float);
-                float vss_start_y_location_float = stof(stripe.start_y_location) - (power_stripe_width_float / 2);
-                float vss_end_y_location_float = stof(stripe.start_y_location) + (power_stripe_width_float / 2);
-                string vss_start_y_location = floatToString(vss_start_y_location_float);
-                string vss_end_y_location = floatToString(vss_end_y_location_float);
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction horizontal -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vss_start_y_location << " " << stripe.end_x_location << " " << vss_end_y_location << " }" << endl;
-            }
-        }
-    }
-    logfile.close();
-    myfile.close();
-};
 bool sortStripeLocationVector(Stripe stripe_a, Stripe stripe_b)
 {
     return stof(stripe_a.start_x_location) < stof(stripe_b.start_x_location);
-}
-
-int wirePowerStripe(ofstream *logfile, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *resize_vdd_stripe_vector)
-{
-
-    // get power stripe width
-    string power_stripe_width = (*resize_vdd_stripe_vector)[0].width;
-
-    // wire
-    int decreas_size = (*vdd_stripe_vector).size() - (*resize_vdd_stripe_vector).size();
-    // cout << "decreas_size " << decreas_size << endl;
-    (*logfile) << "layer  : " << (*vdd_stripe_vector)[0].layer << endl;
-    (*logfile) << "original vdd_stripe : " << (*vdd_stripe_vector).size() << endl;
-    (*logfile) << "resize   vdd_stripe : " << (*resize_vdd_stripe_vector).size() << endl;
-    (*logfile) << "decreas  vdd_stripe : " << decreas_size << endl;
-
-    float wide_wire_float = stof(WIRE_STRIPE);
-    float power_stripe_width_float = stof(power_stripe_width);
-    float width = power_stripe_width_float * wide_wire_float;
-
-    float temp_wire = width - power_stripe_width_float;
-    float total_width = decreas_size * power_stripe_width_float;
-
-    float number_of_power_stripe = (total_width / temp_wire);
-    string number_of_power_stripe_str = floatToString(number_of_power_stripe);
-    int number_of_power_stripe_int = stoi(number_of_power_stripe_str);
-    sort((*resize_vdd_stripe_vector).begin(), (*resize_vdd_stripe_vector).end(), sortDeltaIrDrop);
-
-    return number_of_power_stripe_int;
 }
 
 void setIrInPowerStripe(unordered_map<string, vector<Stripe>> *resize_vdd_stripe_map, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map)
@@ -1588,6 +1510,12 @@ vector<string> splitByPattern(string content, string pattern)
 {
     vector<string> words;
     size_t pos = 0;
+    // ===== 替換換行符號 ======
+    while (content.find("\t") != string::npos)
+    {
+        content = content.replace(content.find("\t"), 1, " ");
+    }
+    // ===== 替換換行符號 ======
     while ((pos = content.find(pattern)) != string::npos)
     {
         string word = content.substr(0, pos);
