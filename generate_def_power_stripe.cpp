@@ -48,7 +48,7 @@ int main()
 
     string ADD_STRIPE_TCL = "";
     string DEF_TRANSFER_FILE = "";
-    string config_file = "config.txt";
+    string config_file = "config/power_stripe_config.txt";
     ifstream config(config_file);
     string config_content;
     CoreSite core_site;

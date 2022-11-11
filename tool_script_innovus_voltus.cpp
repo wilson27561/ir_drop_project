@@ -20,21 +20,25 @@ int main()
     // string config_riscv = "config/config_riscv.txt";
     // string config_gpu = "config/config_gpu.txt";
     // string config_aes = "config/config_aes.txt";
-    string config_neuralNetwork = "config/config_b19.txt";
-    // string config_b19 = "config/config_b19.txt";
+    // string config_neuralNetwork = "config/config_b19.txt";
+    // string config_b19_30 = "config/config_b19_30.txt";
+    // string config_b19_31 = "config/config_b19_31.txt";
+    // string config_b19_31 = "config/config_b19_17.txt";
+    string config_b19_38 = "config/config_b19_38.txt";
     // config_vector.push_back(config_riscv);
     // config_vector.push_back(config_gpu);
     // config_vector.push_back(config_aes);
-    config_vector.push_back(config_neuralNetwork);
-    //  config_vector.push_back(config_b19);
+    // config_vector.push_back(config_neuralNetwork);
+    // config_vector.push_back(config_b19_30);
+    config_vector.push_back(config_b19_38);
 
     string def_exe = "def_stripe_transform.exe ";
-    string decrease_power_stripe_exe = "decrease_power_stripe.exe ";
+    string decrease_power_stripe_exe = "decrease_power_stripe_revise.exe ";
     string pin_access_power_consume_exe = "pin_access_power_consume.exe ";
 
     for (int i = 0; i < config_vector.size(); i++)
     {
-        // //產生def_transfer file
+        //產生def_transfer file
         string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
         const char *command_def = def_stripe_transform_command.c_str();
         // cout << "Compiling file using " << command_def << endl;
@@ -44,15 +48,15 @@ int main()
         system(command_exe);
 
         // //產生decrease tcl and wire tcl
-        // string decrease_power_stripe_command = "g++ decrease_power_stripe.cpp -o decrease_power_stripe";
-        // const char *decrease_power_stripe = decrease_power_stripe_command.c_str();
-        // // cout << "Compiling file using " << command_def << endl;
-        // string decrease_power_stripe_exe_str = decrease_power_stripe_exe + config_vector[i];
-        // const char *decrease_power_stripe_exe = decrease_power_s  tripe_exe_str.c_str();
-        // system(decrease_power_stripe);
-        // system(decrease_power_stripe_exe);
+        string decrease_power_stripe_command = "g++ decrease_power_stripe_revise.cpp -o decrease_power_stripe_revise";
+        const char *decrease_power_stripe = decrease_power_stripe_command.c_str();
+        // cout << "Compiling file using " << command_def << endl;
+        string decrease_power_stripe_exe_str = decrease_power_stripe_exe + config_vector[i];
+        const char *decrease_power_stripe_exe = decrease_power_stripe_exe_str.c_str();
+        system(decrease_power_stripe);
+        system(decrease_power_stripe_exe);
 
-        // 產生pin access algorithm tcl
+        // // 產生pin access algorithm tcl
         // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
         // const char *pin_access_power = pin_access_power_consume_command.c_str();
         // cout << "Compiling file using " << pin_access_power << endl;
@@ -62,28 +66,28 @@ int main()
         // system(pin_access_power_consume_exe);
     }
 
-    // //產生def_transfer file
+    //產生def_transfer file
     // string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
     // const char *command_def = def_stripe_transform_command.c_str();
     // // cout << "Compiling file using " << command_def << endl;
     // system(command_def);
-    // system("def_stripe_transform.exe config/config_riscv.txt");
+    // system("def_stripe_transform.exe config/power_pad_config.txt");
 
-    // //產生decrease tcl and wire tcl
-    // string decrease_power_stripe_command = "g++ decrease_power_stripe.cpp -o decrease_power_stripe";
-    // const char *decrease_power_stripe = decrease_power_stripe_command.c_str();
-    // // cout << "Compiling file using " << command_def << endl;
-    // system(decrease_power_stripe);
-    // system("decrease_power_stripe.exe config/config_riscv.txt");
+    // // //產生decrease tcl and wire tcl
+    // // string decrease_power_stripe_command = "g++ decrease_power_stripe.cpp -o decrease_power_stripe";
+    // // const char *decrease_power_stripe = decrease_power_stripe_command.c_str();
+    // // // cout << "Compiling file using " << command_def << endl;
+    // // system(decrease_power_stripe);
+    // // system("decrease_power_stripe.exe config/config_riscv.txt");
 
-    // // 產生pin access algorithm tcl
-    // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
-    // const char *pin_access_power = pin_access_power_consume_command.c_str();
-    // cout << "Compiling file using " << pin_access_power << endl;
-    // system(pin_access_power);
-    // system("pin_access_power_consume.exe config/config_riscv.txt");
+    // // // 產生pin access algorithm tcl
+    // // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
+    // // const char *pin_access_power = pin_access_power_consume_command.c_str();
+    // // cout << "Compiling file using " << pin_access_power << endl;
+    // // system(pin_access_power);
+    // // system("pin_access_power_consume.exe config/config_riscv.txt");
 
-    // 產生power pad tcl
+    // // 產生power pad tcl
     // string generate_power_pad_tcl_command = "g++ generate_power_pad_tcl.cpp -o generate_power_pad_tcl";
     // const char *command_power_pad = generate_power_pad_tcl_command.c_str();
     // cout << "Compiling file using " << command_power_pad << endl;
