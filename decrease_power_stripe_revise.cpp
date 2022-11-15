@@ -129,7 +129,7 @@ void removeLessCostofPowerStripe(string layer, unordered_map<string, vector<Stri
 void reducePowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map);
 void getTrackInfoDistance(unordered_map<string, TrackInfo> *track_info_map, CoreSite *core_site);
 void renewWireStripeDistanceIrDropCost(vector<Stripe> *stripe_vector);
-void generateWireStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
+void generateWireStripe(string log_file_tcl,unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
 void generateWireStripeTcl(string wire_power_stripe_tcl, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map);
 float getMinimumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector);
 float getMaximumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector);
@@ -164,8 +164,8 @@ const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string M3 = "M3";
 const string M4 = "M4";
-const string WIRE_STRIPE = "4";
-const float RESIZE_RATIO = 0.2;
+const string WIRE_STRIPE = "2";
+const float RESIZE_RATIO = 0.3;
 
 int main(int argc, char *argv[])
 // int main()
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
 
     setIrDropReport(&ir_drop_file_vector, &ir_drop_point_map);
     setIrInPowerStripe(&vdd_stripe_map, &ir_drop_point_map);
-    generateWireStripe(&vdd_stripe_map, &vss_stripe_map, &decreae_number_of_power_stripe_map, &track_info_map);
+    generateWireStripe(LOG_FILE,&vdd_stripe_map, &vss_stripe_map, &decreae_number_of_power_stripe_map, &track_info_map);
     generateWireStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map);
 
     cout << endl
@@ -437,13 +437,13 @@ void generateWireStripeTcl(string wire_power_stripe_tcl, unordered_map<string, v
     myfile.close();
 };
 
-void generateWireStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
+void generateWireStripe(string log_file_tcl,unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
 {
     cout << "========== generateWireStripe start ==========" << endl;
     // ofstream myfile;
     // myfile.open(stripe_tcl);
-    // ofstream logfile;
-    // logfile.open(log_file_tcl);
+    ofstream logfile;
+    logfile.open(log_file_tcl);
 
     // step 1 : 可以被加寬幾次
 
@@ -523,17 +523,17 @@ void generateWireStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, u
 
             if (isOddLayer(layer))
             {
-                cout << "layer : " << layer << " be widend power stripe x location : " << renew_cost_stripe_vector[stripe_index].start_x_location << " wire stripe location " << wire_stripe_location << "  wide count : " << i << endl;
-                cout << "width : " << renew_cost_stripe_vector[stripe_index].width << endl;
-                cout << "distance cost : " << renew_cost_stripe_vector[stripe_index].distance_cost << " ir drop cost : " << renew_cost_stripe_vector[stripe_index].ir_drop_cost << endl;
-                cout << "----------------------------------------------------------------------------------------------------------------------------------------" << endl;
+                logfile << "layer : " << layer << " be widend power stripe x location : " << renew_cost_stripe_vector[stripe_index].start_x_location << " wire stripe location " << wire_stripe_location << "  wide count : " << i << endl;
+                logfile << "width : " << renew_cost_stripe_vector[stripe_index].width << endl;
+                logfile << "distance cost : " << renew_cost_stripe_vector[stripe_index].distance_cost << " ir drop cost : " << renew_cost_stripe_vector[stripe_index].ir_drop_cost << endl;
+                logfile << "----------------------------------------------------------------------------------------------------------------------------------------" << endl;
             }
             else
             {
-                cout << "layer : " << layer << " be widend power stripe y location : " << renew_cost_stripe_vector[stripe_index].start_y_location << " wire stripe location " << wire_stripe_location << "  wide count : " << i << endl;
-                cout << "width : " << renew_cost_stripe_vector[stripe_index].width << endl;
-                cout << "distance cost : " << renew_cost_stripe_vector[stripe_index].distance_cost << " ir drop cost : " << renew_cost_stripe_vector[stripe_index].ir_drop_cost << endl;
-                cout << "----------------------------------------------------------------------------------------------------------------------------------------" << endl;
+                logfile << "layer : " << layer << " be widend power stripe y location : " << renew_cost_stripe_vector[stripe_index].start_y_location << " wire stripe location " << wire_stripe_location << "  wide count : " << i << endl;
+                logfile << "width : " << renew_cost_stripe_vector[stripe_index].width << endl;
+                logfile << "distance cost : " << renew_cost_stripe_vector[stripe_index].distance_cost << " ir drop cost : " << renew_cost_stripe_vector[stripe_index].ir_drop_cost << endl;
+                logfile << "----------------------------------------------------------------------------------------------------------------------------------------" << endl;
             }
         }
     }

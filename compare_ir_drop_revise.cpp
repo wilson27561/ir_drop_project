@@ -31,8 +31,21 @@ struct IrDropComparePoint
     // key_config_name , ir_drop_value
     unordered_map<string, string> ir_drop_map;
 };
+struct CoreSite
+{
 
-void getIrDropPointMap(vector<string> *ir_drop_file_vector, map<string, IrDropInfo> *ir_drop_info_map, vector<string> *config_name_vector);
+    string left_x_location;
+    string right_x_location;
+    string up_y_location;
+    string down_y_location;
+};
+struct Row
+{
+    string start_y_location;
+    string end_y_location;
+};
+
+void getIrDropPointMap(vector<string> *ir_drop_file_vector, map<string, IrDropInfo> *ir_drop_info_map);
 void getIrDropCompareMap(map<string, IrDropInfo> *ir_drop_info_map, unordered_map<string, IrDropComparePoint> *ir_drop_compare_map, int config_size);
 void printXLocationInfo(string compare_file_name, vector<string> *x_point_vector, vector<string> *config_name_vector, unordered_map<string, IrDropComparePoint> *ir_drop_compare_map);
 void printYLocationInfo(string compare_file_name, vector<string> *y_point_vector, vector<string> *config_name_vector, unordered_map<string, IrDropComparePoint> *ir_drop_compare_map);
@@ -41,50 +54,48 @@ bool sortIrDropComparePointY(IrDropComparePoint ir_drop_compare_point_a, IrDropC
 bool sortIrDropComparePointX(IrDropComparePoint ir_drop_compare_point_a, IrDropComparePoint ir_drop_compare_point_b);
 bool sortIrDropPointY(IrDropPoint ir_drop_point_a, IrDropPoint ir_drop_point_b);
 bool isSameDistance(float y_location_float);
+void getRow(CoreSite *core_site, vector<Row> *row_vector);
+void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site);
+void getLocation(string x_location, vector<IrDropPoint> *ir_drop_point_vector, vector<Row> *row_vector);
+void getIrPoint(vector<IrDropPoint> *ir_drop_point_vector, vector<Row> *row_vector, map<string, IrDropInfo> *ir_drop_info_map, vector<string> *ir_drop_file_vector);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string floatToString(const float value);
 string &trim(string &str);
+bool floatIsEqual(float a, float b);
+bool floatIsEqualOrLess(float a, float b);
+bool floatIsEqualOrMore(float a, float b);
+bool sortYLocation(IrDropPoint ir_drop_point_a,IrDropPoint ir_drop_point_b);
 
 int main()
 {
-    string ir_drop_config_file = "config/ir_drop_config.txt";
-    // string compare_file_name = "ir_drop_compare.txt";
-    vector<string> ir_drop_file_vector;
-    ifstream config(ir_drop_config_file);
-    string config_content;
 
-    map<string, IrDropInfo> ir_drop_info_map;
-    // key:x_y value : ir_drop_value
-    unordered_map<string, IrDropComparePoint> ir_drop_compare_map;
-    vector<string> config_name_vector;
-
-    if (config)
-    {
-        while (getline(config, config_content))
-        {
-            vector<string> config_content_array = splitByPattern(config_content, " ");
-            if (config_content_array[0] == "IR_REPORT_FILE")
-            {
-                ir_drop_file_vector.push_back(config_content_array[2]);
-            }
-        }
-    }
     // vector<string> x_point_vector;
     // x_point_vector.push_back("164.772");
     // vector<string> y_point_vector;
     // y_point_vector.push_back("125.856");
     //記得與config file 同步
-    // config_name_vector.push_back("power_rail_28_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_23_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_24_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_25_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_26_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_29_ir_M3_rpt");
-    // config_name_vector.push_back("power_rail_30_ir_M3_rpt");
+    vector<string> ir_drop_file_vector;
+    vector<IrDropPoint> ir_drop_point_vector;
+    map<string, IrDropInfo> ir_drop_info_map;
+    vector<Row> row_vector;
 
-    getIrDropPointMap(&ir_drop_file_vector, &ir_drop_info_map, &config_name_vector);
-    getIrDropInfo(&ir_drop_info_map);
+    set<string> x_y_location_set;
+
+    CoreSite core_site;
+    string DEF_TRANSFER_FILE = "def_file/b19_core_60/6t49_b19_routing_run0_17_transfer.def";
+    // ir_drop_file_vector.push_back("ir_report/power_rail_17_ir_M3_rpt");
+    // ir_drop_file_vector.push_back("ir_report/power_rail_27_ir_M3_rpt");
+    ir_drop_file_vector.push_back("ir_report/power_rail_28_ir_M3_rpt");
+    string x_location = "164.772";
+
+    getCoreSite(DEF_TRANSFER_FILE, &core_site);
+    getRow(&core_site, &row_vector);
+    getLocation(x_location, &ir_drop_point_vector, &row_vector);
+    getIrDropPointMap(&ir_drop_file_vector, &ir_drop_info_map);
+    // getIrDropInfo(&ir_drop_info_map);
+    getIrPoint(&ir_drop_point_vector,&row_vector, &ir_drop_info_map,&ir_drop_file_vector);
+
     // getIrDropCompareMap(&ir_drop_info_map, &ir_drop_compare_map, config_name_vector.size());
     // printXLocationInfo(compare_file_name, &x_point_vector, &config_name_vector, &ir_drop_compare_map);
     // printYLocationInfo(compare_file_name, &y_point_vector, &config_name_vector, &ir_drop_compare_map);
@@ -106,6 +117,145 @@ int main()
     // }
 
     return 0;
+}
+void getLocation(string x_location, vector<IrDropPoint> *ir_drop_point_vector, vector<Row> *row_vector)
+{
+    set<string> x_y_location_set;
+    for (int i = 0; i < (*row_vector).size(); i++)
+    {
+        string start_y_location = (*row_vector)[i].start_y_location;
+        string end_y_location = (*row_vector)[i].end_y_location;
+        string start_location = x_location + "_" + start_y_location;
+        string end_location = x_location + "_" + end_y_location;
+        x_y_location_set.insert(start_location);
+        x_y_location_set.insert(end_location);
+    }
+    for (auto location : x_y_location_set)
+    {
+        vector<string> ir_location_array = splitByPattern(location, "_");
+        IrDropPoint ir_drop_point;
+        ir_drop_point.x_location = ir_location_array[0];
+        ir_drop_point.y_location = ir_location_array[1];
+        (*ir_drop_point_vector).push_back(ir_drop_point);
+    }
+}
+bool sortYLocation(IrDropPoint ir_drop_point_a,IrDropPoint ir_drop_point_b){
+    return stof(ir_drop_point_a.y_location) > stof(ir_drop_point_b.y_location);
+}
+
+void getIrPoint(vector<IrDropPoint> *ir_drop_point_vector, vector<Row> *row_vector, map<string, IrDropInfo> *ir_drop_info_map, vector<string> *ir_drop_file_vector)
+{
+    vector<IrDropPoint> sort_ir_drop_point_vector = (*ir_drop_point_vector);
+
+    sort(sort_ir_drop_point_vector.begin(),sort_ir_drop_point_vector.end(),sortYLocation);
+    
+
+    for (int i = 0; i < (*ir_drop_file_vector).size(); i++)
+    {
+        vector<string> ir_file_content_array = splitByPattern((*ir_drop_file_vector)[i], "/");
+        string file_name_detail = ir_file_content_array[1];
+
+        unordered_map<string, IrDropPoint> point_map = (*ir_drop_info_map)[file_name_detail].point_map;
+
+        for (int j = 0; j <sort_ir_drop_point_vector.size(); j++)
+        {
+            string x_location = sort_ir_drop_point_vector[j].x_location;
+            string y_location = sort_ir_drop_point_vector[j].y_location;
+            string ir_location = x_location + "_" + y_location;
+
+            cout << x_location << " " << y_location << " " << point_map[ir_location].ir_drop << endl;
+        }
+    }
+}
+
+void getCoreSite(string DEF_TRANSFER_FILE_name, CoreSite *core_site)
+{
+    ifstream DEF_TRANSFER_FILE(DEF_TRANSFER_FILE_name);
+    string def_content;
+
+    if (DEF_TRANSFER_FILE)
+    {
+        while (getline(DEF_TRANSFER_FILE, def_content))
+        {
+
+            if (def_content.find("FE_CORE_BOX_LL_X") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).left_x_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_UR_X") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).right_x_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_LL_Y") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).down_y_location = def_content_array[3];
+            }
+            if (def_content.find("FE_CORE_BOX_UR_Y") != string::npos)
+            {
+                vector<string> def_content_array = splitByPattern(def_content, " ");
+                (*core_site).up_y_location = def_content_array[3];
+            }
+            if (def_content.find("END PROPERTYDEFINITIONS") != string::npos)
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        cout << "read " << DEF_TRANSFER_FILE_name << " error " << endl;
+    }
+}
+void getRow(CoreSite *core_site, vector<Row> *row_vector)
+{
+    string core_start_y_location = (*core_site).down_y_location;
+    float core_start_y_location_float = stof((*core_site).down_y_location);
+    string core_end_y_location = (*core_site).up_y_location;
+    float core_end_y_location_float = stof((*core_site).up_y_location);
+    string row = "0.864";
+    float row_float = stof(row);
+    float i = core_end_y_location_float;
+
+    while (floatIsEqualOrMore(i, core_start_y_location_float))
+    {
+        if (floatIsEqual(i, core_end_y_location_float))
+        {
+            float row_start_y_location_float = i;
+            float row_end_y_location_float = i - row_float;
+            string row_start_y_location = floatToString(row_start_y_location_float);
+            string row_end_y_location = floatToString(row_end_y_location_float);
+
+            Row row;
+            row.start_y_location = row_start_y_location;
+            row.end_y_location = row_end_y_location;
+            (*row_vector).push_back(row);
+
+            i -= row_float;
+        }
+        else
+        {
+            float row_start_y_location_float = i;
+            float row_end_y_location_float = i - (row_float * 2);
+            string row_start_y_location = floatToString(row_start_y_location_float);
+            string row_end_y_location = floatToString(row_end_y_location_float);
+
+            Row row;
+            row.start_y_location = row_start_y_location;
+            row.end_y_location = row_end_y_location;
+            (*row_vector).push_back(row);
+
+            float row_distance = row_float * 2;
+            i -= row_distance;
+        }
+    }
+
+    // for (int i = 0; i < (*row_vector).size(); i++)
+    // {
+    //     cout << (*row_vector)[i].start_y_location << " " << (*row_vector)[i].end_y_location << endl;
+    // }
 }
 
 void getIrDropInfo(map<string, IrDropInfo> *ir_drop_info_map)
@@ -133,10 +283,10 @@ void getIrDropInfo(map<string, IrDropInfo> *ir_drop_info_map)
         {
             float y_location_float = stof(ir_drop_point_vector[i].y_location);
             // cout << "(" << ir_drop_point_vector[i].x_location << " " << ir_drop_point_vector[i].y_location << ")" << endl;
-            if ((i != 0 || i != (ir_drop_point_vector.size() - 1)) && isSameDistance(y_location_float)&& y_location_float <=274.465 &&  y_location_float >= 170.783)
+            if ((i != 0 || i != (ir_drop_point_vector.size() - 1)) && isSameDistance(y_location_float) && y_location_float <= 274.465 && y_location_float >= 170.783)
             {
                 float ir_float = stof(ir_drop_point_vector[i].ir_drop);
-                cout << ir_drop_point_vector[i].x_location << " " << ir_drop_point_vector[i].y_location << " " << ir_drop_point_vector[i].ir_drop << endl;
+                // cout << ir_drop_point_vector[i].x_location << " " << ir_drop_point_vector[i].y_location << " " << ir_drop_point_vector[i].ir_drop << endl;
             }
         }
     }
@@ -377,7 +527,7 @@ void getIrDropCompareMap(map<string, IrDropInfo> *ir_drop_info_map, unordered_ma
     }
 }
 
-void getIrDropPointMap(vector<string> *ir_drop_file_vector, map<string, IrDropInfo> *ir_drop_info_map, vector<string> *config_name_vector)
+void getIrDropPointMap(vector<string> *ir_drop_file_vector, map<string, IrDropInfo> *ir_drop_info_map)
 {
     // put name in side ir_drop_info
     for (int i = 0; i < (*ir_drop_file_vector).size(); i++)
@@ -429,10 +579,16 @@ void getIrDropPointMap(vector<string> *ir_drop_file_vector, map<string, IrDropIn
 
                     vector<string> ir_content_array = splitByPattern(ir_content, " ");
                     IrDropPoint ir_drop_point;
+    
+
                     ir_drop_point.ir_drop = ir_content_array[0];
                     ir_drop_point.layer = ir_content_array[1];
-                    ir_drop_point.x_location = ir_content_array[2];
-                    ir_drop_point.y_location = ir_content_array[3];
+
+                    float x_location_float = stof(ir_content_array[2]);
+                    float y_location_float = stof(ir_content_array[3]);
+
+                    ir_drop_point.x_location = floatToString(x_location_float);
+                    ir_drop_point.y_location =  floatToString(y_location_float);
 
                     string key = ir_drop_point.x_location + "_" + ir_drop_point.y_location;
                     (*ir_drop_info_map)[file_name_detail].point_map.insert(pair<string, IrDropPoint>(key, ir_drop_point));
@@ -504,4 +660,48 @@ string floatToString(const float value)
     buf.clear();
 
     return str;
+}
+bool floatIsEqual(float a, float b)
+{
+    string a_str = floatToString(a);
+    string b_str = floatToString(b);
+    if (a_str == b_str)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool floatIsEqualOrLess(float a, float b)
+{
+    if (floatIsEqual(a, b))
+    {
+        return true;
+    }
+    else if (a < b)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+bool floatIsEqualOrMore(float a, float b)
+{
+    if (floatIsEqual(a, b))
+    {
+        return true;
+    }
+    else if (a > b)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
