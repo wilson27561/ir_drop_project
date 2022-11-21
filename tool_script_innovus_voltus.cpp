@@ -17,32 +17,33 @@ int main()
 
     vector<string> config_vector;
 
-    // string config_riscv = "config/config_riscv.txt";
-    // string config_gpu = "config/config_gpu.txt";
-    // string config_aes = "config/config_aes.txt";
-    // string config_neuralNetwork = "config/config_b19.txt";
-    string config_b19_20 = "config/config_b19_20.txt";
-    string config_b19_21 = "config/config_b19_21.txt";
+    string config_riscv = "config/config_riscv.txt";
+    string config_gpu = "config/config_gpu.txt";
+    string config_aes = "config/config_aes.txt";
+    string config_neuralNetwork = "config/config_neuralNetwork.txt";
+
+    // string config_b19_20 = "config/config_b19_20.txt";
+    // string config_b19_21 = "config/config_b19_21.txt";
     string config_b19_22 = "config/config_b19_22.txt";
-    string config_b19_23 = "config/config_b19_23.txt";
-    string config_b19_24 = "config/config_b19_24.txt";
-    string config_b19_25 = "config/config_b19_25.txt";
-    string config_b19_26 = "config/config_b19_26.txt";
+    // string config_b19_23 = "config/config_b19_23.txt";
+    // string config_b19_24 = "config/config_b19_24.txt";
+    // string config_b19_25 = "config/config_b19_25.txt";
+    // string config_b19_26 = "config/config_b19_26.txt";
 
     // string config_power_pad = "config/power_pad_config.txt";
     // config_vector.push_back(config_riscv);
     // config_vector.push_back(config_gpu);
     // config_vector.push_back(config_aes);
     // config_vector.push_back(config_neuralNetwork);
-    // config_vector.push_back(config_b19_30);
+    // config_vector.push_back(config_b19_21);
     // config_vector.push_back(config_b19_27);
-    config_vector.push_back(config_b19_20);
-    config_vector.push_back(config_b19_21);
+    // config_vector.push_back(config_b19_20);
+    // config_vector.push_back(config_b19_21);
     config_vector.push_back(config_b19_22);
-    config_vector.push_back(config_b19_23);
-    config_vector.push_back(config_b19_24);
-    config_vector.push_back(config_b19_25);
-    config_vector.push_back(config_b19_26);
+    // config_vector.push_back(config_b19_23);
+    // config_vector.push_back(config_b19_24);
+    // config_vector.push_back(config_b19_25);
+    // config_vector.push_back(config_b19_26);
     // config_vector.push_back(config_b19_17);
 
     string def_exe = "def_stripe_transform.exe ";
@@ -69,7 +70,7 @@ int main()
         system(decrease_power_stripe);
         system(decrease_power_stripe_exe);
 
-        // // 產生pin access algorithm tcl
+        // 產生pin access algorithm tcl
         // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
         // const char *pin_access_power = pin_access_power_consume_command.c_str();
         // cout << "Compiling file using " << pin_access_power << endl;

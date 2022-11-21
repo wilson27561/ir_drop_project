@@ -290,31 +290,7 @@ int main(int argc, char *argv[])
          << "Program excute time : " << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
 
     cout << "-------------------------- decrease_power_stripe.cpp end --------------------------" << endl;
-    // for (auto decreae_number_of_power_stripe_it = decreae_number_of_power_stripe_map.begin(); decreae_number_of_power_stripe_it != decreae_number_of_power_stripe_map.end(); ++decreae_number_of_power_stripe_it)
-    // {
-    //     cout << "layer                           : " << decreae_number_of_power_stripe_it->first << endl;
-    //     cout << "decrease_number_of_power_stripe : " << decreae_number_of_power_stripe_it->second << endl;
-    // }
-    // float total_power = 0;
-    // for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
-    // {
-    //     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
-    // }
-    // for (auto vdd_stripe_map_iter = vdd_stripe_map.begin(); vdd_stripe_map_iter != vdd_stripe_map.end(); ++vdd_stripe_map_iter)
-    // {
-    //     cout << "layer : " << vdd_stripe_map_iter->first << endl;
-    //     int total_ip_cell = 0;
-    //     for (int i = 0; i < vdd_stripe_map_iter->second.size(); i++)
-    //     {
-    //         cout << " ----- moving range start -----" << endl;
-    //         cout << vdd_stripe_map_iter->second[i].start_y_location << endl;
-    //         cout << vdd_stripe_map_iter->second[i].move_range_y_down << " " << vdd_stripe_map_iter->second[i].move_range_y_up << endl;
-    //         // cout << vdd_stripe_map_iter->second[i].ip_power_vector.size() << endl;
-    //         // total_ip_cell += vdd_stripe_map_iter->second[i].ip_power_vector.size();
-    //         cout << " ----- moving range end -----" << endl;
-    //     }
-    //     cout << "ip size : " << total_ip_cell << endl;
-    // }
+ 
 }
 
 float getMinimumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector)
@@ -2339,3 +2315,28 @@ bool floatIsEqualOrMore(float a, float b)
 //         return false;
 //     }
 // }
+   // for (auto decreae_number_of_power_stripe_it = decreae_number_of_power_stripe_map.begin(); decreae_number_of_power_stripe_it != decreae_number_of_power_stripe_map.end(); ++decreae_number_of_power_stripe_it)
+    // {
+    //     cout << "layer                           : " << decreae_number_of_power_stripe_it->first << endl;
+    //     cout << "decrease_number_of_power_stripe : " << decreae_number_of_power_stripe_it->second << endl;
+    // }
+    // float total_power = 0;
+    // for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
+    // {
+    //     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
+    // }
+    // for (auto vdd_stripe_map_iter = vdd_stripe_map.begin(); vdd_stripe_map_iter != vdd_stripe_map.end(); ++vdd_stripe_map_iter)
+    // {
+    //     cout << "layer : " << vdd_stripe_map_iter->first << endl;
+    //     int total_ip_cell = 0;
+    //     for (int i = 0; i < vdd_stripe_map_iter->second.size(); i++)
+    //     {
+    //         cout << " ----- moving range start -----" << endl;
+    //         cout << vdd_stripe_map_iter->second[i].start_y_location << endl;
+    //         cout << vdd_stripe_map_iter->second[i].move_range_y_down << " " << vdd_stripe_map_iter->second[i].move_range_y_up << endl;
+    //         // cout << vdd_stripe_map_iter->second[i].ip_power_vector.size() << endl;
+    //         // total_ip_cell += vdd_stripe_map_iter->second[i].ip_power_vector.size();
+    //         cout << " ----- moving range end -----" << endl;
+    //     }
+    //     cout << "ip size : " << total_ip_cell << endl;
+    // }

@@ -790,7 +790,7 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
             total_power_consuming_cost += (1 / z_score_power_cost);
             // ======================== log for stripe cost ====================================
             //========================== TODO change cost ===================================
-            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = (1 / z_score_power_cost) + z_score_pin_access_cost;
+            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = (1 / z_score_power_cost) + (z_score_pin_access_cost *1.5);
             // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_power_cost;
             // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_pin_access_cost;
             //========================== TODO change cost ===================================
