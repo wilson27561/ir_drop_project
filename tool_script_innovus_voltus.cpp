@@ -21,30 +21,36 @@ int main()
     string config_gpu = "config/config_gpu.txt";
     string config_aes = "config/config_aes.txt";
     string config_neuralNetwork = "config/config_neuralNetwork.txt";
-
+    string config_b19_19 = "config/config_b19_19.txt";
     // string config_b19_20 = "config/config_b19_20.txt";
     // string config_b19_21 = "config/config_b19_21.txt";
-    string config_b19_22 = "config/config_b19_22.txt";
+    // string config_b19_22 = "config/config_b19_22.txt";
     // string config_b19_23 = "config/config_b19_23.txt";
     // string config_b19_24 = "config/config_b19_24.txt";
     // string config_b19_25 = "config/config_b19_25.txt";
     // string config_b19_26 = "config/config_b19_26.txt";
-
+    // string config_b19_27 = "config/config_b19_27.txt";
+    // string config_b19_28 = "config/config_b19_28.txt";
+    // string config_b19_29 = "config/config_b19_29.txt";
+    // string config_b19_30 = "config/config_b19_30.txt";
     // string config_power_pad = "config/power_pad_config.txt";
     // config_vector.push_back(config_riscv);
     // config_vector.push_back(config_gpu);
     // config_vector.push_back(config_aes);
     // config_vector.push_back(config_neuralNetwork);
-    // config_vector.push_back(config_b19_21);
+    config_vector.push_back(config_b19_19);
     // config_vector.push_back(config_b19_27);
     // config_vector.push_back(config_b19_20);
     // config_vector.push_back(config_b19_21);
-    config_vector.push_back(config_b19_22);
+    // config_vector.push_back(config_b19_22);
     // config_vector.push_back(config_b19_23);
     // config_vector.push_back(config_b19_24);
     // config_vector.push_back(config_b19_25);
     // config_vector.push_back(config_b19_26);
+    // config_vector.push_back(config_b19_28);
+    // config_vector.push_back(config_b19_29);
     // config_vector.push_back(config_b19_17);
+    // config_vector.push_back(config_b19_30);
 
     string def_exe = "def_stripe_transform.exe ";
     string decrease_power_stripe_exe = "decrease_power_stripe_revise.exe ";
@@ -61,7 +67,7 @@ int main()
         system(command_def);
         system(command_exe);
 
-        // // //產生decrease tcl and wire tcl
+        // //產生decrease tcl and wire tcl
         string decrease_power_stripe_command = "g++ decrease_power_stripe_revise.cpp -o decrease_power_stripe_revise";
         const char *decrease_power_stripe = decrease_power_stripe_command.c_str();
         // cout << "Compiling file using " << command_def << endl;
