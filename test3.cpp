@@ -13,7 +13,7 @@ float standardDeviation(vector<float> *num_vec)
     float mean = 0;
     for (int i = 0; i < (*num_vec).size(); i++)
     {
-        sum+= (*num_vec)[i];
+        sum += (*num_vec)[i];
     };
     mean = sum / (*num_vec).size();
     for (int i = 0; i < (*num_vec).size(); i++)
@@ -25,18 +25,49 @@ float standardDeviation(vector<float> *num_vec)
     return std1;
 }
 
+string getIoName(string str)
+{
+    int head = 0;
+    int bottom = 0;
+    for (int i = 0; i < str.size(); i++)
+    {
+        if (str[i] == '\"')
+        {
+            if (head == 0)
+            {
+                head = i;
+            }
+            else
+            {
+                bottom = i;
+            }
+        }
+    }
+    // cout << head << " " << bottom << endl;
+    head = head + 1;
+    int length = (bottom - head);
+    // cout << head << " " << bottom << endl;
+    string str3 = str.substr(head, length);
+    cout << str3 << endl;
+
+    return str3;
+}
+
 int main(int argc, char *argv[])
 {
-    vector<float> num_vec;
-    num_vec.push_back(1.0);
-    num_vec.push_back(3.0);
-    num_vec.push_back(4.0);
-    num_vec.push_back(4.0);
-    num_vec.push_back(3.0);
-    num_vec.push_back(9.0);
-    float num = standardDeviation(&num_vec);
+    string str = "name=\"in2[8]\"";
+    getIoName(str);
 
-    cout << num << endl;
+    // vector<float> num_vec;
+    // num_vec.push_back(1.0);
+    // num_vec.push_back(3.0);
+    // num_vec.push_back(4.0);
+    // num_vec.push_back(4.0);
+    // num_vec.push_back(3.0);
+    // num_vec.push_back(9.0);
+    // float num = standardDeviation(&num_vec);
+
+    // cout << num << endl;
 
     // double table[6];
     // double sum = 0;        //總和
