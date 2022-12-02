@@ -66,7 +66,7 @@ int getCoverTrack(float power_stripe_width)
     int track = 0;
     float temp_width = temp_pitch * 0.144;
     temp_width = half_power_stripe_width - temp_width;
-    if (floatIsEqualOrLess(temp_width,0.036))
+    if (floatIsEqualOrLess(temp_width, 0.036))
     {
         track = temp_pitch;
     }
@@ -79,19 +79,33 @@ int getCoverTrack(float power_stripe_width)
 int main()
 {
 
-    cout << getCoverTrack(0.224) << endl;
+    // cout << getCoverTrack(0.224) << endl;
 
-
-    // vector<int> num_vector;
-    // num_vector.push_back(1);
-    // num_vector.push_back(2);
-    // num_vector.push_back(3);
+    vector<int> num_vector;
+    num_vector.push_back(1);
+    num_vector.push_back(2);
+    num_vector.push_back(3);
     // num_vector.push_back(4);
     // num_vector.push_back(5);
     // num_vector.push_back(6);
     // num_vector.push_back(7);
     // num_vector.push_back(8);
     // num_vector.push_back(9);
+    num_vector.erase(num_vector.begin());
+    num_vector.erase(num_vector.begin());
+    // for (int i = 0; i < num_vector.size(); i++)
+    // {
+    //     cout << num_vector[i] << endl;
+    // }
+
+    string str = "Welcome to Educative!";
+
+    // replace "come" of "Welcome" with "abcd".
+    // starting position = 3, length = 4,
+    // replacement string = "abcd"
+    str.replace(3, 2, "abcd");
+    cout << str << endl;
+
     // cout << "check 1: " << num_vector.size() << endl;
     // for (int i = 0; i < num_vector.size(); i++)
     // {
