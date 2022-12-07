@@ -9,13 +9,15 @@ using namespace std;
 #include <sstream>
 #include <string>
 #include <algorithm>
-
+#include <regex>
 struct IoPin
 {
     string pin_name;
     string replace_pin_name;
     string pin_info;
     string side;
+    string width;
+    string offset;
 };
 struct IoPinSide
 {
@@ -29,6 +31,11 @@ string TOP = "top";
 string LEFT = "left";
 string BOTTOM = "bottom";
 string RIGHT = "right";
+float POWERPAD_WIDTH = 1.728;
+string M4_Y_STEP = "0.216";
+string M3_X_STEP = "0.144";
+string M3_START_STEP = "0.18";
+string M4_START_STEP = "0.18";
 
 vector<string> splitByPattern(string content, string pattern);
 string floatToString(const float value);
@@ -37,23 +44,355 @@ void getIoPinInfo(string io_pin_file_name, vector<string> *io_pin_side_vector, u
 string getIoName(string str);
 void setIoPinInfo(unordered_map<string, IoPinSide> *io_pin_side_map, string side, string io_pin_content);
 void setIoPinPosition(IoPinSide *io_pin_side);
-void subreplace(string &resource_str, string &sub_str, string &new_str);
+void setIoPinPostionInfo(unordered_map<string, IoPinSide> *io_pin_side_map);
+string subreplace(string &resource_str, string &sub_str, string &new_str);
 void replaceContent(unordered_map<string, IoPinSide> *io_pin_side_map);
+void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pin_file_name, string io_pin_file_content);
+string replaceString(string resource_string, string original_string, string replace_string);
+void widenPowerPad(IoPinSide *io_pin_side);
+void changeLayer(unordered_map<string, IoPinSide> *io_pin_side_map);
+void widenEachPowerPad(unordered_map<string, IoPinSide> *io_pin_side_map);
+void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map);
 int main()
 {
+
     unordered_map<string, IoPinSide> io_pin_side_map;
     vector<string> io_pin_side_vector;
 
-    string io_file_name = "io/6t49run44_9.io";
+    string io_file_name = "io/6t49run88_154_neuralNetwork.io";
+    string io_file_reorder = "io/6t49run88_neuralNetwork_average_distribution.io";
+    string io_file_reorder_change_oiwer_pad_side = "io/6t49run88_neuralNetwork_average_distribution_change_power_pad_each_power_pad.io";
     getIoPinInfo(io_file_name, &io_pin_side_vector, &io_pin_side_map);
-    setIoPinPosition(&io_pin_side_map[TOP]);
+
+    setIoPinPostionInfo(&io_pin_side_map);
     replaceContent(&io_pin_side_map);
+    printIoFile(&io_pin_side_map, io_file_name, io_file_reorder);
+
+    widenEachPowerPad(&io_pin_side_map);
+    changeLayer(&io_pin_side_map);
+    setOffsetOnTrack(&io_pin_side_map);
+    printIoFile(&io_pin_side_map, io_file_reorder, io_file_reorder_change_oiwer_pad_side);
 
     // for (int i = 0; i < io_pin_side_map[TOP].io_pin_vector.size(); i++)
     // {
     //     cout <<  io_pin_side_map[TOP].io_pin_vector[i].pin_name << endl;
     // }
 }
+void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
+{
+    for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+    {
+        string side = io_pin_side_map_it->first;
+        if (side == LEFT || side == RIGHT)
+        {
+
+            for (int i = 0; i < (*io_pin_side_map)[side].io_power_pin_vector.size(); i++)
+            {
+                string offset = (*io_pin_side_map)[side].io_power_pin_vector[i].offset;
+                float offset_float = stof(offset);
+                float m4_y_step = stof(M4_Y_STEP);
+                int temp = (int)(offset_float / m4_y_step);
+                temp -= 1;
+                float start_step = stof(M4_START_STEP);
+                float step = (temp * m4_y_step) + start_step;
+                string step_str = floatToString(step);
+
+                string resource_str = (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info;
+                // cout << "before : " << resource_str << endl;
+                resource_str = replaceString(resource_str, offset, step_str);
+                // cout << "after : " << resource_str << endl;
+                // cout << "offset : " << offset << endl;
+                // cout << "m4_y_step : " << m4_y_step << endl;
+                // cout << "temp : " << temp << endl;
+                // cout << "start_step : " << start_step << endl;
+                // cout << "step : " << step << endl;
+            }
+        }
+        else
+        {
+            float start_step = stof((*io_pin_side_map)[side].io_power_pin_vector[0].offset);
+            for (int i = 0; i < (*io_pin_side_map)[side].io_power_pin_vector.size(); i++)
+            {
+                string offset = (*io_pin_side_map)[side].io_power_pin_vector[i].offset;
+                float offset_float = stof(offset);
+                float m3_x_step = stof(M3_X_STEP);
+                float start_step = stof(M3_START_STEP);
+                int temp = (int)(offset_float / m3_x_step);
+                temp -= 1;
+                float step = (temp * m3_x_step) + start_step;
+                string step_str = floatToString(step);
+                string resource_str = (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info;
+                cout << "before : " << resource_str << endl;
+                resource_str = replaceString(resource_str, offset, step_str);
+                cout << "after : " << resource_str << endl;
+            }
+        }
+    }
+}
+void changeLayer(unordered_map<string, IoPinSide> *io_pin_side_map)
+{
+    for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+    {
+        string side = io_pin_side_map_it->first;
+        if (side == LEFT || side == RIGHT)
+        {
+            string original_layer = "layer=4";
+            string replaced_layer = "layer=5";
+            for (int i = 0; i < io_pin_side_map_it->second.io_power_pin_vector.size(); i++)
+            {
+                string resource_str = io_pin_side_map_it->second.io_power_pin_vector[i].pin_info;
+                resource_str = replaceString(resource_str, original_layer, replaced_layer);
+                (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
+            }
+
+            // resource_str = replaceString(resource_str, offset_str, replace_offset);
+            // resource_str = replaceString(resource_str, width_str, replace_power_pad_width);
+        }
+        else
+        {
+            string original_layer = "layer=5";
+            string replace_layer = "layer=4";
+            for (int i = 0; i < io_pin_side_map_it->second.io_power_pin_vector.size(); i++)
+            {
+                string resource_str = io_pin_side_map_it->second.io_power_pin_vector[i].pin_info;
+                resource_str = replaceString(resource_str, original_layer, replace_layer);
+                (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
+            }
+        }
+    }
+}
+
+void widenEachPowerPad(unordered_map<string, IoPinSide> *io_pin_side_map)
+{
+    for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+    {
+        string side = io_pin_side_map_it->first;
+        // if (side == LEFT || side == RIGHT)
+        // {
+        widenPowerPad(&(*io_pin_side_map)[side]);
+        // }
+    }
+}
+
+string getSpacing(vector<IoPin> *original_io_pin_vector, int index)
+{
+    int before_index = index - 1;
+
+    float offset = stof((*original_io_pin_vector)[index].offset) - stof((*original_io_pin_vector)[before_index].offset);
+    float total_width = (stof((*original_io_pin_vector)[index].width) / 2) + (stof((*original_io_pin_vector)[before_index].width) / 2);
+    float spacing = offset - total_width;
+
+    string spacing_str = floatToString(spacing);
+    return spacing_str;
+}
+
+void widenPowerPad(IoPinSide *io_pin_side)
+{
+    vector<IoPin> original_io_pin_vector = (*io_pin_side).io_power_pin_vector;
+    bool start_power_pad = false;
+    for (int i = 0; i < (*io_pin_side).io_power_pin_vector.size(); i++)
+    {
+
+        string pin_name = (*io_pin_side).io_power_pin_vector[i].pin_name;
+        if ((*io_pin_side).io_power_pin_vector[i].pin_info.find("VDD") != string::npos || (*io_pin_side).io_power_pin_vector[i].pin_info.find("VSS") != string::npos)
+        {
+            start_power_pad = true;
+        }
+        // if ((*io_pin_side).io_power_pin_vector[i].replace_pin_name == "VDDG")
+        // {
+        //     cout << "break" << endl;
+        // }
+        if (start_power_pad)
+        {
+
+            if ((*io_pin_side).io_power_pin_vector[i].pin_info.find("VDD") != string::npos || (*io_pin_side).io_power_pin_vector[i].pin_info.find("VSS") != string::npos)
+            {
+                int index = i;
+                int before_index = i - 1;
+                float befor_offset = stof((*io_pin_side).io_power_pin_vector[before_index].offset);
+                float befor_width = stof((*io_pin_side).io_power_pin_vector[before_index].width);
+                float befor_half_width = befor_width / 2;
+                float power_pad_width = (POWERPAD_WIDTH / 2);
+                string spacing = getSpacing(&original_io_pin_vector, index);
+                float spacing_float = stof(spacing);
+
+                float temp = befor_offset + befor_half_width;
+                temp = temp + spacing_float;
+                temp = temp + power_pad_width;
+
+                string replace_offset = floatToString(temp);
+                string replace_power_pad_width = floatToString(POWERPAD_WIDTH);
+                string offset_str = (*io_pin_side).io_power_pin_vector[i].offset;
+                string width_str = (*io_pin_side).io_power_pin_vector[i].width;
+                // cout << "pin name : " << (*io_pin_side).io_power_pin_vector[i].pin_name << endl;
+                // cout << "pin name : " << (*io_pin_side).io_power_pin_vector[i].replace_pin_name << endl;
+                string resource_str = (*io_pin_side).io_power_pin_vector[i].pin_info;
+
+                // cout << "before : " << resource_str << endl;
+
+                resource_str = replaceString(resource_str, offset_str, replace_offset);
+                resource_str = replaceString(resource_str, width_str, replace_power_pad_width);
+                // cout << "after : " << resource_str << endl;
+                (*io_pin_side).io_power_pin_vector[i].pin_info = resource_str;
+                (*io_pin_side).io_power_pin_vector[i].offset = replace_offset;
+                (*io_pin_side).io_power_pin_vector[i].width = replace_power_pad_width;
+
+                // (*io_pin_side).io_power_pin_vector[i].offset = offset;
+                // (*io_pin_side).io_power_pin_vector[i].width = power_pad_width;
+                // cout << "before pin name : " << original_io_pin_vector[before_index].pin_name << endl;
+                // cout << "pin name : " << pin_name << endl;
+                // cout << "before offset : " << befor_offset << endl;
+                // cout << "befor_half_width : " << befor_half_width << endl;
+                // cout << "power_pad_width : " << power_pad_width << endl;
+                // cout << "spacing : " << spacing << endl;
+                // cout << "offset : " << replace_offset << endl;
+                cout << "-----------" << endl;
+            }
+            else
+            {
+                // cout << "check in side" << endl;
+                int index = i;
+                int before_index = i - 1;
+                float befor_offset = stof((*io_pin_side).io_power_pin_vector[before_index].offset);
+                float befor_width = stof((*io_pin_side).io_power_pin_vector[before_index].width);
+                float befor_half_width = befor_width / 2;
+                float power_pad_width = (stof((*io_pin_side).io_power_pin_vector[index].width));
+                string spacing = getSpacing(&original_io_pin_vector, index);
+                float spacing_float = stof(spacing);
+
+                float temp = befor_offset + befor_half_width;
+                temp = temp + spacing_float;
+                temp = temp + power_pad_width;
+
+                string replace_offset = floatToString(temp);
+                string replace_power_pad_width = floatToString(stof((*io_pin_side).io_power_pin_vector[index].width));
+                string offset_str = (*io_pin_side).io_power_pin_vector[i].offset;
+                string width_str = (*io_pin_side).io_power_pin_vector[i].width;
+                // cout << "pin name : " << (*io_pin_side).io_power_pin_vector[i].pin_name << endl;
+                // cout << "pin name : " << (*io_pin_side).io_power_pin_vector[i].replace_pin_name << endl;
+                string resource_str = (*io_pin_side).io_power_pin_vector[i].pin_info;
+
+                // cout << "before : " << resource_str << endl;
+
+                resource_str = replaceString(resource_str, offset_str, replace_offset);
+                resource_str = replaceString(resource_str, width_str, replace_power_pad_width);
+                // cout << "after : " << resource_str << endl;
+                (*io_pin_side).io_power_pin_vector[i].pin_info = resource_str;
+                (*io_pin_side).io_power_pin_vector[i].offset = replace_offset;
+                (*io_pin_side).io_power_pin_vector[i].width = replace_power_pad_width;
+            }
+        }
+    }
+};
+
+void setIoPinPostionInfo(unordered_map<string, IoPinSide> *io_pin_side_map)
+{
+    for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+    {
+        string side = io_pin_side_map_it->first;
+        setIoPinPosition(&(*io_pin_side_map)[side]);
+    }
+}
+
+void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pin_file_name, string io_pin_file_content)
+{
+    ifstream io_pin_file(io_pin_file_name);
+    string io_pin_content;
+    int log = 0;
+    ofstream myfile;
+    myfile.open(io_pin_file_content);
+
+    if (io_pin_file)
+    {
+        while (getline(io_pin_file, io_pin_content))
+        {
+            myfile << io_pin_content << endl;
+            if (io_pin_content.find(TOP) != string::npos)
+            {
+
+                for (int i = 0; i < (*io_pin_side_map)[TOP].io_power_pin_vector.size(); i++)
+                {
+                    myfile << (*io_pin_side_map)[TOP].io_power_pin_vector[i].pin_info << endl;
+                }
+                while (getline(io_pin_file, io_pin_content))
+                {
+                    if (io_pin_content.find("pin name") == string::npos)
+                    {
+                        myfile << io_pin_content << endl;
+                        break;
+                    }
+                }
+            }
+            if (io_pin_content.find(LEFT) != string::npos)
+            {
+                for (int i = 0; i < (*io_pin_side_map)[LEFT].io_power_pin_vector.size(); i++)
+                {
+                    myfile << (*io_pin_side_map)[LEFT].io_power_pin_vector[i].pin_info << endl;
+                }
+                while (getline(io_pin_file, io_pin_content))
+                {
+                    if (io_pin_content.find("pin name") == string::npos)
+                    {
+                        myfile << io_pin_content << endl;
+                        break;
+                    }
+                    // else
+                    // {
+                    //     myfile << io_pin_content << endl;
+                    //     break;
+                    // }
+                }
+            }
+            if (io_pin_content.find(RIGHT) != string::npos)
+            {
+                for (int i = 0; i < (*io_pin_side_map)[RIGHT].io_power_pin_vector.size(); i++)
+                {
+                    myfile << (*io_pin_side_map)[RIGHT].io_power_pin_vector[i].pin_info << endl;
+                }
+                while (getline(io_pin_file, io_pin_content))
+                {
+                    if (io_pin_content.find("pin name") == string::npos)
+                    {
+                        myfile << io_pin_content << endl;
+                        break;
+                    }
+                    // else
+                    // {
+                    //     myfile << io_pin_content << endl;
+                    //     break;
+                    // }
+                }
+            }
+            if (io_pin_content.find(BOTTOM) != string::npos)
+            {
+                for (int i = 0; i < (*io_pin_side_map)[BOTTOM].io_power_pin_vector.size(); i++)
+                {
+                    myfile << (*io_pin_side_map)[BOTTOM].io_power_pin_vector[i].pin_info << endl;
+                }
+                while (getline(io_pin_file, io_pin_content))
+                {
+                    if (io_pin_content.find("pin name") == string::npos)
+                    {
+                        myfile << io_pin_content << endl;
+                        break;
+                    }
+                    // else
+                    // {
+                    //     myfile << io_pin_content << endl;
+                    //     break;
+                    // }
+                }
+            }
+        }
+    }
+    else
+    {
+        cout << "can't found file" << endl;
+    }
+    io_pin_file.close();
+    myfile.close();
+}
+
 void replaceContent(unordered_map<string, IoPinSide> *io_pin_side_map)
 {
     for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
@@ -68,85 +407,66 @@ void replaceContent(unordered_map<string, IoPinSide> *io_pin_side_map)
             string replace_pin_name = io_pin.replace_pin_name;
             string pin_name = io_pin.pin_name;
             string pin_info = io_pin.pin_info;
-            cout << "replace_pin_name : " << replace_pin_name << endl;
-            cout << "pin_name         : " << pin_name << endl;
-            cout << "pin_info         : " << pin_info << endl;
-            subreplace(pin_info, pin_name, replace_pin_name);
+            // cout << "replace_pin_name : " << replace_pin_name << endl;
+            // cout << "pin_name         : " << pin_name << endl;
             // cout << "pin_info         : " << pin_info << endl;
+            pin_info = subreplace(pin_info, pin_name, replace_pin_name);
+            // cout << "pin_info         : " << pin_info << endl;
+            io_pin_side_map_it->second.io_power_pin_vector[i].pin_info = pin_info;
         }
     }
 }
 
-void subreplace(string &resource_str, string &sub_str, string &new_str)
+string replaceString(string resource_string, string original_string, string replace_string)
 {
 
-    string def_str = resource_str;
+    string output = regex_replace(resource_string, regex(original_string), replace_string);
 
-    string::size_type pos = 0;
-    string temp_string;
+    return output;
+}
 
-    // while ((pos = def_str.find(sub_str)) != string::npos) //替换所有指定子串
-    // {
+string subreplace(string &resource_str, string &sub_str, string &new_str)
+{
+    // cout << "begin : " << resource_str << endl;
+    int begin = resource_str.find('\"') + 1;
+    resource_str.replace(begin, sub_str.length(), new_str);
 
-    //     resource_str.replace(pos, sub_str.length(), new_str);
-    // }
-    for (int i = 0; i < resource_str.size(); i++)
-    {
-        if (resource_str[i] != ' ')
-        {
-            temp_string.insert(temp_string.size(), 1, resource_str[i]);
-        }
-        if (resource_str[i] == ' ' && temp_string.size() != 0)
-        {
-            if (sub_str == temp_string)
-            {
-                resource_str.replace(i - (temp_string.size()), sub_str.length(), new_str);
-            }
-            //   cout << temp_string << " " << temp_string.size() << " " << i- (temp_string.size()) << endl;
-            temp_string = "";
-        }
-        if (i == (resource_str.size() - 1) && temp_string.size() != 0)
-        {
-            if (sub_str == temp_string)
-            {
-                resource_str.replace(i - (temp_string.size()), sub_str.length(), new_str);
-            }
-            //   cout << temp_string << " " << temp_string.size() << " " <<  i- temp_string.size()<< endl;
-            temp_string = "";
-        }
-    }
-    cout << "resource_str         : " << resource_str << endl;
+    return resource_str;
 }
 
 void setIoPinPosition(IoPinSide *io_pin_side)
 {
+    cout << "power pin size   : " << (*io_pin_side).power_pin_vector.size() << endl;
+    cout << "io    pin size   : " << (*io_pin_side).io_pin_vector.size() << endl;
     int number_of_power_pad = (*io_pin_side).power_pin_vector.size();
     number_of_power_pad = number_of_power_pad / 2;
     int divide_side = number_of_power_pad + 1;
-    cout << divide_side << endl;
+    cout << "divide side       : " << divide_side << endl;
 
     int number_of_pin = (*io_pin_side).io_pin_vector.size();
     int number_of_side = number_of_pin / divide_side;
-    cout << number_of_side << endl;
+    cout << "number of side    : " << number_of_side << endl;
+    cout << "======================" << endl;
 
     vector<IoPin> io_pin_vector = (*io_pin_side).io_pin_vector;
     vector<IoPin> power_pin_vector = (*io_pin_side).power_pin_vector;
 
     int number_of_side_count = 1;
-    cout << (*io_pin_side).io_power_pin_vector.size() << endl;
 
     for (int i = 0; i < (*io_pin_side).io_power_pin_vector.size(); i++)
     {
-        cout << i << endl;
+        // cout << i << endl;
         // cout << "number_of_side_count : " << number_of_side_count << endl;
-        if (number_of_side_count == (number_of_side + 1))
+        if (number_of_side_count == (number_of_side + 1) && power_pin_vector.size() > 0)
         {
+            // cout << "number_of_side_count first : " << number_of_side_count << endl;
             (*io_pin_side).io_power_pin_vector[i].replace_pin_name = power_pin_vector[0].pin_name;
             power_pin_vector.erase(power_pin_vector.begin());
             number_of_side_count += 1;
         }
-        else if (number_of_side_count == (number_of_side + 2))
+        else if (number_of_side_count == (number_of_side + 2) && power_pin_vector.size() > 0)
         {
+            // cout << "number_of_side_count second : " << number_of_side_count << endl;
             (*io_pin_side).io_power_pin_vector[i].replace_pin_name = power_pin_vector[0].pin_name;
             power_pin_vector.erase(power_pin_vector.begin());
             number_of_side_count = 1;
@@ -167,9 +487,20 @@ void setIoPinPosition(IoPinSide *io_pin_side)
     // }
 }
 
+// string getOffset(string io_pin_content){
+
+// }
+
 void setIoPinInfo(unordered_map<string, IoPinSide> *io_pin_side_map, string side, string io_pin_content)
 {
     vector<string> content_vector = splitByPattern(io_pin_content, " ");
+
+    vector<string> offset_content_vector = splitByPattern(content_vector[2], "=");
+    string offset = offset_content_vector[1];
+    vector<string> width_content_vector = splitByPattern(content_vector[4], "=");
+    string width = width_content_vector[1];
+
+    // cout << "content_vector : " << content_vector[2] << endl;
 
     string pin_name = getIoName(io_pin_content);
 
@@ -179,6 +510,8 @@ void setIoPinInfo(unordered_map<string, IoPinSide> *io_pin_side_map, string side
         io_pin.pin_name = pin_name;
         io_pin.side = side;
         io_pin.pin_info = io_pin_content;
+        io_pin.width = width;
+        io_pin.offset = offset;
         (*io_pin_side_map)[side].io_power_pin_vector.push_back(io_pin);
         if (pin_name.find("VDD") != string::npos || pin_name.find("VSS") != string::npos)
         {
@@ -197,6 +530,8 @@ void setIoPinInfo(unordered_map<string, IoPinSide> *io_pin_side_map, string side
         IoPin io_pin;
         io_pin.pin_name = pin_name;
         io_pin.side = side;
+        io_pin.width = width;
+        io_pin.offset = offset;
         io_pin.pin_info = io_pin_content;
         io_power_pin_vector.push_back(io_pin);
         io_pin_side.io_power_pin_vector = io_power_pin_vector;

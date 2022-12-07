@@ -117,12 +117,12 @@ int main()
 
     tansferShapeRing(&vdd_shape_ring_vector, &vss_shape_ring_vector, &vdd_shape_map, &vss_shape_map);
 
-    for (auto shape : vdd_shape_map)
-    {
-      cout << shape.first << endl;
-      cout << shape.second.start_x_location << " " << shape.second.start_y_location << endl;
-      cout << shape.second.end_x_location << " " << shape.second.end_y_location << endl;
-    }
+    // for (auto shape : vdd_shape_map)
+    // {
+    //   cout << shape.first << endl;
+    //   cout << shape.second.start_x_location << " " << shape.second.start_y_location << endl;
+    //   cout << shape.second.end_x_location << " " << shape.second.end_y_location << endl;
+    // }
     
 
 
@@ -133,6 +133,7 @@ int main()
 
 void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map, vector<PowerPad> *vdd_power_pad_vector, vector<PowerPad> *vss_power_pad_vector)
 {
+   
     ofstream myfile;
     myfile.open(power_pad_stripe_file);
     for (int i = 0; i < (*vdd_power_pad_vector).size(); i++)
@@ -145,7 +146,7 @@ void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *v
         float stripe_y_end_location_float = 0;
         if (power_pad.side == UP)
         {
-
+           
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
 
@@ -156,6 +157,7 @@ void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *v
         }
         else if (power_pad.side == DOWN)
         {
+        
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
             stripe_x_start_location_float = power_pad_x_loction - (power_pad.width / 2);
@@ -167,6 +169,7 @@ void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *v
         }
         else if (power_pad.side == LEFT)
         {
+             
             float power_pad_x_loction = stof(power_pad.x_location);
             float power_pad_y_location = stof(power_pad.y_location);
             stripe_x_start_location_float = power_pad_x_loction + power_pad.length / 2;
@@ -182,6 +185,7 @@ void generatePowerPadTcl(string power_pad_stripe_file, map<string, ShapeRing> *v
             float power_pad_y_location = stof(power_pad.y_location);
             stripe_x_start_location_float = stof(power_pad.x_location) - power_pad.length / 2;
             stripe_y_start_location_float = stof(power_pad.y_location) + power_pad.width / 2;
+    
             stripe_x_end_location_float = stof(shape_ring.start_x_location) - shape_ring.width / 2;
             stripe_y_end_location_float = stof(power_pad.y_location) - power_pad.width / 2;
         }

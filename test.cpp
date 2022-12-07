@@ -11,7 +11,7 @@ using namespace std;
 #include <cmath>
 #include <iomanip>
 #include <math.h>
-
+#include <regex>
 float rounding(float num, int index);
 string floatToString(const float value, unsigned int precision);
 
@@ -81,30 +81,39 @@ int main()
 
     // cout << getCoverTrack(0.224) << endl;
 
-    vector<int> num_vector;
-    num_vector.push_back(1);
-    num_vector.push_back(2);
-    num_vector.push_back(3);
-    // num_vector.push_back(4);
-    // num_vector.push_back(5);
-    // num_vector.push_back(6);
-    // num_vector.push_back(7);
-    // num_vector.push_back(8);
-    // num_vector.push_back(9);
-    num_vector.erase(num_vector.begin());
-    num_vector.erase(num_vector.begin());
+    string input = "Order $_";
+    string order = "#1190921";
+
+    cout << input << endl;
+
+    string output = regex_replace(input, regex("Order"), order);
+
+    cout << output << endl;
+
+    // vector<int> num_vector;
+    // num_vector.push_back(1);
+    // num_vector.push_back(2);
+    // num_vector.push_back(3);
+    // // num_vector.push_back(4);
+    // // num_vector.push_back(5);
+    // // num_vector.push_back(6);
+    // // num_vector.push_back(7);
+    // // num_vector.push_back(8);
+    // // num_vector.push_back(9);
+    // num_vector.erase(num_vector.begin());
+    // num_vector.erase(num_vector.begin());
     // for (int i = 0; i < num_vector.size(); i++)
     // {
     //     cout << num_vector[i] << endl;
     // }
 
-    string str = "Welcome to Educative!";
+    // string str = "Welcome to Educative!";
 
     // replace "come" of "Welcome" with "abcd".
     // starting position = 3, length = 4,
     // replacement string = "abcd"
-    str.replace(3, 2, "abcd");
-    cout << str << endl;
+    // str.replace(3, 2, "abcd");
+    // cout << str << endl;
 
     // cout << "check 1: " << num_vector.size() << endl;
     // for (int i = 0; i < num_vector.size(); i++)
