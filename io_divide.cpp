@@ -26,16 +26,35 @@ struct IoPinSide
     vector<IoPin> power_pin_vector;
     vector<IoPin> io_pin_vector;
 };
+struct CoreSite
+{
+
+    string left_x_location;
+    string right_x_location;
+    string up_y_location;
+    string down_y_location;
+};
+struct Track
+{
+
+    string layer;
+    string x_location;
+    string y_location;
+};
 
 string TOP = "top";
 string LEFT = "left";
 string BOTTOM = "bottom";
 string RIGHT = "right";
 float POWERPAD_WIDTH = 1.728;
+string M3 = "M3";
+string M4 = "M4";
 string M4_Y_STEP = "0.216";
 string M3_X_STEP = "0.144";
 string M3_START_STEP = "0.18";
 string M4_START_STEP = "0.18";
+string ODD = "odd";
+string EVEN = "even";
 
 vector<string> splitByPattern(string content, string pattern);
 string floatToString(const float value);
@@ -53,30 +72,317 @@ void widenPowerPad(IoPinSide *io_pin_side);
 void changeLayer(unordered_map<string, IoPinSide> *io_pin_side_map);
 void widenEachPowerPad(unordered_map<string, IoPinSide> *io_pin_side_map);
 void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map);
+void getCoreSite(CoreSite *core_site);
+void getTrackInfo(unordered_map<string, vector<Track>> *track_map, CoreSite *core_site);
+string getNextStepTrack(string layer, float offset);
+string getBackStepTack(string layer, float offset);
+void getTrackInfoVector(string layer, string start_step, string end_step, vector<Track> *track_vector);
+void setIoTrackInfo(unordered_map<string, vector<Track>> *track_map, unordered_map<string, IoPinSide> *io_pin_side_map);
+bool floatIsEqualOrLess(float a, float b);
+bool floatIsEqualOrMore(float a, float b);
+bool floatIsEqual(float a, float b);
+int tranferToTrackInt(float number);
+float tranferToTrackFloat(int number);
+void popOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map);
+void popNumberOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map, string side, int start_offset, int number_of_track);
 int main()
 {
 
     unordered_map<string, IoPinSide> io_pin_side_map;
+    unordered_map<string, vector<Track>> track_map;
     vector<string> io_pin_side_vector;
+    CoreSite core_site;
 
-    string io_file_name = "io/6t49run88_154_neuralNetwork.io";
+    string io_file_name = "io/6t49run88_6.io";
     string io_file_reorder = "io/6t49run88_neuralNetwork_average_distribution.io";
     string io_file_reorder_change_oiwer_pad_side = "io/6t49run88_neuralNetwork_average_distribution_change_power_pad_each_power_pad.io";
     getIoPinInfo(io_file_name, &io_pin_side_vector, &io_pin_side_map);
-
+    getCoreSite(&core_site);
+    getTrackInfo(&track_map, &core_site);
     setIoPinPostionInfo(&io_pin_side_map);
     replaceContent(&io_pin_side_map);
+    // setIoTrackInfo(&track_map, &io_pin_side_map);
     printIoFile(&io_pin_side_map, io_file_name, io_file_reorder);
 
     widenEachPowerPad(&io_pin_side_map);
     changeLayer(&io_pin_side_map);
     setOffsetOnTrack(&io_pin_side_map);
-    printIoFile(&io_pin_side_map, io_file_reorder, io_file_reorder_change_oiwer_pad_side);
 
+    popOffSideTrack(&io_pin_side_map);
+
+    printIoFile(&io_pin_side_map, io_file_reorder, io_file_reorder_change_oiwer_pad_side);
     // for (int i = 0; i < io_pin_side_map[TOP].io_pin_vector.size(); i++)
     // {
     //     cout <<  io_pin_side_map[TOP].io_pin_vector[i].pin_name << endl;
     // }
+}
+
+void popNumberOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map, string side, int start_offset, int number_of_track)
+{
+
+    if (side == LEFT || side == RIGHT)
+    {
+        for (int i = start_offset; i < (*io_pin_side_map)[side].io_power_pin_vector.size(); i++)
+        {
+            string offset = (*io_pin_side_map)[side].io_power_pin_vector[i].offset;
+
+            float offset_float = stof(offset);
+            float m4_y_step = stof(M4_Y_STEP);
+            m4_y_step = m4_y_step * number_of_track;
+            offset_float -= m4_y_step;
+
+            string offset_str = floatToString(offset_float);
+
+            string resource_str = (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info;
+            // cout << "before : " << resource_str << endl;
+            resource_str = replaceString(resource_str, offset, offset_str);
+            // cout << "after : " << resource_str << endl;
+            (*io_pin_side_map)[side].io_power_pin_vector[i].offset = offset_str;
+            (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
+            // cout << "offset : " << offset << endl;
+            // cout << "m4_y_step : " << m4_y_step << endl;
+            // cout << "temp : " << temp << endl;
+            // cout << "start_step : " << start_step << endl;
+            // cout << "step : " << step << endl;
+        }
+    }
+    else
+    {
+
+        for (int i = start_offset; i < (*io_pin_side_map)[side].io_power_pin_vector.size(); i++)
+        {
+            string offset = (*io_pin_side_map)[side].io_power_pin_vector[i].offset;
+            float offset_float = stof(offset);
+            float m3_x_step = stof(M3_X_STEP);
+            m3_x_step = m3_x_step * number_of_track;
+            offset_float -= m3_x_step;
+
+            string offset_str = floatToString(offset_float);
+            string resource_str = (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info;
+            cout << "before : " << resource_str << endl;
+            resource_str = replaceString(resource_str, offset, offset_str);
+            cout << "after : " << resource_str << endl;
+            (*io_pin_side_map)[side].io_power_pin_vector[i].offset = offset_str;
+            (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
+        }
+    }
+}
+
+void popOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
+{
+    for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+    {
+        string side = io_pin_side_map_it->first;
+        if (side == LEFT || side == RIGHT)
+        {
+
+            for (int i = 0; i < ((*io_pin_side_map)[side].io_power_pin_vector.size() - 1); i++)
+            {
+                int next_index = i + 1;
+                int index = i;
+                string offset = (*io_pin_side_map)[side].io_power_pin_vector[index].offset;
+                string next_offset = (*io_pin_side_map)[side].io_power_pin_vector[next_index].offset;
+                float offset_float = stof(offset);
+                float next_offset_float = stof(next_offset);
+                float distance = next_offset_float - offset_float;
+
+                if (floatIsEqual(1.296, distance))
+                {
+                     popNumberOffSideTrack(&(*io_pin_side_map), side, next_index, 2);
+                }
+                // if (floatIsEqual(1.08, distance))
+                // {
+                //       popNumberOffSideTrack(&(*io_pin_side_map), side, next_index, 1);
+                // }
+            }
+        }
+        else
+        {
+            // float start_step = stof((*io_pin_side_map)[side].io_power_pin_vector[0].offset);
+            // for (int i = 0; i < (*io_pin_side_map)[side].io_power_pin_vector.size(); i++)
+            // {
+            // }
+        }
+    }
+}
+
+// void setIoTrackInfo(unordered_map<string, vector<Track>> *track_map, unordered_map<string, IoPinSide> *io_pin_side_map)
+// {
+
+//     for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
+//     {
+//         string side = io_pin_side_map_it->first;
+//         IoPinSide io_pin_side = (*io_pin_side_map)[side];
+//         vector<IoPin> io_power_pin_vector = io_pin_side.io_power_pin_vector;
+//         cout << "size : " << io_power_pin_vector.size() << endl;
+
+//         if (side == "top" || side == "bottom")
+//         {
+//             vector<Track> track_vector = (*track_map)[M3];
+//             int track_index = 0;
+//             for (int i = 0; i < io_power_pin_vector.size(); i++)
+//             {
+//                 string offset = track_vector[track_index].x_location;
+//                 string before_offset = io_power_pin_vector[i].offset;
+//                 string resource_str = io_power_pin_vector[i].pin_info;
+//                 cout << "before : " << resource_str << endl;
+//                 resource_str = replaceString(resource_str, before_offset, offset);
+//                 cout << "after : " << resource_str << endl;
+//                 io_power_pin_vector[i].offset = offset;
+//                 io_power_pin_vector[i].pin_info = resource_str;
+//                 track_index += 7;
+//             }
+//             (*io_pin_side_map)[side].io_power_pin_vector = io_power_pin_vector;
+//         }
+//         else
+//         {
+//             vector<Track> track_vector = (*track_map)[M4];
+//             int track_index = 0;
+//             for (int i = 0; i < io_power_pin_vector.size(); i++)
+//             {
+//                 string offset = track_vector[track_index].x_location;
+//                 string before_offset = io_power_pin_vector[i].offset;
+//                 string resource_str = io_power_pin_vector[i].pin_info;
+//                 resource_str = replaceString(resource_str, before_offset, offset);
+//                 io_power_pin_vector[i].offset = offset;
+//                 io_power_pin_vector[i].pin_info = resource_str;
+//                 track_index += 4;
+//             }
+//             (*io_pin_side_map)[side].io_power_pin_vector = io_power_pin_vector;
+//         }
+//     }
+// }
+
+void getTrackInfo(unordered_map<string, vector<Track>> *track_map, CoreSite *core_site)
+{
+    float core_left_x_location = stof((*core_site).left_x_location);
+    float core_right_x_location = stof((*core_site).right_x_location);
+    float core_up_y_location = stof((*core_site).up_y_location);
+    float core_down_y_location = stof((*core_site).down_y_location);
+
+    string start_left_track = getNextStepTrack(ODD, core_left_x_location);
+    string end_right_track = getBackStepTack(ODD, core_right_x_location);
+    string start_down_track = getNextStepTrack(EVEN, core_down_y_location);
+    string end_up_track = getBackStepTack(EVEN, core_up_y_location);
+
+    vector<Track> m3_track_vector;
+    vector<Track> m4_track_vector;
+    getTrackInfoVector(ODD, start_left_track, end_right_track, &m3_track_vector);
+    getTrackInfoVector(EVEN, start_down_track, end_up_track, &m4_track_vector);
+    (*track_map).insert(pair<string, vector<Track>>(M3, m3_track_vector));
+    (*track_map).insert(pair<string, vector<Track>>(M4, m4_track_vector));
+
+    cout << "m3_track size : " << m3_track_vector.size() << endl;
+    cout << "m4_track size : " << m4_track_vector.size() << endl;
+}
+int tranferToTrackInt(float number)
+{
+    number = number * 1000;
+    int number_int = (int)number / 4;
+    return number_int;
+}
+float tranferToTrackFloat(int number)
+{
+    number = (number * 4);
+    float number_float = (float)number / 1000;
+    return number_float;
+}
+void getTrackInfoVector(string layer, string start_step, string end_step, vector<Track> *track_vector)
+{
+    float start_step_float = stof(start_step);
+    float end_step_float = stof(end_step);
+    float m3_step = stof(M3_X_STEP);
+    float m4_step = stof(M4_Y_STEP);
+
+    int start_step_int = tranferToTrackInt(start_step_float);
+    int end_step_int = tranferToTrackInt(end_step_float);
+    int m3_step_int = tranferToTrackInt(m3_step);
+    int m4_step_int = tranferToTrackInt(m4_step);
+
+    if (layer == ODD)
+    {
+        for (int i = start_step_int; i <= end_step_int; i += m3_step_int)
+        {
+            float x_location = tranferToTrackFloat(i);
+            Track track;
+            track.x_location = floatToString(x_location);
+            track.layer = M3;
+            (*track_vector).push_back(track);
+        }
+    }
+    else
+    {
+        for (int i = start_step_int; i <= end_step_int; i += m4_step_int)
+        {
+            float x_location = tranferToTrackFloat(i);
+            Track track;
+            track.x_location = floatToString(x_location);
+            track.layer = M4;
+            (*track_vector).push_back(track);
+        }
+    }
+}
+
+string getNextStepTrack(string layer, float offset)
+{
+    if (layer == ODD)
+    {
+        float m3_x_step = stof(M3_X_STEP);
+        float start_step = stof(M3_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m3_x_step);
+        temp += 1;
+
+        float step = (temp * m3_x_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+    else
+    {
+        float m4_y_step = stof(M4_Y_STEP);
+        float start_step = stof(M4_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m4_y_step);
+        temp += 1;
+
+        float step = (temp * m4_y_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+}
+
+string getBackStepTack(string layer, float offset)
+{
+    if (layer == ODD)
+    {
+        float m3_x_step = stof(M3_X_STEP);
+        float start_step = stof(M3_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m3_x_step);
+
+        float step = (temp * m3_x_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+    else
+    {
+        float m4_y_step = stof(M4_Y_STEP);
+        float start_step = stof(M4_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m4_y_step);
+
+        float step = (temp * m4_y_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+}
+
+void getCoreSite(CoreSite *core_site)
+{
+    (*core_site).left_x_location = "15.1200";
+    (*core_site).right_x_location = "484.4160";
+    (*core_site).down_y_location = "15.1200";
+    (*core_site).up_y_location = "390.0960";
 }
 void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
 {
@@ -101,6 +407,8 @@ void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
                 // cout << "before : " << resource_str << endl;
                 resource_str = replaceString(resource_str, offset, step_str);
                 // cout << "after : " << resource_str << endl;
+                (*io_pin_side_map)[side].io_power_pin_vector[i].offset = step_str;
+                (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
                 // cout << "offset : " << offset << endl;
                 // cout << "m4_y_step : " << m4_y_step << endl;
                 // cout << "temp : " << temp << endl;
@@ -122,9 +430,11 @@ void setOffsetOnTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
                 float step = (temp * m3_x_step) + start_step;
                 string step_str = floatToString(step);
                 string resource_str = (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info;
-                cout << "before : " << resource_str << endl;
+                // cout << "before : " << resource_str << endl;
                 resource_str = replaceString(resource_str, offset, step_str);
-                cout << "after : " << resource_str << endl;
+                // cout << "after : " << resource_str << endl;
+                (*io_pin_side_map)[side].io_power_pin_vector[i].offset = step_str;
+                (*io_pin_side_map)[side].io_power_pin_vector[i].pin_info = resource_str;
             }
         }
     }
@@ -198,10 +508,6 @@ void widenPowerPad(IoPinSide *io_pin_side)
         {
             start_power_pad = true;
         }
-        // if ((*io_pin_side).io_power_pin_vector[i].replace_pin_name == "VDDG")
-        // {
-        //     cout << "break" << endl;
-        // }
         if (start_power_pad)
         {
 
@@ -290,6 +596,7 @@ void setIoPinPostionInfo(unordered_map<string, IoPinSide> *io_pin_side_map)
     for (auto io_pin_side_map_it = (*io_pin_side_map).begin(); io_pin_side_map_it != (*io_pin_side_map).end(); ++io_pin_side_map_it)
     {
         string side = io_pin_side_map_it->first;
+        cout << "side : " << side << endl;
         setIoPinPosition(&(*io_pin_side_map)[side]);
     }
 }
@@ -719,4 +1026,48 @@ string floatToString(const float value)
     buf.clear();
 
     return str;
+}
+bool floatIsEqualOrLess(float a, float b)
+{
+    if (floatIsEqual(a, b))
+    {
+        return true;
+    }
+    else if (a < b)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+bool floatIsEqualOrMore(float a, float b)
+{
+    if (floatIsEqual(a, b))
+    {
+        return true;
+    }
+    else if (a > b)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool floatIsEqual(float a, float b)
+{
+    string a_str = floatToString(a);
+    string b_str = floatToString(b);
+    if (a_str == b_str)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

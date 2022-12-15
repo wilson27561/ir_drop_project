@@ -126,10 +126,10 @@ void setStripeLength(Stripe *stripe);
 void getStripePowerDistanceCost(string layer, Stripe *stripe, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getReducePowerStripeCost(string layer, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void removeLessCostofPowerStripe(string layer, unordered_map<string, vector<Stripe>> *vdd_stripe_map);
-void reducePowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map);
+void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map);
 void getTrackInfoDistance(unordered_map<string, TrackInfo> *track_info_map, CoreSite *core_site);
 void renewWireStripeDistanceIrDropCost(vector<Stripe> *stripe_vector);
-void generateWireStripe(string log_file_tcl,unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
+void generateWireStripe(string log_file_tcl, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
 void generateWireStripeTcl(string wire_power_stripe_tcl, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map);
 float getMinimumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector);
 float getMaximumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector);
@@ -164,7 +164,7 @@ const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string M3 = "M3";
 const string M4 = "M4";
-const string WIRE_STRIPE = "2";
+const string WIRE_STRIPE = "3";
 const float RESIZE_RATIO = 0.3;
 
 int main(int argc, char *argv[])
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
 
     // method 1 : reduce power stripe width
-    reducePowerStripe(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &decreae_number_of_power_stripe_map);
+    reducePowerStripe(LOG_FILE, &vdd_stripe_map, &cell_placed_map, &cell_ip_map, &decreae_number_of_power_stripe_map);
     generateWireStripeTcl(DECREASE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map);
     // for (auto vdd_stripe_map_it = vdd_stripe_map.begin(); vdd_stripe_map_it != vdd_stripe_map.end(); ++vdd_stripe_map_it)
     // {
@@ -283,14 +283,13 @@ int main(int argc, char *argv[])
 
     setIrDropReport(&ir_drop_file_vector, &ir_drop_point_map);
     setIrInPowerStripe(&vdd_stripe_map, &ir_drop_point_map);
-    generateWireStripe(LOG_FILE,&vdd_stripe_map, &vss_stripe_map, &decreae_number_of_power_stripe_map, &track_info_map);
+    generateWireStripe(LOG_FILE, &vdd_stripe_map, &vss_stripe_map, &decreae_number_of_power_stripe_map, &track_info_map);
     generateWireStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map);
 
     cout << endl
          << "Program excute time : " << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
 
     cout << "-------------------------- decrease_power_stripe.cpp end --------------------------" << endl;
- 
 }
 
 float getMinimumPowerStripeDistance(string layer, vector<Stripe> *vdd_stripe_vector)
@@ -413,7 +412,7 @@ void generateWireStripeTcl(string wire_power_stripe_tcl, unordered_map<string, v
     myfile.close();
 };
 
-void generateWireStripe(string log_file_tcl,unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
+void generateWireStripe(string log_file_tcl, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map)
 {
     cout << "========== generateWireStripe start ==========" << endl;
     // ofstream myfile;
@@ -695,11 +694,16 @@ void generateTrackInfoMap(unordered_map<string, TrackInfo> *track_info_map)
     (*track_info_map).insert(pair<string, TrackInfo>(m3_track_info.layer, m3_track_info));
     (*track_info_map).insert(pair<string, TrackInfo>(m4_track_info.layer, m4_track_info));
 }
-void reducePowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map)
+void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map)
 {
+    string log_file_name = log_file + "_reduce_log.txt";
+
+    ofstream myfile;
+    myfile.open(log_file_name);
+
     for (auto vdd_stripe_it = (*vdd_stripe_map).begin(); vdd_stripe_it != (*vdd_stripe_map).end(); ++vdd_stripe_it)
     {
-        cout << "layer " << vdd_stripe_it->first << " before reduce stripe size : " << vdd_stripe_it->second.size() << endl;
+        myfile << "layer " << vdd_stripe_it->first << " before reduce stripe size : " << vdd_stripe_it->second.size() << endl;
         (*decreae_number_of_power_stripe_map).insert(pair<string, int>(vdd_stripe_it->first, vdd_stripe_it->second.size()));
     }
 
@@ -719,7 +723,7 @@ void reducePowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, un
 
     for (auto vdd_stripe_it = (*vdd_stripe_map).begin(); vdd_stripe_it != (*vdd_stripe_map).end(); ++vdd_stripe_it)
     {
-        cout << "layer " << vdd_stripe_it->first << " after reduce stripe size : " << vdd_stripe_it->second.size() << endl;
+        myfile << "layer " << vdd_stripe_it->first << " after reduce stripe size : " << vdd_stripe_it->second.size() << endl;
         string layer = vdd_stripe_it->first;
         vector<Stripe> stripe_vector = vdd_stripe_it->second;
         int number_of_decrease = (*decreae_number_of_power_stripe_map)[layer] - (*vdd_stripe_map)[layer].size();
@@ -728,6 +732,8 @@ void reducePowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, un
 
         (*decreae_number_of_power_stripe_map)[layer] = number_of_stripe;
     }
+
+    myfile.close();
 }
 void removeLessCostofPowerStripe(string layer, unordered_map<string, vector<Stripe>> *vdd_stripe_map)
 {
@@ -2315,28 +2321,28 @@ bool floatIsEqualOrMore(float a, float b)
 //         return false;
 //     }
 // }
-   // for (auto decreae_number_of_power_stripe_it = decreae_number_of_power_stripe_map.begin(); decreae_number_of_power_stripe_it != decreae_number_of_power_stripe_map.end(); ++decreae_number_of_power_stripe_it)
-    // {
-    //     cout << "layer                           : " << decreae_number_of_power_stripe_it->first << endl;
-    //     cout << "decrease_number_of_power_stripe : " << decreae_number_of_power_stripe_it->second << endl;
-    // }
-    // float total_power = 0;
-    // for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
-    // {
-    //     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
-    // }
-    // for (auto vdd_stripe_map_iter = vdd_stripe_map.begin(); vdd_stripe_map_iter != vdd_stripe_map.end(); ++vdd_stripe_map_iter)
-    // {
-    //     cout << "layer : " << vdd_stripe_map_iter->first << endl;
-    //     int total_ip_cell = 0;
-    //     for (int i = 0; i < vdd_stripe_map_iter->second.size(); i++)
-    //     {
-    //         cout << " ----- moving range start -----" << endl;
-    //         cout << vdd_stripe_map_iter->second[i].start_y_location << endl;
-    //         cout << vdd_stripe_map_iter->second[i].move_range_y_down << " " << vdd_stripe_map_iter->second[i].move_range_y_up << endl;
-    //         // cout << vdd_stripe_map_iter->second[i].ip_power_vector.size() << endl;
-    //         // total_ip_cell += vdd_stripe_map_iter->second[i].ip_power_vector.size();
-    //         cout << " ----- moving range end -----" << endl;
-    //     }
-    //     cout << "ip size : " << total_ip_cell << endl;
-    // }
+// for (auto decreae_number_of_power_stripe_it = decreae_number_of_power_stripe_map.begin(); decreae_number_of_power_stripe_it != decreae_number_of_power_stripe_map.end(); ++decreae_number_of_power_stripe_it)
+// {
+//     cout << "layer                           : " << decreae_number_of_power_stripe_it->first << endl;
+//     cout << "decrease_number_of_power_stripe : " << decreae_number_of_power_stripe_it->second << endl;
+// }
+// float total_power = 0;
+// for (int i = 0; i < resize_vdd_stripe_vector.size(); i++)
+// {
+//     cout << " ir delta : " <<resize_vdd_stripe_vector[i].delta_ir_drop << endl;
+// }
+// for (auto vdd_stripe_map_iter = vdd_stripe_map.begin(); vdd_stripe_map_iter != vdd_stripe_map.end(); ++vdd_stripe_map_iter)
+// {
+//     cout << "layer : " << vdd_stripe_map_iter->first << endl;
+//     int total_ip_cell = 0;
+//     for (int i = 0; i < vdd_stripe_map_iter->second.size(); i++)
+//     {
+//         cout << " ----- moving range start -----" << endl;
+//         cout << vdd_stripe_map_iter->second[i].start_y_location << endl;
+//         cout << vdd_stripe_map_iter->second[i].move_range_y_down << " " << vdd_stripe_map_iter->second[i].move_range_y_up << endl;
+//         // cout << vdd_stripe_map_iter->second[i].ip_power_vector.size() << endl;
+//         // total_ip_cell += vdd_stripe_map_iter->second[i].ip_power_vector.size();
+//         cout << " ----- moving range end -----" << endl;
+//     }
+//     cout << "ip size : " << total_ip_cell << endl;
+// }
