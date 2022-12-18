@@ -257,8 +257,8 @@ int main(int argc, char *argv[])
     unordered_map<string, vector<Stripe>> vss_stripe_map;
     unordered_map<string, TrackInfo> track_info_map;
 
-    string config_file = argv[1];
-    // string config_file = "config/config_b19.txt";
+    // string config_file = argv[1];
+    string config_file = "config/config_gpu.txt";
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
     string ADD_STRIPE_TCL = "";
@@ -918,7 +918,7 @@ float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, T
             {
                 PinAccessPoint pin_access_point_def;
                 transferPinAccessLocationFromDef(&(*cell_placed_info), &(odd_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
-                if ((*cell_placed_info).cell_id == "U62575")
+                if ((*cell_placed_info).cell_id == "transform/U15399")
                 {
                     cout << "(" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << ")" << endl;
                 }
@@ -946,7 +946,7 @@ float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, T
                 PinAccessPoint pin_access_point_def;
                 transferPinAccessLocationFromDef(&(*cell_placed_info), &(even_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
                 // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
-                if ((*cell_placed_info).cell_id == "U62575")
+                if ((*cell_placed_info).cell_id == "transform/U15399")
                 {
                     cout << "access point :" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << endl;
                 }
