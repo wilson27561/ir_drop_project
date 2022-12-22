@@ -81,14 +81,24 @@ int main()
 
     // cout << getCoverTrack(0.224) << endl;
 
-    string input = "Order $_";
-    string order = "#1190921";
+    // string input = "Order $_";
+    // string order = "#1190921";
 
-    cout << input << endl;
+    // cout << input << endl;
 
-    string output = regex_replace(input, regex("Order"), order);
+    // string output = regex_replace(input, regex("Order"), order);
 
-    cout << output << endl;
+    // cout << output << endl;
+
+    float number = 523.764;
+    float temp = number * 1000.0;
+    cout << "temp : " << temp << endl;
+    int temp_int = (int)temp;
+    cout << "temp_int : " << temp_int << endl;
+    temp = temp / 4;
+    cout << "temp : " << temp << endl;
+    int ans = temp;
+    cout << ans << endl;
 
     // vector<int> num_vector;
     // num_vector.push_back(1);
@@ -164,7 +174,7 @@ int main()
 void subreplace(string &resource_str, string &sub_str, string &new_str)
 {
     string::size_type pos = 0;
-    while ((pos = resource_str.find(sub_str)) != string::npos) //替换所有指定子串
+    while ((pos = resource_str.find(sub_str)) != string::npos) // 替换所有指定子串
     {
         resource_str.replace(pos, sub_str.length(), new_str);
         cout << " ========== " << resource_str << "============" << endl;

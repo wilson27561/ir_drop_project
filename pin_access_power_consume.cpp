@@ -35,7 +35,7 @@ struct PinAccessPoint
 struct PinAccessCost
 {
     // key : FN N FS  // value access cost
-    unordered_map<string, float> direction_cost_map;
+    unordered_map<string, string> vertical_direction_cost_map;
 };
 struct CellInfo
 {
@@ -174,7 +174,7 @@ const string positive_positive = "positive_positive";
 const string positive_negative = "positive_negative";
 const string negative_positive = "negative_positive";
 const string negative_negative = "negative_negative";
-const int pin_access_less_cost = 5;
+const int PIN_ACCESS_LESS_WEIGHT = 5;
 const string ODD = "odd";
 const string EVEN = "even";
 
@@ -217,8 +217,10 @@ void setEvenLayerRange(vector<Stripe> *stripe_vector, CoreSite *core_site);
 void transferMovingRangeToTrack(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
 void setOddTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info);
 void setEvenTrackRange(vector<Stripe> *stripe_vector, TrackInfo *track_info);
-float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
+// float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
+float getTrackPinAccessPointCost(string layer, string power_stripe_width, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info);
 bool isInStripeRange(Stripe *vdd_stripe, string cell_id, unordered_map<string, CellPlacedInfo> *cell_placed_map);
+string transferTrackLocationType(string layer, TrackPoint *track_point, CellPlacedInfo *cell_placed_info);
 bool isOddLayer(string layer);
 bool isVertical(Rect *rect);
 bool isOddTrackCell(string x_location, TrackInfo *m3_track_info);
@@ -245,15 +247,17 @@ void sortStripeMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unorde
 void getStripeLocationFromStripeTcl(string stripe_tcl_file_name, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, CoreSite *core_site, set<string> *stripe_width_set);
 void transferStripePositionFromTcl(string layer, Stripe *stripe, string start_x_location, string start_y_location, string end_x_location, string end_y_location);
 void getCompareTrackType(CompareTrack *compare_track, float average_z_score_pin_access_cost, float average_z_score_power_cost);
-void getLefCellPinAccessPoint(unordered_map<string, CellInfo> *cell_info_map, set<string> *stripe_width_set);
+void getLefCellPinAccessPointCost(unordered_map<string, CellInfo> *cell_info_map, set<string> *stripe_width_set);
 void setTrackPointCost(string type, CellInfo *cell_info, string stripe_width);
 void transferPinAccessLocationFromRect(string direction, PinAccessPoint *pin_access_point, string cell_width, string cell_height, PinAccessPoint *transfer_pin_access_point);
+double caculatePinAccessCost(double total_pin_access_size, double cover_pin_access_size);
+
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
 string floatToString(const float value);
 int stringToInt(string num);
-float convertInnovusPoint(int number);
+
 bool sortOddStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
 bool sortEvenStripeLocationVector(Stripe stripe_a, Stripe stripe_b);
 bool sortCompareTrack(CompareTrack compare_track_a, CompareTrack compare_track_b);
@@ -261,6 +265,7 @@ float standardDeviation(vector<float> *num_vec);
 float arithmeticMean(vector<float> *num_vec);
 float z_score_normalization(float original, float arithmetic_mean, float standard_deviation);
 int tranferLocationFloatToInt(float location);
+float convertInnovusPoint(int number);
 bool isCoverPinAccessCost(string layer, PinAccessPoint *transfer_pin_access_point, float track_location, float power_stripe_width);
 
 int main(int argc, char *argv[])
@@ -334,34 +339,15 @@ int main(int argc, char *argv[])
     transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
     getLefCellImformation(LEF_FILE, &cell_info_map);
     getLeftCellPinAccessPoint(&cell_info_map);
-
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
-
     setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
 
-    // for (auto vdd_stripe_map_it = vdd_stripe_map.begin(); vdd_stripe_map_it != vdd_stripe_map.end(); ++vdd_stripe_map_it)
-    // {
-    //     string layer = vdd_stripe_map_it->first;
-    //     cout << " layer : " << layer << " size : " << vdd_stripe_map_it->second.size() << endl;
-    //     vector<Stripe> stripe_vector = vdd_stripe_map_it->second;
-    //     for (int i = 0; i < stripe_vector.size(); i++)
-    //     {
-    //         Stripe stripe = stripe_vector[i];
-    //         cout <<  "size : " << stripe.ip_power_vector.size() << endl;
-    //         for (int j = 0; j < stripe.ip_power_vector.size(); j++)
-    //         {
-    //             cout <<  stripe.ip_power_vector[j] << endl;
-    //         }
+    getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
+    setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
+    setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
 
-    //         // cout << stripe.net_name << " " << stripe.layer << " " << stripe.width << " " << stripe.length << " " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
-    //     }
-    // }
-    getLefCellPinAccessPoint(&cell_info_map, &stripe_width_set);
-    // setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
-    // setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
-
-    // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
-    // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+    getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
     cout << endl
          << "Program exctuing time" << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
@@ -373,7 +359,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void getLefCellPinAccessPoint(unordered_map<string, CellInfo> *cell_info_map, set<string> *stripe_width_set)
+void getLefCellPinAccessPointCost(unordered_map<string, CellInfo> *cell_info_map, set<string> *stripe_width_set)
 {
 
     // step 1: set stripe width
@@ -398,21 +384,60 @@ void getLefCellPinAccessPoint(unordered_map<string, CellInfo> *cell_info_map, se
     for (auto cell_info_map_it = (*cell_info_map).begin(); cell_info_map_it != (*cell_info_map).end(); ++cell_info_map_it)
     {
         string cell_name = cell_info_map_it->first;
-        // width
+        // key 1 : width                    key 2 : location
         unordered_map<string, unordered_map<string, PinAccessCost>> odd_pin_access_cost_map = (*cell_info_map)[cell_name].odd_pin_access_cost_map;
         unordered_map<string, unordered_map<string, PinAccessCost>> even_pin_access_cost_map = (*cell_info_map)[cell_name].even_pin_access_cost_map;
 
-        // for (auto odd_pin_access_cost_map_it = odd_pin_access_cost_map.begin(); odd_pin_access_cost_map_it != odd_pin_access_cost_map.end(); ++odd_pin_access_cost_map_it)
-        // {
-        //     string stripe_width = odd_pin_access_cost_map_it->first;
-        // }
+        for (auto odd_pin_access_cost_map_it = odd_pin_access_cost_map.begin(); odd_pin_access_cost_map_it != odd_pin_access_cost_map.end(); ++odd_pin_access_cost_map_it)
+        {
+            string stripe_width = odd_pin_access_cost_map_it->first;
+            // ODD Track
+            setTrackPointCost(ODD, &(*cell_info_map)[cell_name], stripe_width);
+        }
 
         for (auto even_pin_access_cost_map_it = even_pin_access_cost_map.begin(); even_pin_access_cost_map_it != even_pin_access_cost_map.end(); ++even_pin_access_cost_map_it)
         {
             string stripe_width = even_pin_access_cost_map_it->first;
+            // EVEN Track
             setTrackPointCost(EVEN, &(*cell_info_map)[cell_name], stripe_width);
         }
     }
+    //     if ("U66546" == (*cell_placed_info).cell_id)
+    // {
+    //     cout << "track location " << track_location << endl;
+    //     cout << "cell_placed_left_x_location : " << cell_placed_left_x_location << endl;
+    //     cout << isOddTrackCell(cell_placed_left_x_location, &(*track_info)) << endl;
+    // }
+
+    // for (auto odd_pin_access_cost_map_it = (*cell_info_map)["AO22x1_ASAP7_6t_fix"].odd_pin_access_cost_map["0.224"].begin(); odd_pin_access_cost_map_it != (*cell_info_map)["AO22x1_ASAP7_6t_fix"].odd_pin_access_cost_map["0.224"].end(); ++odd_pin_access_cost_map_it)
+    // {
+    //     cout << "location : " << odd_pin_access_cost_map_it->first << endl;
+    // }
+    // cout << "check" << endl;
+
+    if ((*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].find("0.108") != ((*cell_info_map)["AO22x1_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].end()))
+    {
+        cout << "check in side" << endl;
+    }
+    else
+    {
+        cout << "did not exsist" << endl;
+    }
+
+    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["S"] << endl;
+    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FS"] << endl;
+    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["N"] << endl;
+    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FN"] << endl;
+    //    if ("U58984" == (*cell_placed_info).cell_id)
+    // {
+    //     cout << "check " << endl;
+    // }
+
+    // unordered_map<string, string> vertical_direction_cost_map = odd_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["S"];
+    // if ((odd_pin_access_cost_map[power_stripe_width].count(track_location)) != true)
+    // {
+    //     cout << "has error in transferTrackLocationType " << endl;
+    // }
 }
 void setTrackPointCost(string type, CellInfo *cell_info, string stripe_width)
 {
@@ -431,32 +456,94 @@ void setTrackPointCost(string type, CellInfo *cell_info, string stripe_width)
     int cell_width_int = tranferLocationFloatToInt(cell_width_float);
     int m3_track_step_int = tranferLocationFloatToInt(m3_track_step_float);
 
-    cout << "track : " << odd_start_m3_track_int << endl;
-    cout << "track : " << even_start_m3_track_int << endl;
-    cout << "track : " << m3_track_step_int << endl;
+    // cout << "track : " << odd_start_m3_track_int << endl;
+    // cout << "track : " << even_start_m3_track_int << endl;
+    // cout << "track : " << m3_track_step_int << endl;
     map<string, vector<PinAccessPoint>> even_pin_access_point_map = (*cell_info).even_pin_access_point_map;
+    map<string, vector<PinAccessPoint>> odd_pin_access_point_map = (*cell_info).odd_pin_access_point_map;
     // (*cell_info).width;
-    cout << "cell info width : " << cell_width_int << endl;
+    // cout << "cell info width : " << cell_width_int << endl;
 
     if (type == ODD)
     {
+        for (int i = odd_start_m3_track_int; i < cell_width_int; i += m3_track_step_int)
+        {
+            float step = convertInnovusPoint(i);
+            string step_str = floatToString(step);
+            PinAccessCost pin_access_cost;
+            for (int k = 0; k < place_direction.size(); k++)
+            {
+                string place_direction_type = place_direction[k];
+                double total_pin_access_cost_of_cell_double = 0;
+                for (auto odd_pin_access_point_map_it = odd_pin_access_point_map.begin(); odd_pin_access_point_map_it != odd_pin_access_point_map.end(); ++odd_pin_access_point_map_it)
+                {
+                    string pin_name = odd_pin_access_point_map_it->first;
+                    // if (pin_name == "A2" && place_direction_type == "FS")
+                    // {
+                    //     cout << "break" << endl;
+                    // }
+                    int total_pin_access_size = odd_pin_access_point_map[pin_name].size();
+                    int cover_pin_access_size = 0;
+                    for (int j = 0; j < odd_pin_access_point_map[pin_name].size(); j++)
+                    {
+                        // 根據當下 placed  FN的位置去做計算
+                        PinAccessPoint transfer_pin_access_point;
+                        transferPinAccessLocationFromRect(place_direction_type, &odd_pin_access_point_map[pin_name][j], (*cell_info).width, (*cell_info).height, &transfer_pin_access_point);
+                        if (isCoverPinAccessCost("M3", &transfer_pin_access_point, step, stof(stripe_width)))
+                        {
+                            cover_pin_access_size += 1;
+                        }
+                    }
+                    // if (pin_name == "A2" && place_direction_type == "FS")
+                    // {
+                    //     cout << "break" << endl;
+                    // }
+                    double total_pin_access_size_double = (double)total_pin_access_size;
+                    double cover_pin_access_size_double = (double)cover_pin_access_size;
+
+                    double pin_access_cost_of_cell_double = caculatePinAccessCost(total_pin_access_size, cover_pin_access_size);
+
+                    // cout << " pin name                 : " << pin_name << endl;
+                    // cout << " total_pin_access_size    : " << total_pin_access_size << endl;
+                    // cout << " cover_pin_access_size    : " << cover_pin_access_size << endl;
+                    // cout << " step                     : " << step << endl;
+                    // cout << " stripe width             : " << stripe_width << endl;
+                    // cout << " place_direction_type     : " << place_direction_type << endl;
+                    // cout << " pin_access_cost_of_cell  : " << pin_access_cost_of_cell_double << endl;
+                    // cout << " ------------------------------------------- " << endl;
+
+                    // cout << "pin_access_cost_of_cell : " << pin_access_cost_of_cell << endl;
+                    total_pin_access_cost_of_cell_double += pin_access_cost_of_cell_double;
+                }
+                string total_pin_access_cost_of_cell_str = to_string(total_pin_access_cost_of_cell_double);
+                pin_access_cost.vertical_direction_cost_map.insert(pair<string, string>(place_direction_type, total_pin_access_cost_of_cell_str));
+            }
+            (*cell_info).odd_pin_access_cost_map[stripe_width].insert(pair<string, PinAccessCost>(step_str, pin_access_cost));
+            // cout << "check in side : " << (*cell_info).even_pin_access_cost_map[stripe_width]["0.108"].direction_cost_map["FN"] << endl;
+        }
     }
+
     else
     {
         // width                             location
-        unordered_map<string, unordered_map<string, PinAccessCost>> even_pin_access_cost_map = (*cell_info).even_pin_access_cost_map;
-        unordered_map<string, PinAccessCost> even_pin_access_cost_location_map = (*cell_info).even_pin_access_cost_map[stripe_width];
+        // unordered_map<string, unordered_map<string, PinAccessCost>> even_pin_access_cost_map = (*cell_info).even_pin_access_cost_map;
+        // unordered_map<string, PinAccessCost> even_pin_access_cost_location_map = (*cell_info).even_pin_access_cost_map[stripe_width];
         // 在這條track 上 碰到幾個pin access point
         for (int i = even_start_m3_track_int; i < cell_width_int; i += m3_track_step_int)
         {
             float step = convertInnovusPoint(i);
+            string step_str = floatToString(step);
+            PinAccessCost pin_access_cost;
             for (int k = 0; k < place_direction.size(); k++)
             {
                 string place_direction_type = place_direction[k];
-                PinAccessCost pin_access_cost;
+                double total_pin_access_cost_of_cell_double = 0;
                 for (auto even_pin_access_point_map_it = even_pin_access_point_map.begin(); even_pin_access_point_map_it != even_pin_access_point_map.end(); ++even_pin_access_point_map_it)
                 {
                     string pin_name = even_pin_access_point_map_it->first;
+                    // if(pin_name == "Y"){
+                    //     cout << "break" << endl;
+                    // }
                     int total_pin_access_size = even_pin_access_point_map[pin_name].size();
                     int cover_pin_access_size = 0;
                     for (int j = 0; j < even_pin_access_point_map[pin_name].size(); j++)
@@ -469,20 +556,47 @@ void setTrackPointCost(string type, CellInfo *cell_info, string stripe_width)
                             cover_pin_access_size += 1;
                         }
                     }
-                    
-                   
-                    // cout << " pin name              : " << pin_name << endl;
-                    // cout << " total_pin_access_size : " << total_pin_access_size << endl;
-                    // cout << " cover_pin_access_size : " << cover_pin_access_size << endl;
-                    // cout << " step                  : " << step << endl;
-                    // cout << " stripe width          : " << stripe_width << endl;
-                    // cout << " place_direction_type  : " << place_direction_type << endl;
-                    // cout << " ------------------------ " << endl;
+                    double total_pin_access_size_double = (double)total_pin_access_size;
+                    double cover_pin_access_size_double = (double)cover_pin_access_size;
+
+                    double pin_access_cost_of_cell_double = caculatePinAccessCost(total_pin_access_size, cover_pin_access_size);
+
+                    // cout << " pin name                 : " << pin_name << endl;
+                    // cout << " total_pin_access_size    : " << total_pin_access_size << endl;
+                    // cout << " cover_pin_access_size    : " << cover_pin_access_size << endl;
+                    // cout << " step                     : " << step << endl;
+                    // cout << " stripe width             : " << stripe_width << endl;
+                    // cout << " place_direction_type     : " << place_direction_type << endl;
+                    // cout << " pin_access_cost_of_cell  : " << pin_access_cost_of_cell_double << endl;
+                    // cout << " ------------------------------------------- " << endl;
+
+                    // cout << "pin_access_cost_of_cell : " << pin_access_cost_of_cell << endl;
+                    total_pin_access_cost_of_cell_double += pin_access_cost_of_cell_double;
                 }
-                 pin_access_cost.direction_cost_map.insert(pair<string,float>(place_direction_type,));
+                string total_pin_access_cost_of_cell_str = to_string(total_pin_access_cost_of_cell_double);
+                pin_access_cost.vertical_direction_cost_map.insert(pair<string, string>(place_direction_type, total_pin_access_cost_of_cell_str));
             }
+            (*cell_info).even_pin_access_cost_map[stripe_width].insert(pair<string, PinAccessCost>(step_str, pin_access_cost));
+            // cout << "check in side : " << (*cell_info).even_pin_access_cost_map[stripe_width]["0.108"].direction_cost_map["FN"] << endl;
         }
     }
+}
+
+double caculatePinAccessCost(double total_pin_access_size, double cover_pin_access_size)
+{
+    double cost = 0;
+    if (total_pin_access_size <= 3)
+    {
+        double temp = (double)(cover_pin_access_size / total_pin_access_size);
+        cost = temp * PIN_ACCESS_LESS_WEIGHT;
+    }
+    else
+    {
+
+        cost = (double)(cover_pin_access_size / total_pin_access_size);
+    }
+
+    return cost;
 }
 
 bool isCoverPinAccessCost(string layer, PinAccessPoint *transfer_pin_access_point, float track_location, float power_stripe_width)
@@ -510,27 +624,27 @@ bool isCoverPinAccessCost(string layer, PinAccessPoint *transfer_pin_access_poin
             return true;
         }
     }
-    // else
-    // {
-    //     float track_point_y_down_float = stof((*track_point).y_point) - cover_distance;
-    //     float track_point_y_up_float = stof((*track_point).y_point) + cover_distance;
+    else
+    {
+        float track_point_y_down_float = track_location - cover_distance;
+        float track_point_y_up_float = track_location + cover_distance;
 
-    //     float pin_access_y_down_float = stof((*pin_access_point_def).middle_y_location) - (0.072 / 2);
-    //     float pin_access_y_up_float = stof((*pin_access_point_def).middle_y_location) + (0.072 / 2);
+        float pin_access_y_down_float = stof((*transfer_pin_access_point).middle_y_location) - (0.072 / 2);
+        float pin_access_y_up_float = stof((*transfer_pin_access_point).middle_y_location) + (0.072 / 2);
 
-    //     if (track_point_y_down_float < pin_access_y_down_float && track_point_y_up_float < pin_access_y_down_float)
-    //     {
-    //         return false;
-    //     }
-    //     else if (track_point_y_down_float > pin_access_y_down_float && track_point_y_down_float > pin_access_y_up_float)
-    //     {
-    //         return false;
-    //     }
-    //     else
-    //     {
-    //         return true;
-    //     }
-    // }
+        if (track_point_y_down_float < pin_access_y_down_float && track_point_y_up_float < pin_access_y_down_float)
+        {
+            return false;
+        }
+        else if (track_point_y_down_float > pin_access_y_down_float && track_point_y_down_float > pin_access_y_up_float)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
 };
 
 void transferPinAccessLocationFromRect(string direction, PinAccessPoint *pin_access_point, string cell_width, string cell_height, PinAccessPoint *transfer_pin_access_point)
@@ -580,17 +694,17 @@ void transferPinAccessLocationFromRect(string direction, PinAccessPoint *pin_acc
     }
     else
     {
-        cout << " getPinAccessLocationFromDef error " << endl;
+        cout << " transferPinAccessLocationFromRect error " << endl;
     }
 };
 
 int tranferLocationFloatToInt(float location)
 {
-    float temp = (location * 1000);
-    temp = temp / 4;
-    int location_int = (int)temp;
-
-    return location_int;
+    float temp = location * 1000.0;
+    temp = round(temp);
+    int temp_int = (int)temp;
+    int ans = temp_int / 4;
+    return ans;
 }
 
 void sortStripeMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map)
@@ -967,13 +1081,11 @@ void setRoutingTrackNumberOfPinAccess(unordered_map<string, vector<Stripe>> *str
     for (auto stripe_map_it = (*stripe_map).begin(); stripe_map_it != (*stripe_map).end(); ++stripe_map_it)
     {
         string layer = stripe_map_it->first;
-
         setTrackPinAccessCost(&myfile, layer, &(*stripe_map)[layer], &(*cell_placed_map), &(*cell_ip_map), &(*cell_info_map), &(*track_info_map)[layer]);
     }
     myfile.close();
     cout << "========== setRoutingTrackNumberOfPinAccess end ==========" << endl;
 }
-
 void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
 {
     vector<float> total_pin_access_cost_vector;
@@ -987,20 +1099,32 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
     {
         cout << "========== " << (*stripe_vector)[i].layer << " "
              << "stripe" << i << " start ========== " << endl;
+        // if (i != 44)
+        // {
+        //     continue;
+        // }
+
         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
         {
 
             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
             float total_cell_pin_access_power_consume_cost = 0;
-            float power_stripe_width_float = stof((*stripe_vector)[i].width);
+            // float power_stripe_width_float = stof((*stripe_vector)[i].width);
+            string power_stripe_width = (*stripe_vector)[i].width;
             float track_of_total_pin_access_cost = 0;
             float track_of_total_power_consuming = 0;
             for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
             {
+
                 string cell_id = track_point.power_cell_id_vector[k];
                 CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+                // if (i == 44)
+                // {
+                //     cout << "cell id " << cell_id << endl;
+                // }
                 // cost function
-                float cell_pin_access_cost = getTrackPinAccessPointCost(layer, power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*track_info));
+                // float cell_pin_access_cost = getTrackPinAccessPointCost(layer, power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*track_info));
+                float cell_pin_access_cost = getTrackPinAccessPointCost(layer, power_stripe_width, &track_point, &cell_placed_info, &(*cell_info_map), &(*track_info));
                 float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
                 // power_consuming_cost = 1 / power_consuming_cost;
 
@@ -1015,7 +1139,7 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
         track_size += (*stripe_vector)[i].track_point_vector.size();
         cout << "========== stripe " << i << " end ==========" << endl;
     }
-    // step 2 : get standard deviation and average
+    // // step 2 : get standard deviation and average
     float pin_access_cost_standard_deviation = standardDeviation(&total_pin_access_cost_vector);
     float power_consuming_cost_standard_deviation = standardDeviation(&total_power_consuming_vector);
     float pin_access_cost_arithmetic_mean = arithmeticMean(&total_pin_access_cost_vector);
@@ -1032,11 +1156,11 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
         {
             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
-            // (*myfile) << "---------- track point " << track_point.x_point << " " << track_point.y_point << " end ----------" << endl;
+            (*myfile) << "---------- track point " << track_point.x_point << " " << track_point.y_point << " end ----------" << endl;
             float original_power_comsing_cost = track_point.power_consuming_cost;
             float original_pin_access_cost = track_point.pin_access_cost;
             // (*myfile) << "power_consuming         :" << original_power_comsing_cost << " ----------" << endl;
-            // (*myfile) << "pin_access_cost         :" << original_pin_access_cost << " ----------" << endl;
+            (*myfile) << "pin_access_cost         :" << original_pin_access_cost << " ----------" << endl;
             float z_score_power_cost = z_score_normalization(original_power_comsing_cost, power_consuming_cost_arithmetic_mean, power_consuming_cost_standard_deviation);
             float z_score_pin_access_cost = z_score_normalization(original_pin_access_cost, pin_access_cost_arithmetic_mean, pin_access_cost_standard_deviation);
             // (*myfile) << "z_score_power_cost      :" << (1 / z_score_power_cost) << " ----------" << endl;
@@ -1064,8 +1188,8 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
         // 範圍內 z-cost pin access cost +  z-cost power cost最大
         float average_z_score_pin_access_cost = total_pin_access_cost / ((*stripe_vector)[i].track_point_vector.size());
         float average_z_score_power_cost = total_power_consuming_cost / ((*stripe_vector)[i].track_point_vector.size());
-        (*myfile) << "average z_score_pin_access_cost                 :" << (total_pin_access_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
-        (*myfile) << "average_z_score_power_cost                      :" << (total_power_consuming_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
+        // (*myfile) << "average z_score_pin_access_cost                 :" << (total_pin_access_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
+        // (*myfile) << "average_z_score_power_cost                      :" << (total_power_consuming_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
 
         for (int i = 0; i < compare_track_vector.size(); i++)
         {
@@ -1077,14 +1201,126 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
         sort(compare_track_vector.begin(), compare_track_vector.end(), sortCompareTrack);
         for (int i = 0; i < compare_track_vector.size(); i++)
         {
-            (*myfile) << "track point                                 :" << (compare_track_vector)[i].x_point << " " << (compare_track_vector)[i].y_point << "----------" << endl;
-            (*myfile) << "track_type                                  :" << compare_track_vector[i].type << "----------" << endl;
-            (*myfile) << "power_consum_and_pin_access_to_average      :" << compare_track_vector[i].power_consum_and_pin_access_to_average << " ----------" << endl;
+            // (*myfile) << "track point                                 :" << (compare_track_vector)[i].x_point << " " << (compare_track_vector)[i].y_point << "----------" << endl;
+            // (*myfile) << "track_type                                  :" << compare_track_vector[i].type << "----------" << endl;
+            // (*myfile) << "power_consum_and_pin_access_to_average      :" << compare_track_vector[i].power_consum_and_pin_access_to_average << " ----------" << endl;
         }
     }
 
     cout << "========== setTrackPinAccessCost end ==========" << endl;
 }
+
+// void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+// {
+//     vector<float> total_pin_access_cost_vector;
+//     vector<float> total_power_consuming_vector;
+//     int track_size = 0;
+
+//     cout << "========== setTrackPinAccessCost start ==========" << endl;
+
+//     // step 1 : get pin_access_cost and power_consuming_cost of each track
+//     for (int i = 0; i < (*stripe_vector).size(); i++)
+//     {
+//         cout << "========== " << (*stripe_vector)[i].layer << " "
+//              << "stripe" << i << " start ========== " << endl;
+//         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
+//         {
+
+//             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
+//             float total_cell_pin_access_power_consume_cost = 0;
+//             float power_stripe_width_float = stof((*stripe_vector)[i].width);
+//             float track_of_total_pin_access_cost = 0;
+//             float track_of_total_power_consuming = 0;
+//             for (int k = 0; k < track_point.power_cell_id_vector.size(); k++)
+//             {
+//                 string cell_id = track_point.power_cell_id_vector[k];
+//                 CellPlacedInfo cell_placed_info = (*cell_placed_map)[cell_id];
+//                 // cost function
+//                 float cell_pin_access_cost = getTrackPinAccessPointCost(layer, power_stripe_width_float, &track_point, &cell_placed_info, &(*cell_ip_map), &(*cell_info_map), &(*track_info));
+//                 float power_consuming_cost = ((*cell_ip_map)[cell_id].instance_total_power * 10000);
+//                 // power_consuming_cost = 1 / power_consuming_cost;
+
+//                 track_of_total_pin_access_cost += cell_pin_access_cost;
+//                 track_of_total_power_consuming += power_consuming_cost;
+//             }
+//             (*stripe_vector)[i].track_point_vector[j].pin_access_cost = track_of_total_pin_access_cost;
+//             (*stripe_vector)[i].track_point_vector[j].power_consuming_cost = track_of_total_power_consuming;
+//             total_pin_access_cost_vector.push_back(track_of_total_pin_access_cost);
+//             total_power_consuming_vector.push_back(track_of_total_power_consuming);
+//         }
+//         track_size += (*stripe_vector)[i].track_point_vector.size();
+//         cout << "========== stripe " << i << " end ==========" << endl;
+//     }
+//     // step 2 : get standard deviation and average
+//     float pin_access_cost_standard_deviation = standardDeviation(&total_pin_access_cost_vector);
+//     float power_consuming_cost_standard_deviation = standardDeviation(&total_power_consuming_vector);
+//     float pin_access_cost_arithmetic_mean = arithmeticMean(&total_pin_access_cost_vector);
+//     float power_consuming_cost_arithmetic_mean = arithmeticMean(&total_power_consuming_vector);
+
+//     // step 3 : z-score normalization
+//     for (int i = 0; i < (*stripe_vector).size(); i++)
+//     {
+//         (*myfile) << "======================== stripe " << i << " end ========================" << endl;
+//         float total_pin_access_cost = 0;
+//         float total_power_consuming_cost = 0;
+//         vector<CompareTrack> compare_track_vector;
+
+//         for (int j = 0; j < (*stripe_vector)[i].track_point_vector.size(); j++)
+//         {
+//             TrackPoint track_point = (*stripe_vector)[i].track_point_vector[j];
+//             // (*myfile) << "---------- track point " << track_point.x_point << " " << track_point.y_point << " end ----------" << endl;
+//             float original_power_comsing_cost = track_point.power_consuming_cost;
+//             float original_pin_access_cost = track_point.pin_access_cost;
+//             // (*myfile) << "power_consuming         :" << original_power_comsing_cost << " ----------" << endl;
+//             // (*myfile) << "pin_access_cost         :" << original_pin_access_cost << " ----------" << endl;
+//             float z_score_power_cost = z_score_normalization(original_power_comsing_cost, power_consuming_cost_arithmetic_mean, power_consuming_cost_standard_deviation);
+//             float z_score_pin_access_cost = z_score_normalization(original_pin_access_cost, pin_access_cost_arithmetic_mean, pin_access_cost_standard_deviation);
+//             // (*myfile) << "z_score_power_cost      :" << (1 / z_score_power_cost) << " ----------" << endl;
+//             // (*myfile) << "z_score_pin_access_cost :" << z_score_pin_access_cost << " ----------" << endl;
+//             (*stripe_vector)[i].track_point_vector[j].power_consuming_cost = z_score_power_cost;
+//             (*stripe_vector)[i].track_point_vector[j].pin_access_cost = z_score_pin_access_cost;
+//             // ======================== log for stripe cost ====================================
+//             CompareTrack compare_track;
+//             compare_track.pin_access_cost = z_score_pin_access_cost;
+//             compare_track.power_cost = (1 / z_score_power_cost);
+//             compare_track.x_point = track_point.x_point;
+//             compare_track.y_point = track_point.y_point;
+//             compare_track_vector.push_back(compare_track);
+
+//             total_pin_access_cost += z_score_pin_access_cost;
+//             total_power_consuming_cost += (1 / z_score_power_cost);
+//             // ======================== log for stripe cost ====================================
+//             //========================== TODO change cost ===================================
+//             // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = (1 / z_score_power_cost) * 0.2 + z_score_pin_access_cost;
+//             // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_power_cost;
+//             (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_pin_access_cost;
+//             //========================== TODO change cost ===================================
+//             // (*myfile) << "total_cost            :" << (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << " ----------" << endl;
+//         }
+//         // 範圍內 z-cost pin access cost +  z-cost power cost最大
+//         float average_z_score_pin_access_cost = total_pin_access_cost / ((*stripe_vector)[i].track_point_vector.size());
+//         float average_z_score_power_cost = total_power_consuming_cost / ((*stripe_vector)[i].track_point_vector.size());
+//         (*myfile) << "average z_score_pin_access_cost                 :" << (total_pin_access_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
+//         (*myfile) << "average_z_score_power_cost                      :" << (total_power_consuming_cost / ((*stripe_vector)[i].track_point_vector.size())) << " ----------" << endl;
+
+//         for (int i = 0; i < compare_track_vector.size(); i++)
+//         {
+//             getCompareTrackType(&compare_track_vector[i], average_z_score_pin_access_cost, average_z_score_power_cost);
+//             float temp_pin_access = abs(average_z_score_pin_access_cost - (compare_track_vector)[i].pin_access_cost);
+//             float temp_power = abs(average_z_score_power_cost - (compare_track_vector)[i].power_cost);
+//             compare_track_vector[i].power_consum_and_pin_access_to_average = temp_pin_access + temp_power;
+//         }
+//         sort(compare_track_vector.begin(), compare_track_vector.end(), sortCompareTrack);
+//         for (int i = 0; i < compare_track_vector.size(); i++)
+//         {
+//             (*myfile) << "track point                                 :" << (compare_track_vector)[i].x_point << " " << (compare_track_vector)[i].y_point << "----------" << endl;
+//             (*myfile) << "track_type                                  :" << compare_track_vector[i].type << "----------" << endl;
+//             (*myfile) << "power_consum_and_pin_access_to_average      :" << compare_track_vector[i].power_consum_and_pin_access_to_average << " ----------" << endl;
+//         }
+//     }
+
+//     cout << "========== setTrackPinAccessCost end ==========" << endl;
+// }
 bool sortCompareTrack(CompareTrack compare_track_a, CompareTrack compare_track_b)
 {
     return compare_track_a.power_consum_and_pin_access_to_average > compare_track_b.power_consum_and_pin_access_to_average;
@@ -1141,11 +1377,11 @@ float arithmeticMean(vector<float> *num_vec)
     return average;
 }
 
-// �зǮt
+//
 float standardDeviation(vector<float> *num_vec)
 {
     float sum = 0;
-    float std1 = 0; // �зǮt ������
+    float std1 = 0;
     float mean = 0;
     for (int i = 0; i < (*num_vec).size(); i++)
     {
@@ -1160,82 +1396,173 @@ float standardDeviation(vector<float> *num_vec)
     std1 = sqrt(std1);
     return std1;
 }
-
-float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+string transferTrackLocationType(string layer, TrackPoint *track_point, CellPlacedInfo *cell_placed_info)
 {
-    // float m3_track_point_middle_float = stof((*track_point).x_point);
 
-    string cell_placed_left_x_location = (*cell_placed_info).left_x_location;
-    string cell_placed_right_x_location = (*cell_placed_info).right_x_location;
-
-    string cell_name = (*cell_placed_info).cell_name;
-    string direction = (*cell_placed_info).direction;
-    string cell_width = (*cell_info_map)[cell_name].width;
-    string cell_height = (*cell_info_map)[cell_name].height;
-    float total_pin_access_cost = 0;
-
-    if (isOddTrackCell(cell_placed_left_x_location, &(*track_info)))
+    if (isOddLayer(layer))
     {
+        float track_x_point = stof((*track_point).x_point);
 
-        for (auto odd_pin_access_point_iter = ((*cell_info_map)[cell_name].odd_pin_access_point_map).begin(); odd_pin_access_point_iter != ((*cell_info_map)[cell_name].odd_pin_access_point_map).end(); ++odd_pin_access_point_iter)
-        {
-            int pin_access_point = 0;
-            for (int i = 0; i < (odd_pin_access_point_iter->second).size(); i++)
-            {
-                PinAccessPoint pin_access_point_def;
-                transferPinAccessLocationFromDef(&(*cell_placed_info), &(odd_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
-                //  cout << (cell_placed_info.cell_id.find("U15399") != string::npos) << endl;
-                // if ((*cell_placed_info).cell_id.find("U15399") != string::npos)
-                // {
-                //     cout << "(" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << ")" << endl;
-                // }
+        float left_x_location = stof((*cell_placed_info).left_x_location);
+        float temp = track_x_point - left_x_location;
 
-                // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
-                if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
-                {
-                    pin_access_point += 1;
-                }
-            }
-            float pin_access_cost = (float)pin_access_point / (odd_pin_access_point_iter->second).size();
-            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
-            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
-            // cout << "pin cost : " << pin_access_cost << endl;
-            total_pin_access_cost += pin_access_cost;
-        }
+        string track_location = floatToString(temp);
+        // if ((*cell_placed_info).cell_id == "FE_OFC6745_wb_databus_instruction_fifo_n43963")
+        // {
+        //     cout << "track_x_point : " << track_x_point << endl;
+        //     cout << "left_x_location : " << left_x_location << endl;
+        //     cout << "temp : " << temp << endl;
+        //     cout << "track_location : " << track_location << endl;
+        // }
+
+        return track_location;
     }
     else
     {
-        for (auto even_pin_access_point_iter = ((*cell_info_map)[cell_name].even_pin_access_point_map).begin(); even_pin_access_point_iter != ((*cell_info_map)[cell_name].even_pin_access_point_map).end(); ++even_pin_access_point_iter)
-        {
-            int pin_access_point = 0;
-            for (int i = 0; i < (even_pin_access_point_iter->second).size(); i++)
-            {
-                PinAccessPoint pin_access_point_def;
-                transferPinAccessLocationFromDef(&(*cell_placed_info), &(even_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
-                // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
-
-                // if ((*cell_placed_info).cell_id.find("U15399") != string::npos)
-                // {
-                //     cout << "(" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << ")" << endl;
-                // }
-                if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
-                {
-                    pin_access_point += 1;
-                }
-            }
-            float pin_access_cost = (float)pin_access_point / (even_pin_access_point_iter->second).size();
-            total_pin_access_cost += pin_access_cost;
-            // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
-            // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
-            // cout << "pin cost : " << pin_access_cost << endl;
-        }
+        float track_y_point = stof((*track_point).y_point);
+        float down_x_locatiion = stof((*cell_placed_info).down_y_location);
+        float temp = track_y_point - down_x_locatiion;
+        string track_location = floatToString(temp);
+        return track_location;
     }
-    if (total_pin_access_cost == 0)
+}
+
+float getTrackPinAccessPointCost(string layer, string power_stripe_width, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+{
+
+    // float m3_track_point_middle_float = stof((*track_point).x_point);
+    string cell_placed_left_x_location = (*cell_placed_info).left_x_location;
+    string cell_name = (*cell_placed_info).cell_name;
+    float total_pin_access_cost = 0;
+
+    unordered_map<string, unordered_map<string, PinAccessCost>> odd_pin_access_cost_map = (*cell_info_map)[cell_name].odd_pin_access_cost_map;
+    unordered_map<string, unordered_map<string, PinAccessCost>> even_pin_access_cost_map = (*cell_info_map)[cell_name].even_pin_access_cost_map;
+    string track_location = transferTrackLocationType(layer, &(*track_point), &(*cell_placed_info));
+    // if ("U66546" == (*cell_placed_info).cell_id)
+    // {
+    //     cout << "track location " << track_location << endl;
+    //     cout << "cell_placed_left_x_location : " << cell_placed_left_x_location << endl;
+    //     cout << isOddTrackCell(cell_placed_left_x_location, &(*track_info)) << endl;
+    // }
+
+    if (isOddTrackCell(cell_placed_left_x_location, &(*track_info)))
     {
-        total_pin_access_cost = 1;
+        //     // key : stripe_width key2 : location , value : cost
+        //     unordered_map<string, unordered_map<string, PinAccessCost>> odd_pin_access_cost_map;
+        string direction = (*cell_placed_info).direction;
+        unordered_map<string, string> vertical_direction_cost_map = odd_pin_access_cost_map[power_stripe_width][track_location].vertical_direction_cost_map;
+        if (!(odd_pin_access_cost_map[power_stripe_width].find(track_location) != odd_pin_access_cost_map[power_stripe_width].end()))
+        {
+            cout << "odd_pin_access_cost_map key error!" << endl;
+        }
+        string cost = vertical_direction_cost_map[direction];
+        total_pin_access_cost = stof(cost);
+    }
+    else
+    {
+        string direction = (*cell_placed_info).direction;
+        unordered_map<string, string> vertical_direction_cost_map = even_pin_access_cost_map[power_stripe_width][track_location].vertical_direction_cost_map;
+        if (!(even_pin_access_cost_map[power_stripe_width].find(track_location) != even_pin_access_cost_map[power_stripe_width].end()))
+        {
+            cout << "even_pin_access_cost_map key error!" << endl;
+        }
+        string cost = vertical_direction_cost_map[direction];
+        total_pin_access_cost = stof(cost);
     }
     return total_pin_access_cost;
 }
+// struct CellInfo
+// {
+//     string cell_name;
+//     string height;
+//     string width;
+//     // key:PinName value:PinShape
+//     map<string, PinShape> pin_shape_map;
+//     // key:PinName value:Pin Access Point
+//     map<string, vector<PinAccessPoint>> odd_pin_access_point_map;
+//     // key:PinName value:Pin Access Point
+//     map<string, vector<PinAccessPoint>> even_pin_access_point_map;
+
+//     // key : stripe_width key2 : location , value : cost
+//     unordered_map<string, unordered_map<string, PinAccessCost>> odd_pin_access_cost_map;
+//     unordered_map<string, unordered_map<string, PinAccessCost>> even_pin_access_cost_map;
+// };
+
+// float getTrackPinAccessPointCost(string layer, float power_stripe_width_float, TrackPoint *track_point, CellPlacedInfo *cell_placed_info, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, CellInfo> *cell_info_map, TrackInfo *track_info)
+// {
+//     // float m3_track_point_middle_float = stof((*track_point).x_point);
+
+//     string cell_placed_left_x_location = (*cell_placed_info).left_x_location;
+//     string cell_placed_right_x_location = (*cell_placed_info).right_x_location;
+
+//     string cell_name = (*cell_placed_info).cell_name;
+//     string direction = (*cell_placed_info).direction;
+//     string cell_width = (*cell_info_map)[cell_name].width;
+//     string cell_height = (*cell_info_map)[cell_name].height;
+//     float total_pin_access_cost = 0;
+
+//     if (isOddTrackCell(cell_placed_left_x_location, &(*track_info)))
+//     {
+
+//         for (auto odd_pin_access_point_iter = ((*cell_info_map)[cell_name].odd_pin_access_point_map).begin(); odd_pin_access_point_iter != ((*cell_info_map)[cell_name].odd_pin_access_point_map).end(); ++odd_pin_access_point_iter)
+//         {
+//             int pin_access_point = 0;
+//             for (int i = 0; i < (odd_pin_access_point_iter->second).size(); i++)
+//             {
+//                 PinAccessPoint pin_access_point_def;
+//                 transferPinAccessLocationFromDef(&(*cell_placed_info), &(odd_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
+//                 //  cout << (cell_placed_info.cell_id.find("U15399") != string::npos) << endl;
+//                 // if ((*cell_placed_info).cell_id.find("U15399") != string::npos)
+//                 // {
+//                 //     cout << "(" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << ")" << endl;
+//                 // }
+
+//                 // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
+//                 if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
+//                 {
+//                     pin_access_point += 1;
+//                 }
+//             }
+//             float pin_access_cost = (float)pin_access_point / (odd_pin_access_point_iter->second).size();
+//             // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
+//             // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
+//             // cout << "pin cost : " << pin_access_cost << endl;
+//             total_pin_access_cost += pin_access_cost;
+//         }
+//     }
+//     else
+//     {
+//         for (auto even_pin_access_point_iter = ((*cell_info_map)[cell_name].even_pin_access_point_map).begin(); even_pin_access_point_iter != ((*cell_info_map)[cell_name].even_pin_access_point_map).end(); ++even_pin_access_point_iter)
+//         {
+//             int pin_access_point = 0;
+//             for (int i = 0; i < (even_pin_access_point_iter->second).size(); i++)
+//             {
+//                 PinAccessPoint pin_access_point_def;
+//                 transferPinAccessLocationFromDef(&(*cell_placed_info), &(even_pin_access_point_iter->second)[i], &pin_access_point_def, cell_width, cell_height);
+//                 // float pin_access_point_x_def_float = stof(pin_access_point_def.middle_x_location);
+
+//                 // if ((*cell_placed_info).cell_id.find("U15399") != string::npos)
+//                 // {
+//                 //     cout << "(" << pin_access_point_def.middle_x_location << " " << pin_access_point_def.middle_y_location << ")" << endl;
+//                 // }
+//                 if (isCoverPinAccess(layer, &pin_access_point_def, &(*track_point), power_stripe_width_float))
+//                 {
+//                     pin_access_point += 1;
+//                 }
+//             }
+//             float pin_access_cost = (float)pin_access_point / (even_pin_access_point_iter->second).size();
+//             total_pin_access_cost += pin_access_cost;
+//             // cout << "pin name : " << odd_pin_access_point_iter->first << endl;
+//             // cout << "pin_access_point : " << pin_access_point << " " << (odd_pin_access_point_iter->second).size() << endl;
+//             // cout << "pin cost : " << pin_access_cost << endl;
+//         }
+//     }
+//     if (total_pin_access_cost == 0)
+//     {
+//         total_pin_access_cost = 1;
+//     }
+//     return total_pin_access_cost;
+// }
 bool isCoverPinAccess(string layer, PinAccessPoint *pin_access_point_def, TrackPoint *track_point, float power_stripe_width)
 {
     int cover_track = getCoverTrack(power_stripe_width);
@@ -1361,12 +1688,22 @@ bool isOddTrackCell(string x_location, TrackInfo *m3_track_info)
 {
 
     float m3_x_float_temp = stof(x_location) - stof((*m3_track_info).start);
-    float temp_pitch_start = m3_x_float_temp / (stof((*m3_track_info).pitch) * 2);
+    float temp_pitch_start = m3_x_float_temp / (stof((*m3_track_info).pitch));
     int temp_pitch_start_int = (int)temp_pitch_start;
     temp_pitch_start_int += 1;
-
-    float start_x = (temp_pitch_start_int * (stof((*m3_track_info).pitch) * 2)) + stof((*m3_track_info).start);
+    float start_x = (temp_pitch_start_int * (stof((*m3_track_info).pitch))) + stof((*m3_track_info).start);
     float distance = start_x - stof(x_location);
+    // if (x_location == "36")
+    // {
+    //     cout << " stof(x_location)     : " << stof(x_location) << endl;
+    //     cout << "(*m3_track_info).start: " << stof((*m3_track_info).start) << endl;
+    //     cout << "stof((*m3_track_info).pitch)*2: " << (stof((*m3_track_info).pitch) * 2) << endl;
+    //     cout << "m3_x_float_temp      : " << m3_x_float_temp << endl;
+    //     cout << "temp_pitch_start     : " << temp_pitch_start << endl;
+    //     cout << "temp_pitch_start_int : " << temp_pitch_start_int << endl;
+    //     cout << "start_x              : " << start_x << endl;
+    //     cout << "distance             : " << distance << endl;
+    // }
 
     if (floatIsEqual(distance, 0.108))
     {
@@ -1452,27 +1789,62 @@ void setOddTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<strin
     for (int i = 0; i < (*stripe_vector).size(); i++)
     {
         float power_stripe_width_float = stof((*stripe_vector)[i].width);
-        int start_move_range_x_left = (stof((*stripe_vector)[i].move_range_x_left) * 1000) / 4;
-        int start_move_range_x_right = (stof((*stripe_vector)[i].move_range_x_right) * 1000) / 4;
+        // int start_move_range_x_left = (stof((*stripe_vector)[i].move_range_x_left) * 1000) / 4;
+        // int start_move_range_x_right = (stof((*stripe_vector)[i].move_range_x_right) * 1000) / 4;
+        if ((*stripe_vector)[i].move_range_x_left == "523.764")
+        {
+            float start_move_range_x_left_float = stof((*stripe_vector)[i].move_range_x_left);
+            float temp = start_move_range_x_left_float * 1000.0;
+            temp = round(temp);
+            int temp_int = (int)temp;
+            int ans = temp_int / 4;
+            cout << "ans : " << ans << endl;
+        }
 
-        float x_start_float = (stof((*track_info).start) * 1000) / 4;
-        float x_pitch_float = (stof((*track_info).pitch) * 1000) / 4;
+        int start_move_range_x_left = tranferLocationFloatToInt(stof((*stripe_vector)[i].move_range_x_left));
 
-        int x_start_int = (int)x_start_float;
-        int x_pitch_int = (int)x_pitch_float;
+        int start_move_range_x_right = tranferLocationFloatToInt(stof((*stripe_vector)[i].move_range_x_right));
+        // float x_start_float = (stof((*track_info).start) * 1000) / 4;
+        // float x_pitch_float = (stof((*track_info).pitch) * 1000) / 4;
+        // int x_start_int = (int)x_start_float;
+        // int x_pitch_int = (int)x_pitch_float;
+        int x_start_int = tranferLocationFloatToInt(stof((*track_info).start));
+        int x_pitch_int = tranferLocationFloatToInt(stof((*track_info).pitch));
 
         cout << " ----- moving range start -----" << endl;
 
         cout << (*stripe_vector)[i].move_range_x_left << " " << (*stripe_vector)[i].move_range_x_right << endl;
         vector<TrackPoint> track_point_vector;
         vector<string> ip_power_vector = (*stripe_vector)[i].ip_power_vector;
+
+        if ((*stripe_vector)[i].move_range_x_left == "523.764")
+        {
+            cout << "check in side" << endl;
+            cout << "move_range_x_left   : " << (*stripe_vector)[i].move_range_x_left << endl;
+            cout << "move_range_x_right  :" << (*stripe_vector)[i].move_range_x_right << endl;
+            cout << "(*track_info).start : " << (*track_info).start << endl;
+            cout << "(*track_info).pitch :" << (*track_info).pitch << endl;
+            cout << "start_move_range_x_left : " << start_move_range_x_left << endl;
+            cout << "start_move_range_x_right : " << start_move_range_x_right << endl;
+            cout << "x_pitch_int : " << x_pitch_int << endl;
+        }
         for (int j = start_move_range_x_left; j <= start_move_range_x_right; j += x_pitch_int)
         {
-            float x_track_point = (j * 4) / 1000.0;
+            // float x_track_point = (j * 4) / 1000.0;
+            if (i == 44)
+            {
+                cout << "before j " << j << endl;
+            }
+            float x_track_point = convertInnovusPoint(j);
+            if (i == 44)
+            {
+                cout << "after j " << j << endl;
+            }
 
             vector<string> power_cell_id_vector;
             TrackPoint track_point;
             track_point.x_point = floatToString(x_track_point);
+            // cout << "track point :" << track_point.x_point << endl;
             track_point.power_cell_id_vector = power_cell_id_vector;
 
             for (int k = 0; k < ip_power_vector.size(); k++)
@@ -1494,8 +1866,8 @@ void setOddTrackPointInStripe(vector<Stripe> *stripe_vector, unordered_map<strin
 bool isInEvenTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
 {
 
-    float track_point_down = stof((*track_point).y_point) - (power_stripe_width / 2);
-    float track_point_up = stof((*track_point).y_point) + (power_stripe_width / 2);
+    float track_point_down = stof((*track_point).y_point);
+    float track_point_up = stof((*track_point).y_point);
     float cell_placed_down = stof((*cell_placed_info).down_y_location);
     float cell_placed_up = stof((*cell_placed_info).up_y_location);
 
@@ -1524,13 +1896,83 @@ bool isInEvenTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_plac
         return false;
     }
 }
+// bool isInEvenTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
+// {
+
+//     float track_point_down = stof((*track_point).y_point) - (power_stripe_width / 2);
+//     float track_point_up = stof((*track_point).y_point) + (power_stripe_width / 2);
+//     float cell_placed_down = stof((*cell_placed_info).down_y_location);
+//     float cell_placed_up = stof((*cell_placed_info).up_y_location);
+
+//     // cell in power stripe middle
+//     if (cell_placed_down >= track_point_down && cell_placed_up <= track_point_up)
+//     {
+//         return true;
+//     }
+//     // cell across power stripe up
+//     else if (cell_placed_down >= track_point_down && cell_placed_down <= track_point_up && cell_placed_up >= track_point_up)
+//     {
+//         return true;
+//     }
+//     // cell across power stripe down
+//     else if (cell_placed_down <= track_point_down && cell_placed_up >= track_point_down && cell_placed_up <= track_point_up)
+//     {
+//         return true;
+
+//     } // cell across all power stripe
+//     else if (cell_placed_down <= track_point_down && cell_placed_up >= track_point_up)
+//     {
+//         return true;
+//     }
+//     else
+//     {
+//         return false;
+//     }
+// }
 
 // �@��routing track �q�L�h��cell �u�ѳo�̦����D
+// bool isInOddTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
+// {
+
+//     float track_point_left = stof((*track_point).x_point) - (power_stripe_width / 2);
+//     float track_point_right = stof((*track_point).x_point) + (power_stripe_width / 2);
+//     float cell_placed_left = stof((*cell_placed_info).left_x_location);
+//     float cell_placed_right = stof((*cell_placed_info).right_x_location);
+//     // cout << " track_point " << track_point_left << " " << track_point_right << endl;
+//     // cout << " cell_placed " << cell_placed_left << " " << cell_placed_right << endl;
+
+//     // cell in power stripe middle
+//     if (cell_placed_left >= track_point_left && cell_placed_right <= track_point_right)
+//     {
+//         return true;
+//     }
+//     // cell across power stripe left
+//     else if (cell_placed_left <= track_point_left && cell_placed_right >= track_point_left && cell_placed_right <= track_point_right)
+//     {
+//         return true;
+//     }
+//     // cell across power stripe right
+//     else if (cell_placed_left >= track_point_left && cell_placed_left <= track_point_right && cell_placed_right >= track_point_right)
+//     {
+//         return true;
+//     }
+//     // cell across all power stripe
+//     else if (cell_placed_left <= track_point_left && cell_placed_right >= track_point_right)
+//     {
+//         return true;
+//     }
+//     else
+//     {
+//         return false;
+//     }
+
+//     cout << "========== isInTrackStripeRange end ==========" << endl;
+// }
 bool isInOddTrackStripeRange(TrackPoint *track_point, CellPlacedInfo *cell_placed_info, float power_stripe_width)
 {
 
-    float track_point_left = stof((*track_point).x_point) - (power_stripe_width / 2);
-    float track_point_right = stof((*track_point).x_point) + (power_stripe_width / 2);
+    float track_point_left = stof((*track_point).x_point);
+    float track_point_right = stof((*track_point).x_point);
     float cell_placed_left = stof((*cell_placed_info).left_x_location);
     float cell_placed_right = stof((*cell_placed_info).right_x_location);
     // cout << " track_point " << track_point_left << " " << track_point_right << endl;
@@ -3124,3 +3566,55 @@ void generateTrackInfoMap(unordered_map<string, TrackInfo> *track_info_map)
 //             cout << stripe.net_name << " " << stripe.layer << " " << stripe.width << " " << stripe.length << " " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
 //         }
 //     }
+// for (auto even_pin_access_cost_map_it = even_pin_access_cost_map.begin(); even_pin_access_cost_map_it != even_pin_access_cost_map.end(); ++even_pin_access_cost_map_it)
+// {
+//     string stripe_width = even_pin_access_cost_map_it->first;
+//     cout << "stripe_width : " << stripe_width << endl;
+//     unordered_map<string, PinAccessCost> pin_access_cost_map = even_pin_access_cost_map_it->second;
+//     for (auto pin_access_cost_map_it = pin_access_cost_map.begin(); pin_access_cost_map_it != pin_access_cost_map.end(); ++pin_access_cost_map_it)
+//     {
+//         string location = pin_access_cost_map_it->first;
+//         cout << "location : " << location << endl;
+//         unordered_map<string, string> pin_access_cost_of_cell_map = pin_access_cost_map_it->second.direction_cost_map;
+//         for (auto pin_access_cost_of_cell_map_it = pin_access_cost_of_cell_map.begin(); pin_access_cost_of_cell_map_it != pin_access_cost_of_cell_map.end(); ++pin_access_cost_of_cell_map_it)
+//         {
+//             cout << "direction : " << pin_access_cost_of_cell_map_it->first << endl;
+//             cout << "cost      : " << pin_access_cost_of_cell_map_it->second << endl;
+//         }
+//     }
+// }
+// for (auto odd_pin_access_cost_map_it = even_pin_access_cost_map.begin(); odd_pin_access_cost_map_it != odd_pin_access_cost_map.end(); ++odd_pin_access_cost_map_it)
+// {
+//     string stripe_width = odd_pin_access_cost_map_it->first;
+//     cout << "stripe_width : " << stripe_width << endl;
+//     unordered_map<string, PinAccessCost> pin_access_cost_map = odd_pin_access_cost_map_it->second;
+//     for (auto pin_access_cost_map_it = pin_access_cost_map.begin(); pin_access_cost_map_it != pin_access_cost_map.end(); ++pin_access_cost_map_it)
+//     {
+//         string location = pin_access_cost_map_it->first;
+//         cout << "location : " << location << endl;
+//         unordered_map<string, string> pin_access_cost_of_cell_map = pin_access_cost_map_it->second.vertical_direction_cost_map;
+//         for (auto pin_access_cost_of_cell_map_it = pin_access_cost_of_cell_map.begin(); pin_access_cost_of_cell_map_it != pin_access_cost_of_cell_map.end(); ++pin_access_cost_of_cell_map_it)
+//         {
+//             cout << "direction : " << pin_access_cost_of_cell_map_it->first << endl;
+//             cout << "cost      : " << pin_access_cost_of_cell_map_it->second << endl;
+//         }
+//     }
+// }
+
+// for (auto vdd_stripe_map_it = vdd_stripe_map.begin(); vdd_stripe_map_it != vdd_stripe_map.end(); ++vdd_stripe_map_it)
+// {
+//     string layer = vdd_stripe_map_it->first;
+//     cout << " layer : " << layer << " size : " << vdd_stripe_map_it->second.size() << endl;
+//     vector<Stripe> stripe_vector = vdd_stripe_map_it->second;
+//     for (int i = 0; i < stripe_vector.size(); i++)
+//     {
+//         Stripe stripe = stripe_vector[i];
+//         cout <<  "size : " << stripe.ip_power_vector.size() << endl;
+//         for (int j = 0; j < stripe.ip_power_vector.size(); j++)
+//         {
+//             cout <<  stripe.ip_power_vector[j] << endl;
+//         }
+
+//         // cout << stripe.net_name << " " << stripe.layer << " " << stripe.width << " " << stripe.length << " " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
+//     }
+// }
