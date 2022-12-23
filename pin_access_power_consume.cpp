@@ -285,8 +285,11 @@ int main(int argc, char *argv[])
     unordered_map<string, TrackInfo> track_info_map;
     set<string> stripe_width_set;
 
-    // string config_file = argv[1];
-    string config_file = "config/config_gpu.txt";
+    string config_file = argv[1];
+    // string config_file = "config/config_gpu.txt";
+    string excute_time = "log_file/excute_time" + config_file;
+    ofstream myfile;
+    myfile.open(excute_time);
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
     string ADD_STRIPE_TCL = "";
@@ -351,11 +354,16 @@ int main(int argc, char *argv[])
 
     cout << endl
          << "Program exctuing time" << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
+    myfile << "chip : " << config_file << endl;
+    myfile << endl
+           << "Program exctuing time" << (double)clock() / CLOCKS_PER_SEC << " S" << endl;
+    myfile.close();
     // test
     // getRoutingTrackPowerConsuming(&vdd_stripe_vector, &cell_placed_map, &cell_ip_map);
     // setRoutingTrackPoint(&m2_track_point_map, &m3_track_point_map, m3_x_start, m3_x_pitch, m2_y_start, m2_y_pitch, &core_site);
     // generateLogFile(&vdd_stripe_map["M3"], "track_cost_position.txt");
     cout << "-------------------------- pin_access_power_consume.cpp end --------------------------" << endl;
+
     return 0;
 }
 
@@ -415,19 +423,19 @@ void getLefCellPinAccessPointCost(unordered_map<string, CellInfo> *cell_info_map
     // }
     // cout << "check" << endl;
 
-    if ((*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].find("0.108") != ((*cell_info_map)["AO22x1_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].end()))
-    {
-        cout << "check in side" << endl;
-    }
-    else
-    {
-        cout << "did not exsist" << endl;
-    }
+    // if ((*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].find("0.108") != ((*cell_info_map)["AO22x1_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"].end()))
+    // {
+    //     cout << "check in side" << endl;
+    // }
+    // else
+    // {
+    //     cout << "did not exsist" << endl;
+    // }
 
-    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["S"] << endl;
-    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FS"] << endl;
-    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["N"] << endl;
-    cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FN"] << endl;
+    // cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["S"] << endl;
+    // cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FS"] << endl;
+    // cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["N"] << endl;
+    // cout << "check in side : " << (*cell_info_map)["INVxp33_ASAP7_6t_fix"].even_pin_access_cost_map["0.224"]["0.108"].vertical_direction_cost_map["FN"] << endl;
     //    if ("U58984" == (*cell_placed_info).cell_id)
     // {
     //     cout << "check " << endl;
