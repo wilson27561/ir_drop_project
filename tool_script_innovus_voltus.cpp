@@ -23,10 +23,10 @@ int main()
     string config_neuralNetwork = "config/config_neuralNetwork.txt";
     string config_b19 = "config/config_b19.txt";
     string config_power_pad = "config/power_pad_config.txt";
-    // config_vector.push_back(config_riscv);
-    // config_vector.push_back(config_gpu);
-    // config_vector.push_back(config_aes);
-    // config_vector.push_back(config_neuralNetwork);
+    config_vector.push_back(config_riscv);
+    config_vector.push_back(config_gpu);
+    config_vector.push_back(config_aes);
+    config_vector.push_back(config_neuralNetwork);
     config_vector.push_back(config_b19);
 
 

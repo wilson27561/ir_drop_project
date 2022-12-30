@@ -181,7 +181,7 @@ const string positive_positive = "positive_positive";
 const string positive_negative = "positive_negative";
 const string negative_positive = "negative_positive";
 const string negative_negative = "negative_negative";
-const int PIN_ACCESS_LESS_WEIGHT = 5;
+const int PIN_ACCESS_LESS_WEIGHT = 10;
 const string ODD = "odd";
 const string EVEN = "even";
 
@@ -259,6 +259,8 @@ void setTrackPointCost(string type, CellInfo *cell_info, string stripe_width);
 void transferPinAccessLocationFromRect(string direction, PinAccessPoint *pin_access_point, string cell_width, string cell_height, PinAccessPoint *transfer_pin_access_point);
 double caculatePinAccessCost(double total_pin_access_size, double cover_pin_access_size);
 void setStripeInfo(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, StripeInfo> *stripe_info_map);
+void setStripeRangeCost(string layer, Stripe *stripe, unordered_map<string, StripeInfo> *stripe_info_map, unordered_map<string, TrackInfo> *track_info_map);
+void setAddStripePosition(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, StripeInfo> *stripe_info_map, unordered_map<string, TrackInfo> *track_info_map);
 // Util
 vector<string> splitByPattern(string content, string pattern);
 string &trim(string &str);
@@ -293,8 +295,8 @@ int main(int argc, char *argv[])
     set<string> stripe_width_set;
     unordered_map<string, StripeInfo> stripe_info_map;
 
-    // string config_file = argv[1];
-    string config_file = "config/config_b19.txt";
+    string config_file = argv[1];
+    // string config_file = "config/config_gpu.txt";
     string excute_time = "log_file/excute_time" + config_file;
     ofstream myfile;
     myfile.open(excute_time);
@@ -355,14 +357,13 @@ int main(int argc, char *argv[])
     getLeftCellPinAccessPoint(&cell_info_map);
     getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
     setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
-
     getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
     setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
     setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
-
-    // setAddStripePosition()
-
     // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
+    setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
+    generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+
     // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
     // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
@@ -535,6 +536,7 @@ void setAddStripePosition(unordered_map<string, vector<Stripe>> *vdd_stripe_map,
         for (int i = 0; i < vdd_stripe_map_it->second.size(); i++)
         {
             // getStripeRangeCost(&(vdd_stripe_map_it->second[i]), layer, track_pitch_float, &odd_vss_stripe, &even_vss_stripe);
+            setStripeRangeCost(layer, &(vdd_stripe_map_it->second[i]), &(*stripe_info_map), &(*track_info_map));
         }
     }
 }
@@ -1297,9 +1299,9 @@ void generateAddStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map,
                 myfile << "addStripe -nets { VDDX } -layer "
                        << layer
                        << " -direction vertical -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vdd_left_track_cost_str << " " << stripe.start_y_location << " " << vdd_right_track_cost_str << " " << stripe.end_y_location << " }" << endl;
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction vertical -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost << " " << odd_vss_stripe.start_y_location << " " << vss_right_track_cost << " " << odd_vss_stripe.end_y_location << " }" << endl;
+                // myfile << "addStripe -nets { VSSX } -layer "
+                //        << layer
+                //        << " -direction vertical -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost << " " << odd_vss_stripe.start_y_location << " " << vss_right_track_cost << " " << odd_vss_stripe.end_y_location << " }" << endl;
                 // myfile << "addStripe -nets { VSSX } -layer "
                 //        << "M3"
                 //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
@@ -1325,13 +1327,47 @@ void generateAddStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map,
                 myfile << "addStripe -nets { VDDX } -layer "
                        << layer
                        << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vdd_down_track_cost_str << " " << stripe.end_x_location << " " << vdd_up_track_cost_str << " }" << endl;
-                myfile << "addStripe -nets { VSSX } -layer "
-                       << layer
-                       << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << even_vss_stripe.start_x_location << " " << vss_down_track_cost_str << " " << even_vss_stripe.end_x_location << " " << vss_up_track_cost_str << " }" << endl;
+                // myfile << "addStripe -nets { VSSX } -layer "
+                //        << layer
+                //        << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << even_vss_stripe.start_x_location << " " << vss_down_track_cost_str << " " << even_vss_stripe.end_x_location << " " << vss_up_track_cost_str << " }" << endl;
 
                 // myfile << "addStripe -nets { VSSX } -layer "
                 //        << "M3"
                 //        << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_left_track_cost_str << " " << (*stripe_vector)[i].start_y_location << " " << vss_right_track_cost_str << " " << (*stripe_vector)[i].end_y_location << " }" << endl;
+            }
+        }
+    }
+    for (auto vss_stripe_map_it = (*vss_stripe_map).begin(); vss_stripe_map_it != (*vss_stripe_map).end(); ++vss_stripe_map_it)
+    {
+        string layer = vss_stripe_map_it->first;
+
+        for (int i = 0; i < (*vss_stripe_map)[layer].size(); i++)
+        {
+            if (isOddLayer(layer))
+            {
+                Stripe stripe = (*vss_stripe_map)[layer][i];
+                float power_stripe_width_float = stof(stripe.width);
+                string power_stripe_width = floatToString(power_stripe_width_float);
+                float vss_start_x_location_float = stof(stripe.start_x_location) - (power_stripe_width_float / 2);
+                float vss_end_x_location_float = stof(stripe.start_x_location) + (power_stripe_width_float / 2);
+                string vss_start_x_location = floatToString(vss_start_x_location_float);
+                string vss_end_x_location = floatToString(vss_end_x_location_float);
+                myfile << "addStripe -nets { VSSX } -layer "
+                       << layer
+                       << " -direction vertical -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << vss_start_x_location << " " << stripe.start_y_location << " " << vss_end_x_location << " " << stripe.end_y_location << " }" << endl;
+            }
+            else
+            {
+                Stripe stripe = (*vss_stripe_map)[layer][i];
+                float power_stripe_width_float = stof(stripe.width);
+                string power_stripe_width = floatToString(power_stripe_width_float);
+                float vss_start_y_location_float = stof(stripe.start_y_location) - (power_stripe_width_float / 2);
+                float vss_end_y_location_float = stof(stripe.start_y_location) + (power_stripe_width_float / 2);
+                string vss_start_y_location = floatToString(vss_start_y_location_float);
+                string vss_end_y_location = floatToString(vss_end_y_location_float);
+                myfile << "addStripe -nets { VSSX } -layer "
+                       << layer
+                       << " -direction horizontal -width " << power_stripe_width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << vss_start_y_location << " " << stripe.end_x_location << " " << vss_end_y_location << " }" << endl;
             }
         }
     }
@@ -1450,9 +1486,9 @@ void setTrackPinAccessCost(ofstream *myfile, string layer, vector<Stripe> *strip
             total_power_consuming_cost += (1 / z_score_power_cost);
             // ======================== log for stripe cost ====================================
             //========================== TODO change cost ===================================
-            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = (1 / z_score_power_cost) + z_score_pin_access_cost;
+            // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = (1 / z_score_power_cost) + z_score_pin_access_cost;
             // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_power_cost;
-            // (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_pin_access_cost;
+            (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost = z_score_pin_access_cost;
             //========================== TODO change cost ===================================
             // (*myfile) << "total_cost            :" << (*stripe_vector)[i].track_point_vector[j].total_pin_access_power_consum_cost << " ----------" << endl;
         }
