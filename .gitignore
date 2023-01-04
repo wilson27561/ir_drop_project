@@ -45,3 +45,4 @@ power_pad_tcl/*
 track_info/*
 log_file/*
 config/*
+cluster_report/*
