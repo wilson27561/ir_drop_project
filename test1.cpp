@@ -63,14 +63,17 @@ bool isSameDistance(float y_location_float)
 int main()
 {
 
-    if (isSameDistance(268.138))
-    {
-        cout << "check in side" << endl;
-    }
-    else
-    {
-        cout << "no" << endl;
-    }
+    // if (isSameDistance(268.138))
+    // {
+    //     cout << "check in side" << endl;
+    // }
+    // else
+    // {
+    //     cout << "no" << endl;
+    // }
+    float a = 1.548;
+    int b = 3;
+    cout << (a / b) << endl;
 
     // string str = "     	OAI21xp33_ASAP7_6t_fix";
     // cout << "prevent : " << str.size() << endl;

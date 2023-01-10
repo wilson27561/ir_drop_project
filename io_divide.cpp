@@ -58,7 +58,6 @@ string EVEN = "even";
 
 vector<string> splitByPattern(string content, string pattern);
 string floatToString(const float value);
-string &trim(string &str);
 void getIoPinInfo(string io_pin_file_name, vector<string> *io_pin_side_vector, unordered_map<string, IoPinSide> *io_pin_side_map);
 string getIoName(string str);
 void setIoPinInfo(unordered_map<string, IoPinSide> *io_pin_side_map, string side, string io_pin_content);
@@ -85,6 +84,8 @@ int tranferToTrackInt(float number);
 float tranferToTrackFloat(int number);
 void popOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map);
 void popNumberOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map, string side, int start_offset, int number_of_track);
+string &trim(string &str);
+bool isTopLength(string io_content);
 int main()
 {
 
@@ -92,25 +93,25 @@ int main()
     unordered_map<string, vector<Track>> track_map;
     vector<string> io_pin_side_vector;
     CoreSite core_site;
-
-    string io_file_name = "io/6t49run88_6.io";
-    string io_file_reorder = "io/6t49run88_neuralNetwork_average_distribution.io";
-    string io_file_reorder_change_oiwer_pad_side = "io/6t49run88_neuralNetwork_average_distribution_change_power_pad_each_power_pad.io";
+    // 原始 io file 設定
+    string io_file_name = "io/6t49run88_30.io";
+    // 更改過後 io file 設定
+    string io_file_reorder = "io/6t49run88_gpu_average_distribution.io";
+    // string io_file_reorder_change_pad_side = "io/6t49run88_neuralNetwork_average_distribution_change_power_pad_each_power_pad.io";
     getIoPinInfo(io_file_name, &io_pin_side_vector, &io_pin_side_map);
-    getCoreSite(&core_site);
-    getTrackInfo(&track_map, &core_site);
+    // getCoreSite(&core_site);
+    // getTrackInfo(&track_map, &core_site);
     setIoPinPostionInfo(&io_pin_side_map);
     replaceContent(&io_pin_side_map);
     // setIoTrackInfo(&track_map, &io_pin_side_map);
     printIoFile(&io_pin_side_map, io_file_name, io_file_reorder);
 
-    widenEachPowerPad(&io_pin_side_map);
-    changeLayer(&io_pin_side_map);
-    setOffsetOnTrack(&io_pin_side_map);
+    // widenEachPowerPad(&io_pin_side_map);
+    // changeLayer(&io_pin_side_map);
+    // setOffsetOnTrack(&io_pin_side_map);
+    // popOffSideTrack(&io_pin_side_map);
 
-    popOffSideTrack(&io_pin_side_map);
-
-    printIoFile(&io_pin_side_map, io_file_reorder, io_file_reorder_change_oiwer_pad_side);
+    // printIoFile(&io_pin_side_map, io_file_reorder, io_file_reorder_change_pad_side);
     // for (int i = 0; i < io_pin_side_map[TOP].io_pin_vector.size(); i++)
     // {
     //     cout <<  io_pin_side_map[TOP].io_pin_vector[i].pin_name << endl;
@@ -188,7 +189,7 @@ void popOffSideTrack(unordered_map<string, IoPinSide> *io_pin_side_map)
 
                 if (floatIsEqual(1.296, distance))
                 {
-                     popNumberOffSideTrack(&(*io_pin_side_map), side, next_index, 2);
+                    popNumberOffSideTrack(&(*io_pin_side_map), side, next_index, 2);
                 }
                 // if (floatIsEqual(1.08, distance))
                 // {
@@ -608,24 +609,26 @@ void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pi
     int log = 0;
     ofstream myfile;
     myfile.open(io_pin_file_content);
-
     if (io_pin_file)
     {
         while (getline(io_pin_file, io_pin_content))
         {
             myfile << io_pin_content << endl;
-            if (io_pin_content.find(TOP) != string::npos)
-            {
+            cout << io_pin_content << endl;
 
+            if (io_pin_content.find(TOP) != string::npos && isTopLength(io_pin_content))
+            {
                 for (int i = 0; i < (*io_pin_side_map)[TOP].io_power_pin_vector.size(); i++)
                 {
                     myfile << (*io_pin_side_map)[TOP].io_power_pin_vector[i].pin_info << endl;
+                    cout << (*io_pin_side_map)[TOP].io_power_pin_vector[i].pin_info << endl;
                 }
                 while (getline(io_pin_file, io_pin_content))
                 {
                     if (io_pin_content.find("pin name") == string::npos)
                     {
                         myfile << io_pin_content << endl;
+                        cout << io_pin_content << endl;
                         break;
                     }
                 }
@@ -635,12 +638,14 @@ void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pi
                 for (int i = 0; i < (*io_pin_side_map)[LEFT].io_power_pin_vector.size(); i++)
                 {
                     myfile << (*io_pin_side_map)[LEFT].io_power_pin_vector[i].pin_info << endl;
+                    // cout << (*io_pin_side_map)[LEFT].io_power_pin_vector[i].pin_info << endl;
                 }
                 while (getline(io_pin_file, io_pin_content))
                 {
                     if (io_pin_content.find("pin name") == string::npos)
                     {
                         myfile << io_pin_content << endl;
+                        cout << io_pin_content << endl;
                         break;
                     }
                     // else
@@ -655,12 +660,14 @@ void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pi
                 for (int i = 0; i < (*io_pin_side_map)[RIGHT].io_power_pin_vector.size(); i++)
                 {
                     myfile << (*io_pin_side_map)[RIGHT].io_power_pin_vector[i].pin_info << endl;
+                    // cout << (*io_pin_side_map)[RIGHT].io_power_pin_vector[i].pin_info << endl;
                 }
                 while (getline(io_pin_file, io_pin_content))
                 {
                     if (io_pin_content.find("pin name") == string::npos)
                     {
                         myfile << io_pin_content << endl;
+                        cout << io_pin_content << endl;
                         break;
                     }
                     // else
@@ -675,12 +682,14 @@ void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pi
                 for (int i = 0; i < (*io_pin_side_map)[BOTTOM].io_power_pin_vector.size(); i++)
                 {
                     myfile << (*io_pin_side_map)[BOTTOM].io_power_pin_vector[i].pin_info << endl;
+                    // cout << (*io_pin_side_map)[BOTTOM].io_power_pin_vector[i].pin_info << endl;
                 }
                 while (getline(io_pin_file, io_pin_content))
                 {
                     if (io_pin_content.find("pin name") == string::npos)
                     {
                         myfile << io_pin_content << endl;
+                        cout << io_pin_content << endl;
                         break;
                     }
                     // else
@@ -698,6 +707,37 @@ void printIoFile(unordered_map<string, IoPinSide> *io_pin_side_map, string io_pi
     }
     io_pin_file.close();
     myfile.close();
+}
+
+bool isTopLength(string io_content)
+{
+    string io_str = trim(io_content);
+    io_str = io_str.erase(0, 1);
+    if (io_str.size() == 3)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+string &trim(string &str)
+{
+    if (str.empty())
+    {
+        return str;
+    }
+    int str_length = str.length();
+    int start = 0;
+    int space_end = str.find_first_not_of(" ");
+    str.erase(start, space_end);
+    int space_start = (str.find_last_not_of(" ") + 1);
+    str_length = str.length();
+    str.erase(space_start, str_length);
+
+    return str;
 }
 
 void replaceContent(unordered_map<string, IoPinSide> *io_pin_side_map)
@@ -995,23 +1035,6 @@ vector<string> splitByPattern(string content, string pattern)
         words.push_back(trim(content));
     }
     return words;
-}
-
-string &trim(string &str)
-{
-    if (str.empty())
-    {
-        return str;
-    }
-    int str_length = str.length();
-    int start = 0;
-    int space_end = str.find_first_not_of(" ");
-    str.erase(start, space_end);
-    int space_start = (str.find_last_not_of(" ") + 1);
-    str_length = str.length();
-    str.erase(space_start, str_length);
-
-    return str;
 }
 
 string floatToString(const float value)
