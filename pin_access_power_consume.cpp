@@ -345,27 +345,28 @@ int main(int argc, char *argv[])
     generateTrackInfoMap(&track_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
     // use def for moving
-    // getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
-    // transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
-    // use tcl for moving
-    getStripeLocationFromStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map, &core_site, &stripe_width_set);
-    sortStripeMap(&vdd_stripe_map, &vss_stripe_map);
-    setStripeInfo(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map);
-    setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
-    transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
-    getLefCellImformation(LEF_FILE, &cell_info_map);
-    getLeftCellPinAccessPoint(&cell_info_map);
-    getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
-    setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
-    getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
-    setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
-    setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
-    // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
-    setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
-    generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+    getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
+    transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
 
-    // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    // use tcl for moving
+    // getStripeLocationFromStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map, &core_site, &stripe_width_set);
+    // sortStripeMap(&vdd_stripe_map, &vss_stripe_map);
+    // setStripeInfo(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map);
+    // setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
+    // transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    // getLefCellImformation(LEF_FILE, &cell_info_map);
+    // getLeftCellPinAccessPoint(&cell_info_map);
+    // getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
+    // setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
+    // getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
+    // setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
+    // setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
+    // // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
+    // setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
     // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+
+    // // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    // // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
     cout
         << endl
@@ -2608,7 +2609,7 @@ void transferStripeToMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, 
 {
     for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
     {
-        if ((*vdd_stripe_map).count((*vdd_stripe_vector)[i].layer))
+        if ((*vdd_stripe_map).count((*vdd_stripe_vector)[i].layer) == 1)
         {
             (*vdd_stripe_map)[(*vdd_stripe_vector)[i].layer].push_back((*vdd_stripe_vector)[i]);
         }
@@ -2638,7 +2639,7 @@ void transferStripeToMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, 
 
     for (int i = 0; i < (*vss_stripe_vector).size(); i++)
     {
-        if ((*vss_stripe_map).count((*vss_stripe_vector)[i].layer))
+        if ((*vss_stripe_map).count((*vss_stripe_vector)[i].layer) == 1)
         {
             (*vss_stripe_map)[(*vss_stripe_vector)[i].layer].push_back((*vss_stripe_vector)[i]);
         }
@@ -2666,6 +2667,20 @@ void transferStripeToMap(unordered_map<string, vector<Stripe>> *vdd_stripe_map, 
             (*vss_stripe_map)[layer] = stripe_vector;
         }
     }
+
+    vector<Stripe> stripe_vector = (*vdd_stripe_map)["M4"];
+    cout << stripe_vector.size() << endl;
+    float stripe_resource_total = 0;
+    for (int i = 0; i < stripe_vector.size(); i++)
+    {
+        float start_x_location = stof(stripe_vector[i].start_x_location);
+        float end_x_location = stof(stripe_vector[i].end_x_location);
+        float distance = abs(start_x_location - end_x_location);
+        float stripe_width = stof(stripe_vector[i].width);
+        float stripe_resource = distance * stripe_width;
+        stripe_resource_total += stripe_resource;
+    }
+    cout << "stripe_resource_total : " << stripe_resource_total << endl;
 }
 
 void getRoutingTrackPowerConsuming(vector<Stripe> *stripe_vector, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map)

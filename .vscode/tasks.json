@@ -16,10 +16,17 @@
             "type": "cppbuild",
             "label": "C/C++: g++.exe 建置使用中檔案",
             "command": "C:\\Program Files (x86)\\mingw-w64\\i686-8.1.0-posix-dwarf-rt_v6-rev0\\mingw32\\bin\\g++.exe",
+            // "args": [
+            //     "-fdiagnostics-color=always",
+            //     "-g",
+            //     "${file}",
+            //     "-o",
+            //     "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            // ],
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${file}",
+                "${file} cpp/dbscan.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],

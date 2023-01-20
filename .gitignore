@@ -46,3 +46,4 @@ track_info/*
 log_file/*
 config/*
 cluster_report/*
+.vscode/*

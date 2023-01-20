@@ -86,6 +86,7 @@ struct Cluster
     float right_x_location = 0;
     float up_y_location = 0;
     string average_ir_drop;
+    vector<Stripe> add_stripe_vector;
 };
 
 struct CellInfo
@@ -114,7 +115,7 @@ void getLefCellImformation(string LEF_FILE, unordered_map<string, CellInfo> *cel
 void setPlacePosition(vector<string> *def_content_array, CellPlacedInfo *cell_placed_info);
 void getDefPlacedImformation(string def_transfer_file_name, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInfo> *cell_info_map);
 void getCellLocation(CellPlacedInfo *cell_placed_info, unordered_map<string, CellInfo> *cell_info_map);
-void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map, string range_start, string range_end, string ir_drop_percent);
+void setIrDropReport(string method, vector<string> *ir_drop_file_vector, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map, string range_start, string range_end, string ir_drop_percent);
 void printIrDropReport(unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map);
 void getRowCore(unordered_map<string, Row> *row_map);
 void setCellInRowCore(unordered_map<string, Row> *row_map, unordered_map<string, CellPlacedInfo> *cell_placed_map);
@@ -136,32 +137,44 @@ bool isOddLayer(string layer);
 void setClusterBoundary(vector<Cluster> *cluster_vector);
 void transferStripePositionFromTcl(string layer, Stripe *stripe, string start_x_location, string start_y_location, string end_x_location, string end_y_location);
 void setStripeLength(Stripe *stripe);
-void getAddStripeTclFirstMethod(vector<Stripe> *add_stripe_tcl, unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
+
+string getLeftStripeLocation(vector<Stripe> *vdd_stripe_vector, string left_point_location);
+string getRightStripeLocation(vector<Stripe> *vdd_stripe_vector, string right_point_location);
 void getStripeLocationFromStripeTcl(string stripe_tcl_file_name, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, CoreSite *core_site, set<string> *stripe_width_set);
+bool sortClusterIrDropVector(Cluster cluster_a, Cluster cluster_b);
+void generateAddPowerStripe(vector<Cluster> *cluster_vector, unordered_map<string, vector<Stripe>> *vdd_stripe_map);
+void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource);
+void getAddStripeTclFirstMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
+void getAddStripeTclSecondMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
+void getAddStripeTclThirdMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
 const string LEF_FILE = "tech_lef_file/characterization_6T_ALL_20200610area_4x.lef";
-const string DEF_TRANSFER_FILE = "def_file/gpu_nerualNetwork_ricsv_aes_8pad/6t49_b19_routing_run0_31_transfer.def";
+const string DEF_TRANSFER_FILE = "def_file/b19/6t49_b19_routing_run0_25_transfer.def";
 const string IR_DROP_POINT_FILE = "cell_ir_drop_point_report";
-const string STRIPE_TCL = "stripe_tcl/moving_stripe_b19_pin_access_power_8pad.tcl";
+const string STRIPE_TCL = "stripe_tcl/6t49_b19_routing_run0_25_power_stripe.tcl";
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
-
+const string M3 = "M3";
+const string M4 = "M4";
 // add power stripe config
-const string IR_DROP_RANGE_START = "0.649";
-const string IR_DROP_RANGE_END = "0.656";
+const string IR_DROP_RANGE_START = "0.640";
+const string IR_DROP_RANGE_END = "0.663";
 // 294.048(一條power stripe 長度)
 const string POWER_STRIPE_RESOURCE_HEIGHT = "588.096";
 const string POWER_STRIPE_RESOURCE_WIDTH = "0.224";
 // 50%
 const string IR_DROP_PERCENT = "0.5";
 const int FIRSTMETHODNUMBEROFIRPOINT = 20;
-
+const int ADDSTRIPEOFCELLROW = 3;
+const string ADD_STRIPE_TCL = "stripe_tcl/add_stripe.tcl";
+const string DBSCAN_LOG_FILE = "log_file/dbscan_log.txt";
+const string METHOD_3 = "METHOD_3";
+const string METHOD_2 = "METHOD_2";
+const string METHOD_1 = "METHOD_1";
+const float METHOD_2_IR_DROP_PERCENT = 0.05;
 int main()
 {
-
     unordered_map<string, CellInfo> cell_info_map;
     unordered_map<string, CellPlacedInfo> cell_placed_map;
-    // ir drop point map
-    // ===========  ir drop map start ===========
     unordered_map<string, vector<IrDropPoint>> ir_drop_point_map;
     vector<Row> boundary_row;
     unordered_map<string, Row> row_map;
@@ -174,17 +187,16 @@ int main()
     vector<Stripe> vss_stripe_vector;
     unordered_map<string, vector<Stripe>> vdd_stripe_map;
     unordered_map<string, vector<Stripe>> vss_stripe_map;
-    vector<Stripe> add_stripe_vector;
     set<string> stripe_width_set;
-
-    string ir_drop_file = "ir_report/M1_ir_drop_point_b19_31.report";
-    // ========= kmeans start ==========
-    // list<Point> pointlist;
-    // ========= kmeans end ==========
+    string ir_drop_file = "ir_report/M1_ir_drop_point_25.report";
     ir_drop_file_vector.push_back(ir_drop_file);
-    setIrDropReport(&ir_drop_file_vector, &ir_drop_point_map, IR_DROP_RANGE_START, IR_DROP_RANGE_END, IR_DROP_PERCENT);
-    // printIrDropReport(&ir_drop_point_map);
-    // // =========== ir drop map end ===========
+
+    // ===========  ir drop map start ===========
+    // setIrDropReport(METHOD_1, &ir_drop_file_vector, &ir_drop_point_map, IR_DROP_RANGE_START, IR_DROP_RANGE_END, IR_DROP_PERCENT);
+    setIrDropReport(METHOD_2, &ir_drop_file_vector, &ir_drop_point_map, IR_DROP_RANGE_START, IR_DROP_RANGE_END, IR_DROP_PERCENT);
+    // setIrDropReport(METHOD_3, &ir_drop_file_vector, &ir_drop_point_map, IR_DROP_RANGE_START, IR_DROP_RANGE_END, IR_DROP_PERCENT);
+
+    // =========== ir drop map end ===========
 
     // // =========== def file start ===========
     getLefCellImformation(LEF_FILE, &cell_info_map);
@@ -208,12 +220,6 @@ int main()
     // printResults(ds.m_points, ds.getTotalPointSize());
     printClusterReport(&(ds.m_points), &cluster_map);
     setIrDropInCluster(&cluster_map, &cell_location_map, &cell_placed_map, &cluster_vector);
-
-    // for (int i = 0; i < cluster_vector.size(); i++)
-    // {
-    //     cout << "point size : " << cluster_vector[i].point_vector.size() << endl;
-    //     cout << "placed size : " << cluster_vector[i].cell_placed_info_vector.size() << endl;
-    // }
     // =========== dbscan cluster algorithm end ===========
 
     // =========== get Add Power Stripe start ============
@@ -224,44 +230,246 @@ int main()
     // get Stripe from tcl
     getStripeLocationFromStripeTcl(STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map, &core_site, &stripe_width_set);
 
-    // method 1 :
-    getAddStripeTclFirstMethod(&add_stripe_vector, &cell_location_map, &cluster_vector);
-    setClusterBoundary(&cluster_vector);
-    // method 2 :
+    // method 1 serious 20 point :
+    // getAddStripeTclFirstMethod(&cell_location_map, &cluster_vector);
+    // setClusterBoundary(&cluster_vector);
+    // generateAddPowerStripe(&cluster_vector, &vdd_stripe_map);
+    // generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_TCL, DBSCAN_LOG_FILE, false);
 
-    // method 3 :
+    // method 2 serious 5% point :
+    getAddStripeTclSecondMethod(&cell_location_map, &cluster_vector);
+    setClusterBoundary(&cluster_vector);
+    generateAddPowerStripe(&cluster_vector, &vdd_stripe_map);
+    generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_TCL, DBSCAN_LOG_FILE, false);
+
+    // method 3 serious range 1  :
+    // getAddStripeTclThirdMethod(&cell_location_map, &cluster_vector);
+    // setClusterBoundary(&cluster_vector);
+    // generateAddPowerStripe(&cluster_vector, &vdd_stripe_map);
+    // generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_TCL, DBSCAN_LOG_FILE, false);
 
     // =========== get Add Power Stripe end   ============
 
-    // =========== Kmeans  cluster algorithm start ===========
-    // std::clock_t start;
-    // double duration;
-    // Kmeans kmeans(5);
-    // kmeans.InitPoints(IR_DROP_POINT_FILE);
-    // start = std::clock();
-    // kmeans.InitCenters();
-    // // kmeans.InitSpecifiedCenters();
-    // kmeans.RunKmean();
-    // duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    // std::cout << "calculate time " << duration << std::endl;
-    // kmeans.SaveEPS("S1.eps");
-
-    // std::cout << "----------------- kmeans Plus Plus -----------------" << std::endl;
-    // KmeansPlusPlus kmeansPlusPlus(8);
-    // kmeansPlusPlus.InitPoints(IR_DROP_POINT_FILE);
-    // start = std::clock();
-    // kmeansPlusPlus.InitCenters();
-    // // kmeans.InitSpecifiedCenters();
-    // kmeansPlusPlus.RunKmean();
-    // duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    // std::cout << "calculate time " << duration << std::endl;
-    // kmeansPlusPlus.SaveEPS("S1_++.eps");
-    // kmeansPlusPlus.SaveSVG("S1_++.svg");
-    // system("pause");
-    // =========== Kmeans  cluster algorithm end ===========
-
     return 0;
 }
+
+void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource)
+{
+    cout << "========== generateAddPowerStripeTclLimitResource start ==========" << endl;
+    ofstream myfile;
+    myfile.open(dbscan_log_file);
+    float power_stripe_resource_length = stof(POWER_STRIPE_RESOURCE_HEIGHT);
+    ofstream add_stripe_file;
+    add_stripe_file.open(add_stripe_file_name);
+    float metal_resource = 0;
+    cout << "cluster size : " << (*cluster_vector).size() << endl;
+    for (int i = 0; i < (*cluster_vector).size(); i++)
+    {
+        myfile << "cluster_id : " << (*cluster_vector)[i].cluster_id << endl;
+        myfile << "average_ir_drop : " << (*cluster_vector)[i].average_ir_drop << endl;
+        myfile << "left_x_location : " << (*cluster_vector)[i].left_x_location << endl;
+        myfile << "right_x_location : " << (*cluster_vector)[i].right_x_location << endl;
+        myfile << "down_y_location : " << (*cluster_vector)[i].down_y_location << endl;
+        myfile << "up_y_location : " << (*cluster_vector)[i].up_y_location << endl;
+        myfile << "add_stripe_size : " << (*cluster_vector)[i].add_stripe_vector.size() << endl;
+        if ((*cluster_vector)[i].add_stripe_vector.size() == 1)
+        {
+            Stripe stripe = (*cluster_vector)[i].add_stripe_vector[0];
+            myfile << "addStripe -nets { VDDX } -layer "
+                   << stripe.layer
+                   << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
+        }
+
+        for (int j = 0; j < (*cluster_vector)[i].add_stripe_vector.size(); j++)
+        {
+            Stripe stripe = (*cluster_vector)[i].add_stripe_vector[j];
+            myfile << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
+            if (power_stripe_resource_length >= 0 && !isLimitResource)
+            {
+                float stripe_width = abs(stof(stripe.start_x_location) - stof(stripe.end_x_location));
+                if (isLimitResource)
+                {
+                    power_stripe_resource_length -= stripe_width;
+                }
+                add_stripe_file << "addStripe -nets { VDDX } -layer "
+                                << stripe.layer
+                                << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
+                float single_power_stripe_resource = stripe_width * stof(POWER_STRIPE_RESOURCE_WIDTH);
+                metal_resource += single_power_stripe_resource;
+            }
+        }
+        myfile << " ================== " << endl;
+        myfile << " ------------------------------ " << endl;
+    };
+    myfile << "add power stripe metal using resource : " << metal_resource << endl;
+
+    vector<Stripe> stripe_vector = (*vdd_stripe_map)[M3];
+    float original_metal_resource = 0;
+
+    for (int i = 0; i < stripe_vector.size(); i++)
+    {
+        float power_stripe_length = abs(stof(stripe_vector[i].start_y_location) - stof(stripe_vector[i].end_y_location));
+        float power_stripe_width = stof(stripe_vector[i].width);
+        float power_stripe_resource = power_stripe_length * power_stripe_width;
+
+        original_metal_resource += power_stripe_resource;
+    }
+    myfile << "original metal using resource : " << original_metal_resource << endl;
+
+    myfile.close();
+    add_stripe_file.close();
+    cout << "========== generateAddPowerStripeTclLimitResource end ==========" << endl;
+}
+
+void generateAddPowerStripe(vector<Cluster> *cluster_vector, unordered_map<string, vector<Stripe>> *vdd_stripe_map)
+{
+    cout << "========== generateAddPowerStripe start ========== " << endl;
+    // const string POWER_STRIPE_RESOURCE_HEIGHT = "588.096";
+    // const string POWER_STRIPE_RESOURCE_WIDTH = "0.224";
+    vector<Stripe> vdd_stripe_vector = (*vdd_stripe_map)[M3];
+
+    float power_stripe_resource_height = stof(POWER_STRIPE_RESOURCE_HEIGHT);
+    sort((*cluster_vector).begin(), (*cluster_vector).end(), sortClusterIrDropVector);
+    int step_int = innovusPointFloatToInt(0.864);
+    int over_float_cell_row_int = ADDSTRIPEOFCELLROW * 2;
+    int add_stripe_limit = over_float_cell_row_int * step_int;
+
+    for (int i = 0; i < (*cluster_vector).size(); i++)
+    {
+        // step 1 : 離 cluster left 最近的power stripe 但要靠左一點
+        string lef_point_location = getLeftStripeLocation(&vdd_stripe_vector, floatToString((*cluster_vector)[i].left_x_location));
+        // step 2 : 離 cluster right 最近的power stripe 但要靠右一點
+        string right_point_location = getRightStripeLocation(&vdd_stripe_vector, floatToString((*cluster_vector)[i].right_x_location));
+        // step 3 : 每5個cell row 加一條 power stripe 若低於五個 則加在中間的power stripe
+        float up_point_location = (*cluster_vector)[i].up_y_location;
+        float down_point_location = (*cluster_vector)[i].down_y_location;
+        // float innovusPointIntToFloat(int number);
+        // int innovusPointFloatToInt(float location);
+        int up_point_location_int = innovusPointFloatToInt(up_point_location);
+        int down_point_location_int = innovusPointFloatToInt(down_point_location);
+        int vertical_distance = abs(up_point_location_int - down_point_location_int);
+
+        // cout << "vertical_distance : " << innovusPointIntToFloat(vertical_distance) << endl;
+        // cout << "add_stripe_limit : " << innovusPointIntToFloat(add_stripe_limit) << endl;
+
+        if (vertical_distance < add_stripe_limit)
+        {
+
+            int middle_location_int = (up_point_location_int + down_point_location_int) / 2;
+            float middle_y_location_float = innovusPointIntToFloat(middle_location_int);
+
+            // cout << "is not over_flow : " << endl;
+            // cout << "up_point_location : " << up_point_location << endl;
+            // cout << "down_point_location : " << down_point_location << endl;
+            // cout << "middle_y_location_float :" << middle_y_location_float << endl;
+            // cout << "---------------------" << endl;
+            float power_stripe_float = stof(POWER_STRIPE_RESOURCE_WIDTH);
+            float down_stripe_float = middle_y_location_float - (power_stripe_float / 2);
+            float up_stripe_float = middle_y_location_float + (power_stripe_float / 2);
+            Stripe stripe;
+            stripe.start_x_location = lef_point_location;
+            stripe.end_x_location = right_point_location;
+            stripe.start_y_location = floatToString(down_stripe_float);
+            stripe.end_y_location = floatToString(up_stripe_float);
+            stripe.width = POWER_STRIPE_RESOURCE_WIDTH;
+            stripe.layer = M4;
+            (*cluster_vector)[i].add_stripe_vector.push_back(stripe);
+        }
+        else
+        {
+            // cout << "is  over_flow : " << endl;
+            // cout << up_point_location << endl;
+            // cout << down_point_location << endl;
+            // int count = 1;
+            // cout << "------------------------------------------" << endl;
+            // cout << "cluster id " << (*cluster_vector)[i].cluster_id << endl;
+            int count = 1;
+            for (int j = down_point_location_int; j <= up_point_location_int; j += step_int)
+            {
+                int up_point_float_end_int = 0;
+                int down_point_start_int = 0;
+                if (count == 1)
+                {
+                    down_point_start_int = j;
+                }
+                if ((count % 5 == 0))
+                {
+                    up_point_float_end_int = j;
+                    int middle_point_int = (up_point_float_end_int + down_point_start_int) / 2;
+                    float middle_y_point_float = innovusPointIntToFloat(middle_point_int);
+                    float power_stripe_float = stof(POWER_STRIPE_RESOURCE_WIDTH);
+                    float down_stripe_float = middle_y_point_float - (power_stripe_float / 2);
+                    float up_stripe_float = middle_y_point_float + (power_stripe_float / 2);
+
+                    Stripe stripe;
+                    stripe.start_x_location = lef_point_location;
+                    stripe.end_x_location = right_point_location;
+                    stripe.start_y_location = floatToString(down_stripe_float);
+                    stripe.end_y_location = floatToString(up_stripe_float);
+                    stripe.layer = M4;
+                    stripe.width = POWER_STRIPE_RESOURCE_WIDTH;
+                    (*cluster_vector)[i].add_stripe_vector.push_back(stripe);
+
+                    count = 1;
+                }
+
+                count += 1;
+            }
+        }
+    }
+    cout << "========== generateAddPowerStripe end ========== " << endl;
+}
+
+string getLeftStripeLocation(vector<Stripe> *vdd_stripe_vector, string left_point_location)
+{
+    float distance = 100000000;
+    string add_stripe_x_location = "";
+    float left_point_location_float = stof(left_point_location);
+
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        float stripe_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
+
+        float stripe_width_float = stof((*vdd_stripe_vector)[i].width);
+        stripe_width_float = stripe_width_float / 2;
+        stripe_x_location_float = stripe_x_location_float - stripe_width_float;
+
+        float temp_distance = abs((stripe_x_location_float - left_point_location_float));
+
+        if (stripe_x_location_float <= left_point_location_float && temp_distance <= distance)
+        {
+            distance = temp_distance;
+            add_stripe_x_location = floatToString(stripe_x_location_float);
+        }
+    }
+
+    return add_stripe_x_location;
+}
+
+string getRightStripeLocation(vector<Stripe> *vdd_stripe_vector, string right_point_location)
+{
+    float distance = 100000000;
+    string add_stripe_x_location = "";
+    float right_point_location_float = stof(right_point_location);
+    for (int i = 0; i < (*vdd_stripe_vector).size(); i++)
+    {
+        float stripe_x_location_float = stof((*vdd_stripe_vector)[i].start_x_location);
+
+        float stripe_width_float = stof((*vdd_stripe_vector)[i].width);
+        stripe_width_float = stripe_width_float / 2;
+        stripe_x_location_float = stripe_x_location_float + stripe_width_float;
+        float temp_distance = abs((stripe_x_location_float - right_point_location_float));
+
+        if (stripe_x_location_float >= right_point_location_float && temp_distance <= distance)
+        {
+            distance = temp_distance;
+            add_stripe_x_location = floatToString(stripe_x_location_float);
+        }
+    }
+
+    return add_stripe_x_location;
+}
+
 void setClusterBoundary(vector<Cluster> *cluster_vector)
 {
     for (int i = 0; i < (*cluster_vector).size(); i++)
@@ -290,11 +498,12 @@ void setClusterBoundary(vector<Cluster> *cluster_vector)
             }
         }
     }
-    for (int i = 0; i < (*cluster_vector).size(); i++)
-    {
-        cout << "cluster id : " << (*cluster_vector)[i].cluster_id << endl;
-        cout << "location   : " << (*cluster_vector)[i].left_x_location << " " << (*cluster_vector)[i].down_y_location << " " << (*cluster_vector)[i].right_x_location << " " << (*cluster_vector)[i].up_y_location << endl;
-    }
+    // for (int i = 0; i < (*cluster_vector).size(); i++)
+    // {
+    //     cout << "cluster id : " << (*cluster_vector)[i].cluster_id << endl;
+    //     cout << "ir drop count  : " << (*cluster_vector)[i].average_ir_drop << endl;
+    //     cout << "location   : " << (*cluster_vector)[i].left_x_location << " " << (*cluster_vector)[i].down_y_location << " " << (*cluster_vector)[i].right_x_location << " " << (*cluster_vector)[i].up_y_location << endl;
+    // }
 }
 bool sortClusterIrDropVector(Cluster cluster_a, Cluster cluster_b)
 {
@@ -305,7 +514,7 @@ bool sortCellPlacedIrDropVector(CellPlacedInfo cell_placed_a, CellPlacedInfo cel
     return stof(cell_placed_a.ir_drop_count) > stof(cell_placed_b.ir_drop_count);
 }
 // Method 1 : 每個 cluster 最嚴重的20個中心點去比
-void getAddStripeTclFirstMethod(vector<Stripe> *add_stripe_tcl, unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector)
+void getAddStripeTclFirstMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector)
 {
     // sort(track_point.begin(), track_point.end(), sortTrackPointVector);
 
@@ -314,7 +523,7 @@ void getAddStripeTclFirstMethod(vector<Stripe> *add_stripe_tcl, unordered_map<st
     {
         if ((*cluster_vector)[i].point_vector.size() > FIRSTMETHODNUMBEROFIRPOINT)
         {
-            cout << "before : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << (*cluster_vector)[i].cell_placed_info_vector.size() << endl;
+            // cout << "before : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << (*cluster_vector)[i].cell_placed_info_vector.size() << endl;
             vector<CellPlacedInfo> cell_placed_info_vector = (*cluster_vector)[i].cell_placed_info_vector;
             int pop_size = cell_placed_info_vector.size();
             sort(cell_placed_info_vector.begin(), cell_placed_info_vector.end(), sortCellPlacedIrDropVector);
@@ -332,41 +541,73 @@ void getAddStripeTclFirstMethod(vector<Stripe> *add_stripe_tcl, unordered_map<st
             float average_ir_drop = total_ir_drop / cell_placed_info_vector.size();
             (*cluster_vector)[i].average_ir_drop = floatToString(average_ir_drop);
             (*cluster_vector)[i].cell_placed_info_vector = cell_placed_info_vector;
-            cout << "after : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << cell_placed_info_vector.size() << endl;
+            // cout << "after : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << cell_placed_info_vector.size() << endl;
         };
     }
 }
 
+// Method 2 : 整個IR DROP 的點 前5% 最嚴重的部分去改善
+void getAddStripeTclSecondMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector)
+{
+    // sort(track_point.begin(), track_point.end(), sortTrackPointVector);
+
+    // step 1 :
+    for (int i = 0; i < (*cluster_vector).size(); i++)
+    {
+        if ((*cluster_vector)[i].point_vector.size() > 0)
+        {
+            // cout << "before : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << (*cluster_vector)[i].cell_placed_info_vector.size() << endl;
+            vector<CellPlacedInfo> cell_placed_info_vector = (*cluster_vector)[i].cell_placed_info_vector;
+            int pop_size = cell_placed_info_vector.size();
+            sort(cell_placed_info_vector.begin(), cell_placed_info_vector.end(), sortCellPlacedIrDropVector);
+            float total_ir_drop = 0;
+            for (int j = 0; j < cell_placed_info_vector.size(); j++)
+            {
+                float ir_drop_count_float = stof(cell_placed_info_vector[j].ir_drop_count);
+                total_ir_drop += ir_drop_count_float;
+            }
+
+            float average_ir_drop = total_ir_drop / cell_placed_info_vector.size();
+            (*cluster_vector)[i].average_ir_drop = floatToString(average_ir_drop);
+            (*cluster_vector)[i].cell_placed_info_vector = cell_placed_info_vector;
+            // cout << "after : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << cell_placed_info_vector.size() << endl;
+        };
+    }
+}
+
+// Method 3 : 整個IR DROP range 1 去改善
+void getAddStripeTclThirdMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector)
+{
+    cout << "========== getAddStripeTclThirdMethod start ========== " << endl;
+    // sort(track_point.begin(), track_point.end(), sortTrackPointVector);
+
+    // step 1 :
+    for (int i = 0; i < (*cluster_vector).size(); i++)
+    {
+        if ((*cluster_vector)[i].point_vector.size() > FIRSTMETHODNUMBEROFIRPOINT)
+        {
+            // cout << "before : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << (*cluster_vector)[i].cell_placed_info_vector.size() << endl;
+            vector<CellPlacedInfo> cell_placed_info_vector = (*cluster_vector)[i].cell_placed_info_vector;
+            int pop_size = cell_placed_info_vector.size();
+            sort(cell_placed_info_vector.begin(), cell_placed_info_vector.end(), sortCellPlacedIrDropVector);
+            float total_ir_drop = 0;
+            for (int j = 0; j < cell_placed_info_vector.size(); j++)
+            {
+                float ir_drop_count_float = stof(cell_placed_info_vector[j].ir_drop_count);
+                total_ir_drop += ir_drop_count_float;
+            }
+
+            float average_ir_drop = total_ir_drop / cell_placed_info_vector.size();
+            (*cluster_vector)[i].average_ir_drop = floatToString(average_ir_drop);
+            (*cluster_vector)[i].cell_placed_info_vector = cell_placed_info_vector;
+            // cout << "after : " << (*cluster_vector)[i].average_ir_drop << " cluster id : " << (*cluster_vector)[i].cluster_id << " cluster placed size : " << cell_placed_info_vector.size() << endl;
+        };
+    }
+    cout << "========== getAddStripeTclThirdMethod end ========== " << endl;
+}
+
 void setIrDropInCluster(unordered_map<string, Cluster> *cluster_map, unordered_map<string, CellPlacedInfo> *cell_location_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, vector<Cluster> *cluster_vector)
 {
-    // for (auto cluster_map_it = (*cluster_map).begin(); cluster_map_it != (*cluster_map).end(); ++cluster_map_it)
-    // {
-    //     string cluster_id = cluster_map_it->first;
-    //     // 左 下 右 上
-    //     vector<Point> point_vector = (*cluster_map)[cluster_id].point_vector;
-    //     for (int i = 0; i < point_vector.size(); i++)
-    //     {
-    //         float point_x_location = point_vector[i].x;
-    //         float point_y_location = point_vector[i].y;
-
-    //         if ((*cluster_map)[cluster_id].left_x_location > point_x_location)
-    //         {
-    //             (*cluster_map)[cluster_id].left_x_location = point_x_location;
-    //         }
-    //         if ((*cluster_map)[cluster_id].right_x_location < point_x_location)
-    //         {
-    //             (*cluster_map)[cluster_id].right_x_location = point_x_location;
-    //         }
-    //         if ((*cluster_map)[cluster_id].up_y_location < point_y_location)
-    //         {
-    //             (*cluster_map)[cluster_id].up_y_location = point_y_location;
-    //         }
-    //         if ((*cluster_map)[cluster_id].down_y_location > point_y_location)
-    //         {
-    //             (*cluster_map)[cluster_id].down_y_location = point_y_location;
-    //         }
-    //     };
-    // }
 
     for (auto cluster_map_it = (*cluster_map).begin(); cluster_map_it != (*cluster_map).end(); ++cluster_map_it)
     {
@@ -402,7 +643,10 @@ void setIrDropInCluster(unordered_map<string, Cluster> *cluster_map, unordered_m
         string cluster_id = cluster_map_it->first;
         Cluster cluster = cluster_map_it->second;
         cluster.cluster_id = cluster_id;
-        (*cluster_vector).push_back(cluster_map_it->second);
+        if (cluster.cluster_id != "-1")
+        {
+            (*cluster_vector).push_back(cluster_map_it->second);
+        }
         // cout << "cluster id : " << cluster_id << " ir_drop_count : " << cluster_map_it->second.average_ir_drop << endl;
         // cout << "location : " << cluster_map_it->second.left_x_location << " " << cluster_map_it->second.down_y_location << " " << cluster_map_it->second.right_x_location << " " << cluster_map_it->second.up_y_location << endl;
         // cout << "===================================================================" << endl;
@@ -859,7 +1103,7 @@ void getIrDropMiddleLocation(IrDropPoint *ir_drop_point)
     // return y_location_str;
 }
 
-void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map, string range_start, string range_end, string ir_drop_percent)
+void setIrDropReport(string method, vector<string> *ir_drop_file_vector, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map, string range_start, string range_end, string ir_drop_percent)
 {
 
     float range_start_float = stof(range_start);
@@ -917,23 +1161,35 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
                     ir_drop_point.layer = ir_content_array[1];
                     ir_drop_point.x_location = ir_content_array[2];
                     ir_drop_point.y_location = ir_content_array[3];
-
                     // ir_drop_point.down_middle_location = getIrDropMiddleLocation(ir_drop_point.y_location);
-
                     getIrDropMiddleLocation(&ir_drop_point);
                     float ir_drop = stof(ir_drop_point.ir_drop);
 
                     // 51 ~ 44
                     // 0.649V -  0.656V
 
-                    // if (ir_drop > 44.0)
-                    // {
-                    //     ir_drop_point_vector.push_back(ir_drop_point);
-                    // }
-                    if (ir_drop >= range_end_float && ir_drop <= range_start_float)
+                    if ((method == METHOD_1))
                     {
+                        if (ir_drop >= range_end_float && ir_drop <= range_start_float)
+                        {
+                            ir_drop_point_vector.push_back(ir_drop_point);
+                        }
+                    }
+                    if ((method == METHOD_2))
+                    {
+
                         ir_drop_point_vector.push_back(ir_drop_point);
                     }
+
+                    if ((method == METHOD_3))
+                    {
+
+                        if (ir_drop >= range_end_float && ir_drop <= range_start_float)
+                        {
+                            ir_drop_point_vector.push_back(ir_drop_point);
+                        }
+                    }
+
                     log++;
                     if (log % 1000 == 0)
                     {
@@ -947,8 +1203,19 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
             cout << " read ir file error " << endl;
         }
         cout << "ir_drop_size : " << ir_drop_point_vector.size() << endl;
+        if (method == METHOD_2)
+        {
+            int original_ir_drop_size = ir_drop_point_vector.size();
+            int ir_drop_size = (METHOD_2_IR_DROP_PERCENT * ir_drop_point_vector.size());
+            for (int i = (ir_drop_size) + 1; i <= original_ir_drop_size; i++)
+            {
+                ir_drop_point_vector.pop_back();
+            }
+        }
+
         (*ir_drop_point_map).insert(pair<string, vector<IrDropPoint>>(layer, ir_drop_point_vector));
     }
+
     // for (auto ir_drop_point_map_it = (*ir_drop_point_map).begin(); ir_drop_point_map_it != (*ir_drop_point_map).end(); ++ir_drop_point_map_it)
     // {
     //     string layer = ir_drop_point_map_it->first;
@@ -960,6 +1227,7 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
     //     }
     // }
 }
+
 void getStripeLocation(string def_transfer_file_name, vector<Stripe> *vdd_stripe_vector, vector<Stripe> *vss_stripe_vector, CoreSite *core_site)
 {
     cout << "========== getStripeLocation start ==========" << endl;
@@ -1362,3 +1630,33 @@ bool floatIsEqualOrMore(float a, float b)
         return false;
     }
 }
+
+// =========== Kmeans  cluster algorithm start ===========
+// ========= kmeans start ==========
+// list<Point> pointlist;
+// ========= kmeans end ==========
+// std::clock_t start;
+// double duration;
+// Kmeans kmeans(5);
+// kmeans.InitPoints(IR_DROP_POINT_FILE);
+// start = std::clock();
+// kmeans.InitCenters();
+// // kmeans.InitSpecifiedCenters();
+// kmeans.RunKmean();
+// duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+// std::cout << "calculate time " << duration << std::endl;
+// kmeans.SaveEPS("S1.eps");
+
+// std::cout << "----------------- kmeans Plus Plus -----------------" << std::endl;
+// KmeansPlusPlus kmeansPlusPlus(8);
+// kmeansPlusPlus.InitPoints(IR_DROP_POINT_FILE);
+// start = std::clock();
+// kmeansPlusPlus.InitCenters();
+// // kmeans.InitSpecifiedCenters();
+// kmeansPlusPlus.RunKmean();
+// duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+// std::cout << "calculate time " << duration << std::endl;
+// kmeansPlusPlus.SaveEPS("S1_++.eps");
+// kmeansPlusPlus.SaveSVG("S1_++.svg");
+// system("pause");
+// =========== Kmeans  cluster algorithm end ===========
