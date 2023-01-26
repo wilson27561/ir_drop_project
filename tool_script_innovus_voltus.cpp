@@ -57,13 +57,13 @@ int main()
         // system(decrease_power_stripe_exe);
 
         // 產生pin access algorithm tcl
-        string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
-        const char *pin_access_power = pin_access_power_consume_command.c_str();
-        cout << "Compiling file using " << pin_access_power << endl;
-        string pin_access_power_consume_exe_str = pin_access_power_consume_exe + config_vector[i];
-        const char *pin_access_power_consume_exe = pin_access_power_consume_exe_str.c_str();
-        system(pin_access_power);
-        system(pin_access_power_consume_exe);
+        // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
+        // const char *pin_access_power = pin_access_power_consume_command.c_str();
+        // cout << "Compiling file using " << pin_access_power << endl;
+        // string pin_access_power_consume_exe_str = pin_access_power_consume_exe + config_vector[i];
+        // const char *pin_access_power_consume_exe = pin_access_power_consume_exe_str.c_str();
+        // system(pin_access_power);
+        // system(pin_access_power_consume_exe);
     }
 
     // 產生def_transfer file

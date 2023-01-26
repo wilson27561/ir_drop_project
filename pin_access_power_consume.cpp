@@ -345,28 +345,28 @@ int main(int argc, char *argv[])
     generateTrackInfoMap(&track_info_map);
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
     // use def for moving
-    getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
-    transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
+    // getStripeLocation(DEF_TRANSFER_FILE, &vdd_stripe_vector, &vss_stripe_vector, &core_site);
+    // transferStripeToMap(&vdd_stripe_map, &vss_stripe_map, &vdd_stripe_vector, &vss_stripe_vector);
 
     // use tcl for moving
-    // getStripeLocationFromStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map, &core_site, &stripe_width_set);
-    // sortStripeMap(&vdd_stripe_map, &vss_stripe_map);
-    // setStripeInfo(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map);
-    // setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
-    // transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
-    // getLefCellImformation(LEF_FILE, &cell_info_map);
-    // getLeftCellPinAccessPoint(&cell_info_map);
-    // getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
-    // setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
-    // getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
-    // setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
-    // setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
-    // // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
+    getStripeLocationFromStripeTcl(DECREASE_WIRE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map, &core_site, &stripe_width_set);
+    sortStripeMap(&vdd_stripe_map, &vss_stripe_map);
+    setStripeInfo(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map);
+    setStripeRange(&vdd_stripe_map, &vss_stripe_map, &core_site);
+    transferMovingRangeToTrack(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    getLefCellImformation(LEF_FILE, &cell_info_map);
+    getLeftCellPinAccessPoint(&cell_info_map);
+    getDefPlacedImformation(DEF_TRANSFER_FILE, &cell_placed_map, &cell_info_map);
+    setCellStripeRange(&vdd_stripe_map, &cell_ip_map, &cell_placed_map);
+    getLefCellPinAccessPointCost(&cell_info_map, &stripe_width_set);
+    setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
+    setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
+    // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
     // setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
     // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
-    // // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
-    // // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+    // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
+    // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
     cout
         << endl
