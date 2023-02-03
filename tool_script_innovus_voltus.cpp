@@ -26,18 +26,17 @@ int main()
     // config_vector.push_back(config_riscv);
     // config_vector.push_back(config_gpu);
     // config_vector.push_back(config_aes);
-    // config_vector.push_back(config_neuralNetwork);
-    config_vector.push_back(config_b19);
-
-
+    config_vector.push_back(config_neuralNetwork);
+    // config_vector.push_back(config_b19);
 
     string def_exe = "def_stripe_transform.exe ";
     string decrease_power_stripe_exe = "decrease_power_stripe_revise.exe ";
     string pin_access_power_consume_exe = "pin_access_power_consume.exe ";
+    string dbscan_ir_drop_exe = "dbscan.exe ";
 
     for (int i = 0; i < config_vector.size(); i++)
     {
-  
+
         // //產生def_transfer file
         string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
         const char *command_def = def_stripe_transform_command.c_str();
@@ -56,7 +55,7 @@ int main()
         // system(decrease_power_stripe);
         // system(decrease_power_stripe_exe);
 
-        // 產生pin access algorithm tcl
+        // // 產生pin access algorithm tcl
         // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
         // const char *pin_access_power = pin_access_power_consume_command.c_str();
         // cout << "Compiling file using " << pin_access_power << endl;
@@ -64,6 +63,14 @@ int main()
         // const char *pin_access_power_consume_exe = pin_access_power_consume_exe_str.c_str();
         // system(pin_access_power);
         // system(pin_access_power_consume_exe);
+
+        // string dbscan_ir_drop_command = "g++ dbscan_ir_drop.cpp cpp/dbscan.cpp -o dbscan";
+        // const char *dbscan_ir_drop = dbscan_ir_drop_command.c_str();
+        // cout << "Compiling file using " << dbscan_ir_drop << endl;
+        // string dbscan_ir_drop_exe_str = dbscan_ir_drop_exe + config_vector[i];
+        // const char *dbscan_ir_drop_exe = dbscan_ir_drop_exe_str.c_str();
+        // system(dbscan_ir_drop);
+        // system(dbscan_ir_drop_exe);
     }
 
     // 產生def_transfer file

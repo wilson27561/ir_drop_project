@@ -181,7 +181,7 @@ const string positive_positive = "positive_positive";
 const string positive_negative = "positive_negative";
 const string negative_positive = "negative_positive";
 const string negative_negative = "negative_negative";
-const int PIN_ACCESS_LESS_WEIGHT = 10;
+const int PIN_ACCESS_LESS_WEIGHT = 100;
 const string ODD = "odd";
 const string EVEN = "even";
 
@@ -362,8 +362,8 @@ int main(int argc, char *argv[])
     setRoutingTrackPowerConsuming(&vdd_stripe_map, &cell_placed_map, &track_info_map);
     setRoutingTrackNumberOfPinAccess(&vdd_stripe_map, &cell_placed_map, &cell_ip_map, &cell_info_map, &track_info_map);
     // Smin 原本最小間距的 1/2 Smax 原本最小間距的 2 倍
-    // setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
-    // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
+    setAddStripePosition(&vdd_stripe_map, &vss_stripe_map, &stripe_info_map, &track_info_map);
+    generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
 
     // getAddStripeCost(&vdd_stripe_map, &vss_stripe_map, &track_info_map);
     // generateAddStripeTcl(&vdd_stripe_map, &vss_stripe_map, ADD_STRIPE_TCL);
@@ -403,6 +403,7 @@ void getStripeRangeCost(Stripe *stripe, string layer, float track_pitch, Stripe 
         float vdd_track_float = stof(vdd_track);
 
         int cover_track = getCoverTrack(power_stripe_width_float);
+        
         float cover_distance = (cover_track * track_pitch) + 0.036;
         if (cover_distance <= 0.36)
         {
@@ -1934,6 +1935,7 @@ int getCoverTrack(float power_stripe_width)
     {
         track = temp_pitch + 1;
     }
+    track +=50;
     return track;
 }
 void transferPinAccessLocationFromDef(CellPlacedInfo *cell_placed_info, PinAccessPoint *pin_access_point, PinAccessPoint *pin_access_point_def, string cell_width, string cell_height)
