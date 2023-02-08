@@ -26,8 +26,9 @@ int main()
     // config_vector.push_back(config_riscv);
     // config_vector.push_back(config_gpu);
     // config_vector.push_back(config_aes);
-    config_vector.push_back(config_neuralNetwork);
+    // config_vector.push_back(config_neuralNetwork);
     // config_vector.push_back(config_b19);
+     config_vector.push_back(config_power_pad);
 
     string def_exe = "def_stripe_transform.exe ";
     string decrease_power_stripe_exe = "decrease_power_stripe_revise.exe ";
@@ -56,7 +57,6 @@ int main()
         // system(decrease_power_stripe_exe);
 
         // // 產生pin access algorithm tcl
-        // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
         // const char *pin_access_power = pin_access_power_consume_command.c_str();
         // cout << "Compiling file using " << pin_access_power << endl;
         // string pin_access_power_consume_exe_str = pin_access_power_consume_exe + config_vector[i];
@@ -95,11 +95,11 @@ int main()
     // // system("pin_access_power_consume.exe config/config_riscv.txt");
 
     // 產生power pad tcl
-    // string generate_power_pad_tcl_command = "g++ generate_power_pad_tcl.cpp -o generate_power_pad_tcl";
-    // const char *command_power_pad = generate_power_pad_tcl_command.c_str();
-    // cout << "Compiling file using " << command_power_pad << endl;
-    // system(command_power_pad);
-    // system("generate_power_pad_tcl.exe");
+    string generate_power_pad_tcl_command = "g++ generate_power_pad_tcl.cpp -o generate_power_pad_tcl";
+    const char *command_power_pad = generate_power_pad_tcl_command.c_str();
+    cout << "Compiling file using " << command_power_pad << endl;
+    system(command_power_pad);
+    system("generate_power_pad_tcl.exe");
 
     // 統計有多少條power stripe
     // string ir_drop_summary_command = "g++ ir_drop_summary.cpp -o ir_drop_summary";
