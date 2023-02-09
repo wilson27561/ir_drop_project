@@ -38,7 +38,7 @@ int main()
     for (int i = 0; i < config_vector.size(); i++)
     {
 
-        // //產生def_transfer file
+        // // //產生def_transfer file
         string def_stripe_transform_command = "g++ def_stripe_transform.cpp -o def_stripe_transform";
         const char *command_def = def_stripe_transform_command.c_str();
         // cout << "Compiling file using " << command_def << endl;
@@ -57,6 +57,7 @@ int main()
         // system(decrease_power_stripe_exe);
 
         // // 產生pin access algorithm tcl
+        // string pin_access_power_consume_command = "g++ pin_access_power_consume.cpp -o pin_access_power_consume";
         // const char *pin_access_power = pin_access_power_consume_command.c_str();
         // cout << "Compiling file using " << pin_access_power << endl;
         // string pin_access_power_consume_exe_str = pin_access_power_consume_exe + config_vector[i];
