@@ -27,7 +27,7 @@ void subreplace(string &resource_str, string &sub_str, string &new_str);
 string floatToString(const float value);
 bool beReplace(string resource_str, string sub_str, string new_str);
 
-int main(int argc,char* argv[])
+int main(int argc, char *argv[])
 {
     string DEF_FILE = "";
     string DEF_TRANSFER_FILE = "";
@@ -51,6 +51,11 @@ int main(int argc,char* argv[])
             }
         }
     }
+    // string DEF_FILE = argv[1];
+    // string DEF_TRANSFER_FILE = argv[2];
+
+    // cout << "DEF_FILE : " << DEF_FILE << endl;
+    // cout << "DEF_TRANSFER_FILE : " << DEF_TRANSFER_FILE << endl;
 
     ifstream def_file(DEF_FILE);
     string def_content;
@@ -323,7 +328,7 @@ void subreplace(string &resource_str, string &sub_str, string &new_str)
 //   }
 // }
 
-//去掉所有的空白
+// 去掉所有的空白
 void trimAllBlanket(string &s)
 {
     int index = 0;
@@ -365,7 +370,7 @@ string erasePattern(string content, char pattern)
 //     words.push_back(trim(content));
 //     return words;
 // }
-//根據pattern切字串
+// 根據pattern切字串
 vector<string> splitByPattern(string content, string pattern)
 {
     vector<string> words;
@@ -386,25 +391,25 @@ vector<string> splitByPattern(string content, string pattern)
     return words;
 }
 
-//去掉首尾全部空格
-// string &trim(string &str)
-// {
-//     if (str.empty())
-//     {
-//         return str;
-//     }
-//     int str_length = str.length();
-//     int start = 0;
-//     int space_end = str.find_first_not_of(" ");
-//     str.erase(start, space_end);
-//     int space_start = (str.find_last_not_of(" ") + 1);
-//     str_length = str.length();
-//     str.erase(space_start, str_length);
+// 去掉首尾全部空格
+//  string &trim(string &str)
+//  {
+//      if (str.empty())
+//      {
+//          return str;
+//      }
+//      int str_length = str.length();
+//      int start = 0;
+//      int space_end = str.find_first_not_of(" ");
+//      str.erase(start, space_end);
+//      int space_start = (str.find_last_not_of(" ") + 1);
+//      str_length = str.length();
+//      str.erase(space_start, str_length);
 
 //     return str;
 // }
 
-//去掉首尾全部空格
+// 去掉首尾全部空格
 string &trim(string &str)
 {
     if (str.empty())

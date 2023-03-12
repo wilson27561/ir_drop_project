@@ -212,19 +212,20 @@ const string DOWN = "DOWN";
 // const string POWER_STRIPE_RESOURCE_HEIGHT = "588.096";
 string POWER_STRIPE_RESOURCE_HEIGHT = "";
 const string POWER_STRIPE_RESOURCE_WIDTH = "0.224";
+
 const string M4_TRACK_STEP = "0.216";
 const string M4_TRACK_START = "0.18";
 const int CHECK_RULE_DISTANCE = 5;
 // 50%
 const string IR_DROP_PERCENT = "0.5";
-const int CHECK_POWER_STRIPE_DISTANCE = 10;
+int CHECK_POWER_STRIPE_DISTANCE = 0;
 const int FIRSTMETHODNUMBEROFIRPOINT = 20;
 const int SECONDMETHODNUMBEROFIRPOINT = 20;
 const int ADDSTRIPEOFCELLROW = 4;
 const string METHOD_3 = "METHOD_3";
 const string METHOD_2 = "METHOD_2";
 const string METHOD_1 = "METHOD_1";
-const float METHOD_2_IR_DROP_PERCENT = 0.07;
+const float METHOD_2_IR_DROP_PERCENT = 0.05;
 int main(int argc, char *argv[])
 // int main()
 {
@@ -251,7 +252,7 @@ int main(int argc, char *argv[])
     DieArea die_area;
 
     string config_file = argv[1];
-    // string config_file = "config/config_gpu.txt";
+    // string config_file = "config/config_neuralNetwork.txt";
     string excute_time = "log_file/excute_time" + config_file;
     ofstream myfile;
     myfile.open(excute_time);
@@ -263,6 +264,8 @@ int main(int argc, char *argv[])
     string IR_REPORT_FILE_M3 = "";
     string STRIPE_TCL = "";
     string IR_DROP_POINT_FILE = "";
+    string CHECK_POWER_STRIPE_DISTANCE_STR = "";
+    string LOG_METAL_RESOURCE_FILE = "";
     // string POWER_STRIPE_RESOURCE_HEIGHT = "";
     // add power stripe config
     const string IR_DROP_RANGE_START = "0.632";
@@ -307,6 +310,18 @@ int main(int argc, char *argv[])
             if (config_content_array[0] == "IR_DROP_POINT_FILE")
             {
                 IR_DROP_POINT_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "IR_DROP_POINT_FILE")
+            {
+                IR_DROP_POINT_FILE = config_content_array[2];
+            }
+            if (config_content_array[0] == "CHECK_POWER_STRIPE_DISTANCE_STR")
+            {
+                CHECK_POWER_STRIPE_DISTANCE_STR = config_content_array[2];
+            }
+            if (config_content_array[0] == "LOG_METAL_RESOURCE_FILE")
+            {
+                LOG_METAL_RESOURCE_FILE = config_content_array[2];
             }
         }
     }
@@ -393,6 +408,10 @@ int main(int argc, char *argv[])
     // generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_FOR_CLUSTER_TCL, DBSCAN_LOG_FILE, false);
 
     // =========== get Add Power Stripe end   ============
+
+    // ========== log metal resource start ===========
+
+    // ========== log metal resource end   ===========
 
     cout
         << endl
@@ -862,6 +881,29 @@ void generateStripeTrack(vector<Stripe> *stripe_vector, CoreSite *core_site)
         }
     }
 }
+void setTrackResource(CoreSite *core_site, map<string, float> *track_resource_map)
+{
+    float m4_track_step = stof(M4_TRACK_STEP);
+    int m4_track_step_int = innovusPointFloatToInt(m4_track_step);
+    float m4_track_start = stof(M4_TRACK_START);
+    int m4_track_start_int = innovusPointFloatToInt(m4_track_start);
+
+    float core_site_up_float = stof((*core_site).up_y_location);
+    int core_site_up_int = innovusPointFloatToInt(core_site_up_float);
+    float core_site_down_float = stof((*core_site).down_y_location);
+    int core_site_down_int = innovusPointFloatToInt(core_site_down_float);
+
+    int core_site_up_int_temp = core_site_up_int - m4_track_start_int;
+    int temp_pitch_up = core_site_up_int_temp / m4_track_step_int;
+    int end_track_int = (temp_pitch_up * m4_track_step_int) + m4_track_start_int;
+    float end_track_float = innovusPointIntToFloat(end_track_int);
+
+    int core_site_down_int_temp = core_site_down_int - m4_track_start_int;
+    int temp_pitch_down = core_site_down_int_temp / m4_track_step_int;
+    temp_pitch_down += 1;
+    int start_track_int = (temp_pitch_down * m4_track_step_int) + m4_track_start_int;
+    float start_track_float = innovusPointIntToFloat(start_track_int);
+}
 
 void transferToPositionMap(vector<Stripe> *vdd_stripe_vector, unordered_map<string, Stripe> *position_vdd_stripe_map)
 {
@@ -920,7 +962,15 @@ void getLeftStripe(vector<Stripe> *vdd_stripe_vector, Stripe *left_stripe, strin
     sort(delta_ir_drop_stripe_vector.begin(), delta_ir_drop_stripe_vector.end(), sortDropLocation);
     vector<Stripe> distance_ir_drop_stripe_vector;
     // cout << "check in side 2 -------" << endl;
-    for (int i = 0; i < CHECK_POWER_STRIPE_DISTANCE; i++)
+    // if (CHECK_POWER_STRIPE_DISTANCE > delta_ir_drop_stripe_vector.size())
+    // {
+    //     cout << "CHECK_POWER_STRIPE_DISTANCE : " << CHECK_POWER_STRIPE_DISTANCE << endl;
+    //     cout << "delta_ir_drop_stripe_vector : " << delta_ir_drop_stripe_vector.size() << endl;
+    // }
+    int getLocationSize = delta_ir_drop_stripe_vector.size();
+    getLocationSize = getLocationSize / 2;
+
+    for (int i = 0; i < getLocationSize; i++)
     {
         distance_ir_drop_stripe_vector.push_back(delta_ir_drop_stripe_vector[i]);
     }
@@ -957,7 +1007,14 @@ void getRightStripe(vector<Stripe> *vdd_stripe_vector, Stripe *right_stripe, str
     // step 1 sort distance
     sort(delta_ir_drop_stripe_vector.begin(), delta_ir_drop_stripe_vector.end(), sortRiseLocation);
     vector<Stripe> distance_ir_drop_stripe_vector;
-    for (int i = 0; i < CHECK_POWER_STRIPE_DISTANCE; i++)
+    //  if (CHECK_POWER_STRIPE_DISTANCE > delta_ir_drop_stripe_vector.size())
+    // {
+    //     cout << "CHECK_POWER_STRIPE_DISTANCE : " << CHECK_POWER_STRIPE_DISTANCE << endl;
+    //     cout << "delta_ir_drop_stripe_vector : " << delta_ir_drop_stripe_vector.size() << endl;
+    // }
+    int getLocationSize = delta_ir_drop_stripe_vector.size();
+    getLocationSize = getLocationSize / 2;
+    for (int i = 0; i < getLocationSize; i++)
     {
         distance_ir_drop_stripe_vector.push_back(delta_ir_drop_stripe_vector[i]);
     }
@@ -2258,9 +2315,9 @@ void setIrDropReport(string method, vector<string> *ir_drop_file_vector, unorder
 
     for (int i = 0; i < (*ir_drop_file_vector).size(); i++)
     {
-       
+
         string ir_drop_file_name = (*ir_drop_file_vector)[i];
-         cout << "ir_drop_file_name : " << ir_drop_file_name << endl;
+        cout << "ir_drop_file_name : " << ir_drop_file_name << endl;
 
         vector<string> ir_file_content_array = splitByPattern(ir_drop_file_name, "/");
 
@@ -2340,6 +2397,7 @@ void setIrDropReport(string method, vector<string> *ir_drop_file_vector, unorder
         {
             cout << " read ir file error " << endl;
         }
+
         cout << "ir_drop_size : " << ir_drop_point_vector.size() << endl;
         vector<IrDropPoint> revise_ir_drop_point;
         if (method == METHOD_2)

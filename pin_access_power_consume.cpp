@@ -435,7 +435,6 @@ void getStripeRangeCost(Stripe *stripe, string layer, float track_pitch, Stripe 
         // cout << (*stripe).start_x_location << " vss change to " << (*stripe).vss_track_x_location << endl;
         // 將 vdd track 放入 stripe x track location 內
         (*stripe).vdd_track_x_location = vdd_track;
-        cout << "odd layer : " << endl;
         cout << "vdd track x location : " << (*stripe).vdd_track_x_location << "   cover distance : " << cover_distance << endl;
         (*stripe).vss_track_x_location = vss_track;
     }

@@ -115,7 +115,7 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
 void setIrInPowerStripe(unordered_map<string, vector<Stripe>> *resize_vdd_stripe_map, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map);
 float getOddConsumeRatio(string boudary, float left_x_location_float, float right_x_location_float, float move_range_x_left_float, float move_range_x_right_float);
 float getEvenConsumeRatio(string boudary, float down_y_location_float, float up_y_location_float, float move_range_y_down_float, float move_range_y_up_float);
-int wirePowerStripe(string layer, unordered_map<string, int> *decreae_number_of_power_stripe_map, string original_power_stripe_width, vector<Stripe> *stripe_vector);
+int wirePowerStripe(string layer, unordered_map<string, int> *decreae_number_of_power_stripe_map, string original_power_stripe_width, vector<Stripe> *stripe_vector,unordered_map<string, TrackInfo> *track_info_map);
 void reviseCellPlacedPosition(CellPlacedInfo *cell_placed_info);
 void generateDecreaseStripeTcl(unordered_map<string, vector<Stripe>> *resize_vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, string stripe_tcl);
 void generateEstimateWidthStripeTcl(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, string stripe_tcl);
@@ -126,7 +126,7 @@ void setStripeLength(Stripe *stripe);
 void getStripePowerDistanceCost(string layer, Stripe *stripe, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void getReducePowerStripeCost(string layer, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map);
 void removeLessCostofPowerStripe(string layer, unordered_map<string, vector<Stripe>> *vdd_stripe_map);
-void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map);
+void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map,unordered_map<string, TrackInfo> *track_info_map);
 void getTrackInfoDistance(unordered_map<string, TrackInfo> *track_info_map, CoreSite *core_site);
 void renewWireStripeDistanceIrDropCost(vector<Stripe> *stripe_vector);
 void generateWireStripe(string log_file_tcl, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, unordered_map<string, int> *decreae_number_of_power_stripe_map, unordered_map<string, TrackInfo> *track_info_map);
@@ -164,7 +164,8 @@ const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string M3 = "M3";
 const string M4 = "M4";
-const string WIRE_STRIPE = "3";
+// 這裡是指routing track數量  5 7
+const string WIRE_STRIPE = "5";
 const float RESIZE_RATIO = 0.3;
 
 int main(int argc, char *argv[])
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
 
     string config_file = argv[1];
     // string config_file = "config/config_b19_17.txt";
-    // string config_file = "config/config_b19_9.txt";
+    // string config_file = "config/config_b19.txt";
     string DEF_TRANSFER_FILE = "";
     string LEF_FILE = "";
     string IP_REPORT_FILE = "";
@@ -239,7 +240,7 @@ int main(int argc, char *argv[])
             {
                 ESTIMATE_WIDTH_STRIPE_TCL = config_content_array[2];
             }
-            if (config_content_array[0] == "IR_REPORT_FILE")
+            if (config_content_array[0] == "IR_REPORT_FILE_M3")
             {
                 // IR_REPORT_FILE = config_content_array[2];
                 ir_drop_file_vector.push_back(config_content_array[2]);
@@ -262,7 +263,7 @@ int main(int argc, char *argv[])
     getIpPowerReport(IP_REPORT_FILE, &cell_ip_map);
 
     // method 1 : reduce power stripe width
-    reducePowerStripe(LOG_FILE, &vdd_stripe_map, &cell_placed_map, &cell_ip_map, &decreae_number_of_power_stripe_map);
+    reducePowerStripe(LOG_FILE, &vdd_stripe_map, &cell_placed_map, &cell_ip_map, &decreae_number_of_power_stripe_map,&track_info_map);
     generateWireStripeTcl(DECREASE_STRIPE_TCL, &vdd_stripe_map, &vss_stripe_map);
     // for (auto vdd_stripe_map_it = vdd_stripe_map.begin(); vdd_stripe_map_it != vdd_stripe_map.end(); ++vdd_stripe_map_it)
     // {
@@ -279,8 +280,6 @@ int main(int argc, char *argv[])
     // }
 
     // // method 2 : wire power_stripe width
-    // getTrackInfoDistance(&track_info_map, &core_site);
-
     setIrDropReport(&ir_drop_file_vector, &ir_drop_point_map);
     setIrInPowerStripe(&vdd_stripe_map, &ir_drop_point_map);
     generateWireStripe(LOG_FILE, &vdd_stripe_map, &vss_stripe_map, &decreae_number_of_power_stripe_map, &track_info_map);
@@ -426,8 +425,10 @@ void generateWireStripe(string log_file_tcl, unordered_map<string, vector<Stripe
 
     for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
     {
+
         string layer = vdd_stripe_map_it->first;
         int wire_count = (*decreae_number_of_power_stripe_map)[layer];
+
         string wire_stripe_location = "1";
         float original_power_stripe_width = stof(vdd_stripe_map_it->second[0].width) / 2;
         unordered_map<string, float> is_wire_map;
@@ -472,15 +473,22 @@ void generateWireStripe(string log_file_tcl, unordered_map<string, vector<Stripe
             // cout << "stripe_index : " << stripe_index << endl;
             string power_stripe_width = renew_cost_stripe_vector[stripe_index].width;
             // cout << "power_stripe_width : " << power_stripe_width << endl;
-            float wire_multiples = stof(WIRE_STRIPE);
-            float power_stripe_width_float = stof(power_stripe_width);
-            float wire_power_stripe_width_float = original_power_stripe_width * wire_multiples;
-            // cout << "wire_power_stripe_width_float : " << wire_power_stripe_width_float << endl;
-            float caculate_width = (power_stripe_width_float / 2) + (wire_power_stripe_width_float - original_power_stripe_width);
-            // cout << "caculate_width : " << caculate_width << endl;
-            caculate_width = caculate_width * 2;
+            // float wire_multiples = stof(WIRE_STRIPE);
+            // float power_stripe_width_float = stof(power_stripe_width);
+            // float wire_power_stripe_width_float = original_power_stripe_width * wire_multiples;
+            // // cout << "wire_power_stripe_width_float : " << wire_power_stripe_width_float << endl;
+            // float caculate_width = (power_stripe_width_float / 2) + (wire_power_stripe_width_float - original_power_stripe_width);
+            // // cout << "caculate_width : " << caculate_width << endl;
+            // caculate_width = caculate_width * 2;
+            float number_of_track = stof(WIRE_STRIPE);
+            number_of_track -= 1;
+            string pitch = (*track_info_map)[M3].pitch;
+            float pitch_float = stof(pitch);
+            float power_stripe_width_float = (pitch_float * number_of_track) + (0.036 * 2);
+            string caculate_width = floatToString(power_stripe_width_float);
+            cout << "caculate_width : " << caculate_width << endl;
 
-            renew_cost_stripe_vector[stripe_index].width = floatToString(caculate_width);
+            renew_cost_stripe_vector[stripe_index].width = caculate_width;
 
             // cout << "wire_stripe_location : " << wire_stripe_location << endl;
             (*vdd_stripe_map)[layer] = renew_cost_stripe_vector;
@@ -528,8 +536,8 @@ void renewWireStripeDistanceIrDropCost(vector<Stripe> *stripe_vector)
     // cout << "========== renewWireStripeDistanceIrDropCost end ==========" << endl;
 }
 
-//可以加寬幾次
-int wirePowerStripe(string layer, unordered_map<string, int> *decreae_number_of_power_stripe_map, string original_power_stripe_width, vector<Stripe> *stripe_vector)
+// 可以加寬幾次
+int wirePowerStripe(string layer, unordered_map<string, int> *decreae_number_of_power_stripe_map, string original_power_stripe_width, vector<Stripe> *stripe_vector,unordered_map<string, TrackInfo> *track_info_map)
 {
 
     // get power stripe width
@@ -542,12 +550,17 @@ int wirePowerStripe(string layer, unordered_map<string, int> *decreae_number_of_
     // (*logfile) << "original vdd_stripe : " << (*vdd_stripe_vector).size() << endl;
     // (*logfile) << "resize   vdd_stripe : " << (*resize_vdd_stripe_vector).size() << endl;
     // (*logfile) << "decreas  vdd_stripe : " << decreas_size << endl;
-    int decrease_size = (*decreae_number_of_power_stripe_map)[layer];
 
-    float wide_wire_float = stof(WIRE_STRIPE);
+    int decrease_size = (*decreae_number_of_power_stripe_map)[layer];
+    cout << "decrease_size : " << decrease_size << endl;
+    float number_of_track = stof(WIRE_STRIPE);
+    number_of_track -= 1;
+    string pitch = (*track_info_map)[M3].pitch;
+    float pitch_float = stof(pitch);
+    float power_stripe_width_float = (pitch_float * number_of_track) + (0.036 * 2);
+
     float original_power_stripe_float = stof(original_power_stripe_width);
-    float wide_width = original_power_stripe_float * wide_wire_float;
-    float resource_wire = wide_width - original_power_stripe_float;
+    float resource_wire = power_stripe_width_float - original_power_stripe_float;
     float total_width = decrease_size * original_power_stripe_float;
     float number_of_power_stripe = (total_width / resource_wire);
     string number_of_power_stripe_str = floatToString(number_of_power_stripe);
@@ -694,7 +707,7 @@ void generateTrackInfoMap(unordered_map<string, TrackInfo> *track_info_map)
     (*track_info_map).insert(pair<string, TrackInfo>(m3_track_info.layer, m3_track_info));
     (*track_info_map).insert(pair<string, TrackInfo>(m4_track_info.layer, m4_track_info));
 }
-void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map)
+void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, CellPlacedInfo> *cell_placed_map, unordered_map<string, CellInstancePowerInfo> *cell_ip_map, unordered_map<string, int> *decreae_number_of_power_stripe_map,unordered_map<string, TrackInfo> *track_info_map)
 {
     string log_file_name = log_file + "_reduce_log.txt";
 
@@ -728,7 +741,7 @@ void reducePowerStripe(string log_file, unordered_map<string, vector<Stripe>> *v
         vector<Stripe> stripe_vector = vdd_stripe_it->second;
         int number_of_decrease = (*decreae_number_of_power_stripe_map)[layer] - (*vdd_stripe_map)[layer].size();
         (*decreae_number_of_power_stripe_map)[layer] = number_of_decrease;
-        int number_of_stripe = wirePowerStripe(layer, &(*decreae_number_of_power_stripe_map), stripe_vector[0].width, &(vdd_stripe_it->second));
+        int number_of_stripe = wirePowerStripe(layer, &(*decreae_number_of_power_stripe_map), stripe_vector[0].width, &(vdd_stripe_it->second),&(*track_info_map));
 
         (*decreae_number_of_power_stripe_map)[layer] = number_of_stripe;
     }
@@ -2009,7 +2022,7 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
     {
         string ir_drop_file_name = (*ir_drop_file_vector)[i];
         vector<string> ir_file_content_array = splitByPattern(ir_drop_file_name, "/");
-        string file_name_detail = ir_file_content_array[1];
+        string file_name_detail = ir_file_content_array[2];
         vector<string> file_content_array = splitByPattern(file_name_detail, "_");
         string layer = file_content_array[4];
         vector<IrDropPoint> ir_drop_point_vector;
@@ -2056,6 +2069,7 @@ void setIrDropReport(vector<string> *ir_drop_file_vector, unordered_map<string, 
         {
             cout << " read ir file error " << endl;
         }
+
         (*ir_drop_point_map).insert(pair<string, vector<IrDropPoint>>(layer, ir_drop_point_vector));
     }
 }
