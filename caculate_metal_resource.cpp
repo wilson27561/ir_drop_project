@@ -116,7 +116,9 @@ int main(int argc, char *argv[])
     //     }
     // }
     DEF_TRANSFER_FILE = argv[2];
-    // DEF_TRANSFER_FILE = "def_file/metal_resource_def/6t49_b19_routing_run0_original_tranfer.def";
+
+    // cout <<  "DEF_TRANSFER_FILE : " <<DEF_TRANSFER_FILE << endl;
+    // DEF_TRANSFER_FILE = "def_file/metal_resource_def/6t49_aes_routing_run0_5track_pitch_clockTree_tranfer.def";
     // cout << "=================" << DEF_TRANSFER_FILE << endl;
     // for (int i = 0; i < def_transfer_file_vector.size(); i++)
     // {

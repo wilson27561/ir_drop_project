@@ -22,6 +22,9 @@ using namespace std;
 struct Track
 {
     string track_x_location;
+    string layer;
+    string x_location;
+    string y_location;
 };
 struct Stripe
 {
@@ -40,6 +43,7 @@ struct Stripe
     vector<string> ip_power_vector;
     unordered_map<string, string> m4_track_point_map;
 };
+
 struct CoreSite
 {
 
@@ -124,6 +128,17 @@ struct DieArea
     string top_right_x_location;
     string top_right_y_location;
 };
+struct TrackInfo
+{
+    string layer;
+    string start_x_track_location;
+    string end_x_track_location;
+    string start_y_track_location;
+    string end_y_track_location;
+    // core_site內
+    float total_track_length;
+    float occupy_resource_percent;
+};
 #define MINIMUM_POINTS 6 // minimum number of cluster
 // #define EPSILON (0.864 * 0.864) // distance for clustering, metre^2
 #define EPSILON 1.728 // distance for clustering, metre^2
@@ -175,7 +190,7 @@ void getLeftStripe(vector<Stripe> *vdd_stripe_vector, Stripe *right_stripe, stri
 void getStripeLocationFromStripeTcl(string stripe_tcl_file_name, unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<Stripe>> *vss_stripe_map, CoreSite *core_site, set<string> *stripe_width_set, string *power_stripe_resource_width);
 bool sortClusterIrDropVector(Cluster cluster_a, Cluster cluster_b);
 void generateAddPowerStripe(vector<Cluster> *cluster_vector, vector<Cluster> *revise_cluster_vector, unordered_map<string, vector<Stripe>> *vdd_stripe_map);
-void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource);
+void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource, map<string, TrackInfo> *track_info_map);
 void getAddStripeTclFirstMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
 void getAddStripeTclSecondMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
 void getAddStripeTclThirdMethod(unordered_map<string, CellPlacedInfo> *cell_location_map, vector<Cluster> *cluster_vector);
@@ -199,6 +214,16 @@ void getShapeRing(string def_file_name, vector<ShapeRing> *vdd_shape_ring_vector
 void tansferShapeRing(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, map<string, ShapeRing> *vdd_shape_map, map<string, ShapeRing> *vss_shape_map);
 void setShapeRingSide(vector<ShapeRing> *vdd_shape_ring_vector, vector<ShapeRing> *vss_shape_ring_vector, DieArea *die_area);
 void getDieArea(string def_file_name, DieArea *die_area);
+void getTrackInfo(CoreSite *core_site, map<string, TrackInfo> *track_info_map);
+void getTrackInfoVector(string layer, string start_step, string end_step, vector<Track> *track_vector);
+string getBackStepTack(string layer, float offset);
+string getNextStepTrack(string layer, float offset);
+float tranferToTrackFloat(int number);
+int tranferToTrackInt(float number);
+void getMetalResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, map<string, TrackInfo> *track_info_map, CoreSite *core_site);
+int getTrackPitch(string width);
+float getStripeResource(string layer, float odd_core_site_length, float even_core_site_length, Stripe *stripe);
+
 const string NET_NAME_VDD = "VDDX";
 const string NET_NAME_VSS = "VSSX";
 const string M3 = "M3";
@@ -212,20 +237,28 @@ const string DOWN = "DOWN";
 // const string POWER_STRIPE_RESOURCE_HEIGHT = "588.096";
 string POWER_STRIPE_RESOURCE_HEIGHT = "";
 const string POWER_STRIPE_RESOURCE_WIDTH = "0.224";
-
+string getNextStepTrack(string layer, float offset);
+string getBackStepTack(string layer, float offset);
 const string M4_TRACK_STEP = "0.216";
 const string M4_TRACK_START = "0.18";
-const int CHECK_RULE_DISTANCE = 5;
+const int CHECK_RULE_DISTANCE = 10;
+const float METAL_RESOURCE_LIMIT_PERCENT = 1;
 // 50%
 const string IR_DROP_PERCENT = "0.5";
 int CHECK_POWER_STRIPE_DISTANCE = 0;
 const int FIRSTMETHODNUMBEROFIRPOINT = 20;
 const int SECONDMETHODNUMBEROFIRPOINT = 20;
-const int ADDSTRIPEOFCELLROW = 4;
+const int ADDSTRIPEOFCELLROW = 8;
 const string METHOD_3 = "METHOD_3";
 const string METHOD_2 = "METHOD_2";
 const string METHOD_1 = "METHOD_1";
-const float METHOD_2_IR_DROP_PERCENT = 0.05;
+string ODD = "odd";
+string EVEN = "even";
+string M4_Y_STEP = "0.216";
+string M3_X_STEP = "0.144";
+string M3_START_STEP = "0.18";
+string M4_START_STEP = "0.18";
+const float METHOD_2_IR_DROP_PERCENT = 0.03;
 int main(int argc, char *argv[])
 // int main()
 {
@@ -250,9 +283,10 @@ int main(int argc, char *argv[])
     map<string, ShapeRing> vdd_shape_map;
     map<string, ShapeRing> vss_shape_map;
     DieArea die_area;
+    map<string, TrackInfo> track_info_map;
 
     string config_file = argv[1];
-    // string config_file = "config/config_neuralNetwork.txt";
+    // string config_file = "config/config_aes.txt";
     string excute_time = "log_file/excute_time" + config_file;
     ofstream myfile;
     myfile.open(excute_time);
@@ -272,7 +306,7 @@ int main(int argc, char *argv[])
     const string IR_DROP_RANGE_END = "0.64";
     ifstream config(config_file);
     string config_content;
-
+    // file prepare  Def M1 M3
     if (config)
     {
         while (getline(config, config_content))
@@ -306,10 +340,6 @@ int main(int argc, char *argv[])
             if (config_content_array[0] == "IR_REPORT_FILE_M3")
             {
                 IR_REPORT_FILE_M3 = config_content_array[2];
-            }
-            if (config_content_array[0] == "IR_DROP_POINT_FILE")
-            {
-                IR_DROP_POINT_FILE = config_content_array[2];
             }
             if (config_content_array[0] == "IR_DROP_POINT_FILE")
             {
@@ -397,10 +427,13 @@ int main(int argc, char *argv[])
     // generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_FOR_CLUSTER_TCL, DBSCAN_LOG_FILE, false);
 
     // method 2 serious 5% point :
+    getTrackInfo(&core_site, &track_info_map);
+    getMetalResource(&vdd_stripe_map, &track_info_map, &core_site);
+
     getAddStripeTclSecondMethod(&cell_location_map, &cluster_vector);
     setClusterBoundary(&cluster_vector);
     generateAddPowerStripe(&cluster_vector, &revise_cluster_vector, &vdd_stripe_map);
-    generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_FOR_CLUSTER_TCL, DBSCAN_LOG_FILE, false);
+    generateAddPowerStripeTclLimitResource(&vdd_stripe_map, &cluster_vector, ADD_STRIPE_FOR_CLUSTER_TCL, DBSCAN_LOG_FILE, false, &track_info_map);
     // method 3 serious range 1  :
     // getAddStripeTclThirdMethod(&cell_location_map, &cluster_vector);
     // setClusterBoundary(&cluster_vector);
@@ -428,6 +461,244 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+void getMetalResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, map<string, TrackInfo> *track_info_map, CoreSite *core_site)
+{
+    cout << "========== getMetalResource start ==========" << endl;
+    float core_left_x_location = stof((*core_site).left_x_location);
+    float core_right_x_location = stof((*core_site).right_x_location);
+    float core_up_y_location = stof((*core_site).up_y_location);
+    float core_down_y_location = stof((*core_site).down_y_location);
+
+    float odd_core_site_length = abs((core_left_x_location) - (core_right_x_location));
+    float even_core_site_length = abs((core_up_y_location) - (core_down_y_location));
+
+    for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
+    {
+        string layer = vdd_stripe_map_it->first;
+        float total_stripe_resource = 0;
+
+        for (int i = 0; i < (*vdd_stripe_map)[layer].size(); i++)
+        {
+            Stripe stripe = (*vdd_stripe_map)[layer][i];
+            float stripe_length = stof(stripe.length);
+            float metal_resource = getStripeResource(layer, odd_core_site_length, even_core_site_length, &stripe);
+            total_stripe_resource += metal_resource;
+        }
+        float total_track_metal_resource = (*track_info_map)[layer].total_track_length;
+        float resource_percent = total_stripe_resource / total_track_metal_resource;
+        (*track_info_map)[layer].occupy_resource_percent = resource_percent * 100;
+
+        cout << "layer : " << layer << " " << (*track_info_map)[layer].occupy_resource_percent << "%" << endl;
+    }
+    cout << "========== getMetalResource end ==========" << endl;
+}
+
+float getStripeResource(string layer, float odd_core_site_length, float even_core_site_length, Stripe *stripe)
+{
+    float stripe_length = stof((*stripe).length);
+
+    if (isOddLayer(layer))
+    {
+        if (stripe_length > odd_core_site_length)
+        {
+            int track_pitch = getTrackPitch((*stripe).width);
+            float metal_resource = odd_core_site_length * track_pitch;
+            return metal_resource;
+        }
+        else
+        {
+            int track_pitch = getTrackPitch((*stripe).width);
+            float metal_resource = stripe_length * track_pitch;
+            return metal_resource;
+        }
+    }
+    else
+    {
+        if (stripe_length > even_core_site_length)
+        {
+            int track_pitch = getTrackPitch((*stripe).width);
+            float metal_resource = odd_core_site_length * track_pitch;
+            return metal_resource;
+        }
+        else
+        {
+            int track_pitch = getTrackPitch((*stripe).width);
+            float metal_resource = stripe_length * track_pitch;
+            return metal_resource;
+        }
+    };
+}
+
+int getTrackPitch(string width)
+{
+    if (width == "0.36")
+    {
+        return 3;
+    }
+    else if (width == "0.648")
+    {
+        return 5;
+    }
+    else if (width == "0.936")
+    {
+        return 7;
+    }
+    else if (width == "0.224")
+    {
+        return 3;
+    }
+    else
+    {
+        cout << "track pitch error" << endl;
+        return 0;
+    }
+}
+
+// 計算track 在 core site中的數量
+void getTrackInfo(CoreSite *core_site, map<string, TrackInfo> *track_info_map)
+{
+    float core_left_x_location = stof((*core_site).left_x_location);
+    float core_right_x_location = stof((*core_site).right_x_location);
+    float core_up_y_location = stof((*core_site).up_y_location);
+    float core_down_y_location = stof((*core_site).down_y_location);
+
+    string start_left_track = getNextStepTrack(ODD, core_left_x_location);
+    string end_right_track = getBackStepTack(ODD, core_right_x_location);
+    string start_down_track = getNextStepTrack(EVEN, core_down_y_location);
+    string end_up_track = getBackStepTack(EVEN, core_up_y_location);
+    // cout << "start_left_track : " << start_left_track << endl;
+    // cout << "end_right_track : " << end_right_track << endl;
+    // cout << "start_down_track : " << start_down_track << endl;
+    // cout << "end_up_track : " << end_up_track << endl;
+    float odd_core_site_length = abs((core_left_x_location) - (core_right_x_location));
+    float even_core_site_length = abs((core_up_y_location) - (core_down_y_location));
+    // cout << "odd_core_site_length : " << odd_core_site_length << endl;
+    // cout << "even_core_site_length : " << even_core_site_length << endl;
+
+    vector<Track> m3_track_vector;
+    vector<Track> m4_track_vector;
+    getTrackInfoVector(ODD, start_left_track, end_right_track, &m3_track_vector);
+    getTrackInfoVector(EVEN, start_down_track, end_up_track, &m4_track_vector);
+
+    float m3_track_size_float = (float)m3_track_vector.size();
+    float m4_track_size_float = (float)m4_track_vector.size();
+    // cout << "m3_track_vector : " << m3_track_size_float << endl;
+    // cout << "m4_track_vector : " << m4_track_size_float << endl;
+
+    TrackInfo m3_track_info;
+    TrackInfo m4_track_info;
+    float m3_track_resource = odd_core_site_length * m3_track_size_float;
+    float m4_track_resource = even_core_site_length * m4_track_size_float;
+    // cout << "m3_track resource : " << m3_track_resource << endl;
+    // cout << "m4_track resource : " << m4_track_resource << endl;
+    m3_track_info.total_track_length = m3_track_resource;
+    m4_track_info.total_track_length = m4_track_resource;
+    (*track_info_map).insert(pair<string, TrackInfo>(M3, m3_track_info));
+    (*track_info_map).insert(pair<string, TrackInfo>(M4, m4_track_info));
+}
+void getTrackInfoVector(string layer, string start_step, string end_step, vector<Track> *track_vector)
+{
+    float start_step_float = stof(start_step);
+    float end_step_float = stof(end_step);
+    float m3_step = stof(M3_X_STEP);
+    float m4_step = stof(M4_Y_STEP);
+
+    int start_step_int = tranferToTrackInt(start_step_float);
+    int end_step_int = tranferToTrackInt(end_step_float);
+    int m3_step_int = tranferToTrackInt(m3_step);
+    int m4_step_int = tranferToTrackInt(m4_step);
+
+    if (layer == ODD)
+    {
+        for (int i = start_step_int; i <= end_step_int; i += m3_step_int)
+        {
+            float x_location = tranferToTrackFloat(i);
+            Track track;
+            track.x_location = floatToString(x_location);
+            track.layer = M3;
+            (*track_vector).push_back(track);
+        }
+    }
+    else
+    {
+        for (int i = start_step_int; i <= end_step_int; i += m4_step_int)
+        {
+            float x_location = tranferToTrackFloat(i);
+            Track track;
+            track.x_location = floatToString(x_location);
+            track.layer = M4;
+            (*track_vector).push_back(track);
+        }
+    }
+}
+
+int tranferToTrackInt(float number)
+{
+    number = number * 1000;
+    int number_int = (int)number / 4;
+    return number_int;
+}
+float tranferToTrackFloat(int number)
+{
+    number = (number * 4);
+    float number_float = (float)number / 1000;
+    return number_float;
+}
+
+string getNextStepTrack(string layer, float offset)
+{
+    if (layer == ODD)
+    {
+        float m3_x_step = stof(M3_X_STEP);
+        float start_step = stof(M3_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m3_x_step);
+        temp += 1;
+
+        float step = (temp * m3_x_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+    else
+    {
+        float m4_y_step = stof(M4_Y_STEP);
+        float start_step = stof(M4_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m4_y_step);
+        temp += 1;
+
+        float step = (temp * m4_y_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+}
+string getBackStepTack(string layer, float offset)
+{
+    if (layer == ODD)
+    {
+        float m3_x_step = stof(M3_X_STEP);
+        float start_step = stof(M3_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m3_x_step);
+
+        float step = (temp * m3_x_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+    else
+    {
+        float m4_y_step = stof(M4_Y_STEP);
+        float start_step = stof(M4_START_STEP);
+        offset = offset - start_step;
+        int temp = (int)(offset / m4_y_step);
+
+        float step = (temp * m4_y_step) + start_step;
+        string step_str = floatToString(step);
+        return step_str;
+    }
+}
+
 void getDieArea(string def_file_name, DieArea *die_area)
 {
     ifstream def_file(def_file_name);
@@ -630,7 +901,7 @@ void setShapeRingLocation(ShapeRing *shape_ring, vector<string> *def_content_arr
 
 void setIrInPowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, unordered_map<string, vector<IrDropPoint>> *ir_drop_point_map)
 {
-
+    cout << "setIrInPowerStripe start " << endl;
     // step 1 : count delta ir drop
     for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
     {
@@ -695,7 +966,7 @@ void setIrInPowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, u
             (*vdd_stripe_map)[layer][i].ir_drop_cost = temp_delta_ir / maximum_delta_ir_drop;
         }
     }
-
+    cout << "vdd stripe map size" <<(*vdd_stripe_map).size() << endl;
     for (auto vdd_stripe_map_it = (*vdd_stripe_map).begin(); vdd_stripe_map_it != (*vdd_stripe_map).end(); ++vdd_stripe_map_it)
     {
         string layer = vdd_stripe_map_it->first;
@@ -713,6 +984,7 @@ void setIrInPowerStripe(unordered_map<string, vector<Stripe>> *vdd_stripe_map, u
     //         cout << "layer : " << layer << " stripe location : " << (*vdd_stripe_map)[layer][i].start_x_location << " delta ir drop : " <<  (*vdd_stripe_map)[layer][i].ir_drop_cost << endl;
     //     }
     // }
+    cout << "setIrInPowerStripe endl; " << endl;
 }
 bool sortIrDropPoint(IrDropPoint ir_drop_point_a, IrDropPoint ir_drop_point_b)
 {
@@ -758,7 +1030,22 @@ bool isInEvenPowerStripeWidth(Stripe *stripe, string power_stripe_width, IrDropP
     }
 }
 
-void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource)
+float caculateStripeResource(Stripe *stripe)
+{
+    float metal_resource_length = 0;
+
+    if ((*stripe).layer == M4)
+    {
+        string width = (*stripe).width;
+        float length = abs(stof((*stripe).start_x_location) - stof((*stripe).end_x_location));
+        int track_pitch = getTrackPitch(width);
+        metal_resource_length = track_pitch * length;
+    }
+
+    return metal_resource_length;
+}
+
+void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>> *vdd_stripe_map, vector<Cluster> *cluster_vector, string add_stripe_file_name, string dbscan_log_file, bool isLimitResource, map<string, TrackInfo> *track_info_map)
 {
 
     cout << "========== generateAddPowerStripeTclLimitResource start ==========" << endl;
@@ -767,8 +1054,12 @@ void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>
     float power_stripe_resource_length = stof(POWER_STRIPE_RESOURCE_HEIGHT);
     ofstream add_stripe_file;
     add_stripe_file.open(add_stripe_file_name);
-    float metal_resource = 0;
+    float total_metal_resource = 0;
     cout << "cluster size : " << (*cluster_vector).size() << endl;
+
+    float total_stripe_resource = 0;
+    cout << "M3 metal resource : " << (*track_info_map)[M3].occupy_resource_percent << endl;
+
     for (int i = 0; i < (*cluster_vector).size(); i++)
     {
         myfile << "cluster_id : " << (*cluster_vector)[i].cluster_id << endl;
@@ -781,33 +1072,63 @@ void generateAddPowerStripeTclLimitResource(unordered_map<string, vector<Stripe>
         if ((*cluster_vector)[i].add_stripe_vector.size() == 1)
         {
             Stripe stripe = (*cluster_vector)[i].add_stripe_vector[0];
-            myfile << "addStripe -nets { VDDX } -layer "
-                   << stripe.layer
-                   << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
-        }
+            add_stripe_file << "addStripe -nets { VDDX } -layer "
+                            << stripe.layer
+                            << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
 
-        for (int j = 0; j < (*cluster_vector)[i].add_stripe_vector.size(); j++)
-        {
-            Stripe stripe = (*cluster_vector)[i].add_stripe_vector[j];
-            myfile << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
-            if (power_stripe_resource_length >= 0 && !isLimitResource)
+            float metal_resource = caculateStripeResource(&stripe);
+            float total_track_metal_resource = (*track_info_map)[M4].total_track_length;
+            total_metal_resource += metal_resource;
+            float resource_percent = total_metal_resource / total_track_metal_resource;
+            if ((resource_percent * 100) >= METAL_RESOURCE_LIMIT_PERCENT)
             {
-                float stripe_width = abs(stof(stripe.start_x_location) - stof(stripe.end_x_location));
-                if (isLimitResource)
-                {
-                    power_stripe_resource_length -= stripe_width;
-                }
+                myfile << "yy M3 metal resource : " << (*track_info_map)[M3].occupy_resource_percent << endl;
+                myfile << "yy M4 metal resource : " << (resource_percent * 100) << "%" << endl;
+                break;
+            }
+        }
+        else
+        {
+            for (int j = 0; j < (*cluster_vector)[i].add_stripe_vector.size(); j++)
+            {
+                // Stripe stripe = (*cluster_vector)[i].add_stripe_vector[j];
+                // myfile << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
+
+                // if (power_stripe_resource_length >= 0 && !isLimitResource)
+                // {
+                //     float stripe_width = abs(stof(stripe.start_x_location) - stof(stripe.end_x_location));
+                //     if (isLimitResource)
+                //     {
+                //         power_stripe_resource_length -= stripe_width;
+                //     }
+                //     add_stripe_file << "addStripe -nets { VDDX } -layer "
+                //                     << stripe.layer
+                //                     << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
+                //     float single_power_stripe_resource = stripe_width * stof(POWER_STRIPE_RESOURCE_WIDTH);
+                //     metal_resource += single_power_stripe_resource;
+                // }
+
+                Stripe stripe = (*cluster_vector)[i].add_stripe_vector[j];
+                myfile << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << endl;
                 add_stripe_file << "addStripe -nets { VDDX } -layer "
                                 << stripe.layer
                                 << " -direction horizontal -width " << stripe.width << " -set_to_set_distance 12.88 -number_of_sets 1  -area { " << stripe.start_x_location << " " << stripe.start_y_location << " " << stripe.end_x_location << " " << stripe.end_y_location << " }" << endl;
-                float single_power_stripe_resource = stripe_width * stof(POWER_STRIPE_RESOURCE_WIDTH);
-                metal_resource += single_power_stripe_resource;
+                float metal_resource = caculateStripeResource(&stripe);
+                float total_track_metal_resource = (*track_info_map)[M4].total_track_length;
+                total_metal_resource += metal_resource;
+                float resource_percent = total_metal_resource / total_track_metal_resource;
+                if ((resource_percent * 100) >= METAL_RESOURCE_LIMIT_PERCENT)
+                {
+                    myfile << "M3 metal resource : " << (*track_info_map)[M3].occupy_resource_percent << endl;
+                    myfile << "M4 metal resource : " << (resource_percent * 100) << "%" << endl;
+                    break;
+                }
             }
         }
         myfile << " ================== " << endl;
         myfile << " ------------------------------ " << endl;
     };
-    myfile << "add power stripe metal using resource : " << metal_resource << endl;
+    // myfile << "add power stripe metal using resource : " << metal_resource << endl;
 
     vector<Stripe> stripe_vector = (*vdd_stripe_map)[M3];
     float original_metal_resource = 0;
@@ -850,6 +1171,7 @@ bool isInCluster(Cluster *rcSour, Cluster *rcDest)
 // int innovusPointFloatToInt(float location);
 void generateStripeTrack(vector<Stripe> *stripe_vector, CoreSite *core_site)
 {
+    cout << "generateStripeTrack start  " << endl;
     float m4_track_step = stof(M4_TRACK_STEP);
     int m4_track_step_int = innovusPointFloatToInt(m4_track_step);
     float m4_track_start = stof(M4_TRACK_START);
@@ -880,6 +1202,7 @@ void generateStripeTrack(vector<Stripe> *stripe_vector, CoreSite *core_site)
             (*stripe_vector)[i].m4_track_point_map.insert(pair<string, string>(innovus_point, innovus_point));
         }
     }
+      cout << "generateStripeTrack end : " << endl;
 }
 void setTrackResource(CoreSite *core_site, map<string, float> *track_resource_map)
 {

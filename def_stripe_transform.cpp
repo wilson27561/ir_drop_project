@@ -51,11 +51,14 @@ int main(int argc, char *argv[])
             }
         }
     }
+
+    //============== metal resource 用 ============== 
     // string DEF_FILE = argv[1];
     // string DEF_TRANSFER_FILE = argv[2];
 
     // cout << "DEF_FILE : " << DEF_FILE << endl;
     // cout << "DEF_TRANSFER_FILE : " << DEF_TRANSFER_FILE << endl;
+    //============== metal resource 用 ============== 
 
     ifstream def_file(DEF_FILE);
     string def_content;

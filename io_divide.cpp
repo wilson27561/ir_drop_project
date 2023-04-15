@@ -94,9 +94,9 @@ int main()
     vector<string> io_pin_side_vector;
     CoreSite core_site;
     // 原始 io file 設定
-    string io_file_name = "io/6t49_b19_run88_core55.io";
+    string io_file_name = "io/6t49_aes_88_8_core_70.io";
     // 更改過後 io file 設定
-    string io_file_reorder = "io/6t49run88_b19_average_distribution_core55.io";
+    string io_file_reorder = "io/6t49run88_aes_average_distribution_core70.io";
     // string io_file_reorder_change_pad_side = "io/6t49run88_neuralNetwork_average_distribution_change_power_pad_each_power_pad.io";
     getIoPinInfo(io_file_name, &io_pin_side_vector, &io_pin_side_map);
     // getCoreSite(&core_site);
